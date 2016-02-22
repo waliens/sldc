@@ -4,7 +4,7 @@ __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 from sldc import Image
 from sldc.merger import Merger
-from sldc.tile import TileBuilder
+from sldc.tile import TileBuilder, TileTopologyIterator
 
 
 class SLDCWorkflow(object):
@@ -12,7 +12,9 @@ class SLDCWorkflow(object):
     A workflow for finding objects on large images and computing a class for these objects.
     """
 
-    def __init__(self, segmenter, locator, dispatcher_classifier, tiles_shape=(1024, 1024), boundary_thickness=7):
+    def __init__(self, segmenter, locator, dispatcher_classifier, tile_builder,
+                 tile_max_width=1024, tile_max_height=1024, tile_overlap=5,
+                 boundary_thickness=7):
         """Constructor for SLDCWorkflow objects
 
         Parameters
@@ -23,13 +25,21 @@ class SLDCWorkflow(object):
             The locator to use for the "Locate" step
         dispatcher_classifier: DispatcherClassifier
             The dispatcher classifier to use for the "Dispatch" and "Classify" steps
-        tiles_shape:
-            The shape of the tiles to extract when iterating over the image. Make sure the resulting
-            tiles fit into the machine's memory.
+        tile_builder: TileBuilder
+            An object for building tiles
+        tile_max_width: int, optional (default: 1024)
+            The maximum width of the tiles when iterating over the image
+        tile_max_height: int, optional (default: 1024)
+            The maximum height of the tiles when iterating over the image
+        tile_overlap: int, optional (default: 5)
+            The number of pixels of overlap between tiles when iterating over the image
         boundary_thickness:
             The thickness between of the boundaries between the tiles for merging
         """
-        self._tiles_shape = tiles_shape
+        self._tile_max_width = tile_max_width
+        self._tile_max_height = tile_max_height
+        self._tile_overlap = tile_overlap
+        self._tile_builder = tile_builder
         self._segmenter = segmenter
         self._locator = locator
         self._merger = Merger(boundary_thickness)
@@ -52,11 +62,12 @@ class SLDCWorkflow(object):
         This method doesn't modify the image passed as parameter.
         This method doesn't modify the object's attributes.
         """
-        tile_builder = TileBuilder(image)
-        polygons_tiles = [(tile, self._segment_locate(tile))
-                          for tile in image.tile_iterator(tile_builder,
-                                                          max_width=self._tiles_shape[0],
-                                                          max_height=self._tiles_shape[1])]
+        tile_topology = image.tile_topology(max_width=self._tile_max_width,
+                                            max_height=self._tile_max_height,
+                                            overlap=self._tile_overlap)
+        tile_iterator = TileTopologyIterator(self._tile_builder, tile_topology)
+
+        polygons_tiles = [(tile, self._segment_locate(tile)) for tile in tile_iterator]
         polygons = self._merger.merge(polygons_tiles)
         return [(polygon, self._dispatch_classifier.dispatch_classify(polygon))
                 for polygon in polygons]
