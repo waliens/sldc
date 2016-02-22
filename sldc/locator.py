@@ -24,6 +24,6 @@ class Locator(object):
         -------
         polygons : array of shapely.geometry.Polygon objects
             An array containing the polygons extracted from the segmented image. The reference
-            point (0,0) for the polygons coordinates is the upper-left corner if the image.
+            point (0,0) for the polygons coordinates is the upper-left corner of the initial image.
         """
         pass
