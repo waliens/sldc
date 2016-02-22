@@ -2,9 +2,8 @@
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
-from sldc import Image
-from sldc.merger import Merger
-from sldc.tile import TileBuilder, TileTopologyIterator
+from image import Image, TileBuilder, TileTopologyIterator
+from merger import Merger
 
 
 class SLDCWorkflow(object):
