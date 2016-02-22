@@ -251,6 +251,36 @@ class TileTopology(object):
         offset_y = 0 if row == 0 else self._max_height - (row - 1) * self._overlap
         return offset_x, offset_y
 
+    def tile_neighbours(self, identifier):
+        """Return the identifiers of the tiles round a given tile
+
+        Parameters
+        ----------
+        identifier: int
+            The tile identifier
+
+        Returns
+        -------
+        neighbours: tuple
+            A four-element tuple containing the identifiers of the neighbours tiles. If a neighbour tile doesn't exist
+            None is returned instead of the identifier. The tuple is structured as follows (top, bottom, left, right).
+        """
+        self._check_identifier(identifier)
+        tile_count = self.tile_count
+        h_tile_count = self.tile_horizontal_count
+        tile_row = self._tile_coord(identifier)[0]
+        top = (identifier - h_tile_count) if (identifier - h_tile_count) >= 1 else None
+        bottom = (identifier + h_tile_count) if (identifier + h_tile_count) <= tile_count else None
+        left = identifier - 1 if identifier > 1 else None
+        # check whether the tile is on an edge. In this case no left tile.
+        if left is not None and self._tile_coord(left)[0] != tile_row:
+            left = None
+        right = identifier + 1 if identifier < tile_count else None
+        # check whether the tile is on an edge. In this case no left tile.
+        if right is not None and self._tile_coord(right)[0] != tile_row:
+            right = None
+        return top, bottom, left, right
+
     def _check_identifier(self, identifier):
         """Check whether the identifiers is valid for the given topology.
 
@@ -285,7 +315,7 @@ class TileTopology(object):
         -----
         Rows and columns identifiers start at 0
         """
-        id_start_at_0 = identifier
+        id_start_at_0 = identifier - 1
         return (id_start_at_0 // self.tile_vertical_count), (id_start_at_0 % self.tile_horizontal_count)
 
     @property
