@@ -13,6 +13,7 @@ class Graph(object):
     """
     def __init__(self):
         self.nodes = []
+        self.node2idx = {}
         self.edges = {}
 
     def add_node(self, value):
@@ -21,6 +22,7 @@ class Graph(object):
         :return:
         """
         self.nodes.append(value)
+        self.node2idx[value] = len(self.nodes) - 1
         return len(self.nodes) - 1
 
     def add_edge(self, source, destination):
@@ -40,15 +42,16 @@ class Graph(object):
         """
         visited = [False]*len(self.nodes)
         components = []
-        stack = []
-        for node in range(len(self.nodes)):
+        stack = []  # store index of reachable nodes
+        for node in self.node2idx.keys():
             current_comp = []
             stack.append(node)
             while len(stack) > 0:
                 current_node = stack.pop()
-                if visited[current_node]:
+                curr_idx = self.node2idx[current_node]
+                if visited[curr_idx]:
                     continue
-                visited[current_node] = True
+                visited[curr_idx] = True
                 current_comp.append(current_node)
                 map(stack.append, self.edges.get(current_node, []))
             if len(current_comp) > 0:
@@ -90,7 +93,7 @@ class Merger(object):
         polygons: array
             An array of polygons objects containing the merged polygons
         """
-        polygons_dict, tiles_dict = Merger._build_dicts(polygons_tiles)
+        tiles_dict, polygons_dict = Merger._build_dicts(polygons_tiles)
         geom_graph = Graph()  # stores the polygons indexes as nodes
         # add polygons
         for index in polygons_dict.keys():
@@ -135,6 +138,11 @@ class Merger(object):
             Dictionary mapping polygon identifiers with actual shapely polygons objects
         geom_graph: Graph
             The graph in which were registered the polygons to be merged
+
+        Returns
+        -------
+        polygons: array
+            An array of polygons objects containing the merged polygons
         """
         components = geom_graph.connex_components()
         dilation_dist = self._boundary_thickness
