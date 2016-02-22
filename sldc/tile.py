@@ -88,6 +88,10 @@ class Tile(Image):
     def identifier(self):
         return self._identifier
 
+    @identifier.setter
+    def identifier(self, value):
+        self._identifier = value
+
     @abstractmethod
     def get_numpy_repr(self):
         """Return a numpy representation of the tile
@@ -224,7 +228,9 @@ class TileTopology(object):
         """
         self._check_identifier(identifier)
         offset = self.tile_offset(identifier)
-        return self._image.tile(tile_builder, offset, self._max_width, self._max_height)
+        tile = self._image.tile(tile_builder, offset, self._max_width, self._max_height)
+        tile.identifier = identifier
+        return tile
 
     def tile_offset(self, identifier):
         """Return the offset of the given tile
