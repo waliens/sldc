@@ -370,8 +370,8 @@ class TileTopology(object):
         """
         self._check_identifier(identifier)
         row, col = self._tile_coord(identifier)
-        offset_x = 0 if col == 0 else self._max_width - (col - 1) * self._overlap
-        offset_y = 0 if row == 0 else self._max_height - (row - 1) * self._overlap
+        offset_x = 0 if col == 0 else col * (self._max_width - self._overlap)
+        offset_y = 0 if row == 0 else row * (self._max_height - self._overlap)
         return offset_x, offset_y
 
     def tile_neighbours(self, identifier):
@@ -439,7 +439,7 @@ class TileTopology(object):
         Rows and columns identifiers start at 0
         """
         id_start_at_0 = identifier - 1
-        return (id_start_at_0 // self.tile_vertical_count), (id_start_at_0 % self.tile_horizontal_count)
+        return (id_start_at_0 // self.tile_horizontal_count), (id_start_at_0 % self.tile_horizontal_count)
 
     @property
     def tile_count(self):
@@ -460,7 +460,7 @@ class TileTopology(object):
         tile_count: int
             The number of tiles that fits vertically on the image
         """
-        return TileTopology.tile_count_1d(self._image.heigth, self._max_height, self._overlap)
+        return TileTopology.tile_count_1d(self._image.height, self._max_height, self._overlap)
 
     @property
     def tile_horizontal_count(self):
