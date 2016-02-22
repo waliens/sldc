@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
-
+import math
 from abc import ABCMeta, abstractmethod
 from image import Image
+
+__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 
 class Tile(Image):
@@ -14,7 +15,7 @@ class Tile(Image):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, parent, offset, width, height):
+    def __init__(self, parent, offset, width, height, tile_identifier=None):
         """Constructor for Tile objects
 
         Parameters
@@ -28,6 +29,8 @@ class Tile(Image):
             The width of the tile
         height: int
             The height of the tile
+        tile_identifier: int, optional (default: None)
+            A integer identifier that identifies uniquely the tile among a set of tiles
 
         Notes
         -----
@@ -37,6 +40,7 @@ class Tile(Image):
         self._offset = offset
         self._width = width
         self._height = height
+        self._identifier = tile_identifier
 
     @property
     def offset_x(self):
@@ -80,6 +84,10 @@ class Tile(Image):
     def width(self):
         return self._width
 
+    @property
+    def identifier(self):
+        return self._identifier
+
     @abstractmethod
     def get_numpy_repr(self):
         """Return a numpy representation of the tile
@@ -97,39 +105,22 @@ class TileBuilder(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, image=None):
-        """Constructor for TileBuilder
-        Parameters
-        ----------
-        image: Image, optional (default: None)
-            The image for which tiles should be built
-        Notes
-        -----
-        For the builder to work properly, the image field MUST be set but
-        the operation can be deferred and performed using the image setter.
-        Calling builder.build() without setting the image will cause an error.
-        """
-        self._image = image
-
-    @property
-    def image(self):
-        return self._image
-
-    @image.setter
-    def image(self, image):
-        self._image = image
-
-    def build(self, offset, width, height):
+    @abstractmethod
+    def build(self, image, offset, width, height):
         """Build and return a tile object
 
         Parameters
         ----------
+        image: Image
+            The image from which the tile is extracted
         offset: (int, int)
             The (x, y) coordinates of the pixel at the origin point of the slide in the parent image
         width: int
-            The width of the tile
+            The exact width of the tile
+            /!\ The resulting tile must not overflow the image
         height: int
-            The height of the tile
+            The exact height of the tile
+            /!\ The resulting tile must not overflow the image
 
         Returns
         -------
@@ -144,121 +135,201 @@ class TileBuilder(object):
         -----
         The coordinates origin is the leftmost pixel at the top of the slide
         """
-        if self._image is None:
-            raise TypeError("Reference 'image' is set to None.")
-        return self._get_instance(offset, width, height)
-
-    @abstractmethod
-    def _get_instance(self, offset, width, height):
-        """Build and return a tile object
-
-        Parameters
-        ----------
-        offset: (int, int)
-            The (x, y) coordinates of the pixel at the origin point of the slide in the parent image
-        width: int
-            The width of the tile
-        height: int
-            The height of the tile
-
-        Returns
-        -------
-        tile: Tile
-            The built tile object
-        """
         pass
 
 
-# TODO implement iterating with overlap of tiles
-class TilesIterator(object):
+class TileTopologyIterator(object):
     """
     An object to iterate over an image tile per tile
     """
 
-    def __init__(self, builder, max_width=1024, max_height=1024):
+    def __init__(self, builder, tile_topology):
         """Constructor for TilesIterator objects
 
         Parameters
         ----------
         builder: TileBuilder
             The builder to user for actually constructing the tiles while iterating over the image
-        max_width: int, optional (default: 1024)
-            The maximum width of the tile
-        max_height: int, optional (default: 1024)
-            The maximum height of the tile
+        tile_topology: TileTopology
+            The topology on which must iterate the iterator
 
         Notes
         -----
         Some tiles might actually be smaller than (max_width, max_height) on the edges of the image
         """
         self._builder = builder
-        self._max_width = max_width
-        self._max_height = max_height
-        self._curr_offset = (0, 0)
+        self._topology = tile_topology
 
     def __iter__(self):
-        while self._is_valid_offset(self._curr_offset):
-            offset = self._curr_offset
-            image = self._builder.image
-            width = min(image.width - offset[0], self._max_width)
-            height = min(image.height - offset[1], self._max_height)
-            yield self._builder.build(offset, width, height)
-            self._curr_offset = self._next_offset(offset)
+        for tile_identifier in range(1, self._topology.tile_count + 1):
+            yield self._topology.tile(tile_identifier, self._builder)
 
-    def _is_valid_offset(self, offset):
-        """Check whether the given offset fits withing the image
-        Returns
-        -------
-        last: bool
-            True if the offset fits, False otherwise
-        """
-        image = self._builder.image
-        return offset[0] < image.width and offset[1] < image.height
 
-    def _is_last_offset_col(self, offset):
-        """Check whether the given offset yields the last tile on this image tile row
-        Returns
-        -------
-        last: bool
-            True if the tile is the last on its image row of tiles, False otherwise
-        """
-        return offset[0] + self._max_width > self._builder.image.width
+class TileTopology(object):
+    """
+    A tile topology is an object storing information about a set of tiles of given dimensions and overlapping that
+    fully covers an image. These parameters (image width and height, tile width and height and overlap) fully define
+    the topology.
 
-    def _is_offset_last_row(self, offset):
-        """Check whether the given offset yields the last tile on this image tile column
-        Returns
-        -------
-        last: bool
-            True if the tile is the last on its image column of tiles, False otherwise
-        """
-        return offset[1] + self._max_height > self._builder.image.height
+    The tile topology defines a bijection between the tiles and the integers. The tile generated by the topology are
+    therefore associated identifiers matching this bijection. Given 'v', the number of vertical tiles and 'h', the
+    number of horizontal tiles :
+        - tile 1 is the upper-left tile
+        - tile h is the upper-right tile
+        - tile (h * (v - 1) + 1) is the lower-left tile
+        - tile (v * h) is the lower-right tile
 
-    def _next_offset(self, offset):
-        """Compute the next offset for iterating row by row through the image
+    The implementation is aimed at being memory efficient by computing everything on-the-fly for avoiding storing heavy
+    data structures. Also, methods that compute topology properties (such as finding the neighbour tiles, finding the
+    total number of tiles...) are implemented as efficiently as possible (in general, O(1)).
+    """
+
+    def __init__(self, image, max_width=1024, max_height=1024, overlap=0):
+        """Constructor for TileTopology objects
+
         Parameters
         ----------
-        offset: (int, int)
-            The current offset
-        Returns
-        -------
-        next_offset: (int, int)
-            The next offset
+        image: Image
+            The image for which the topology must be built
+        max_width: int, optional (default: 1024)
+            The maximum width of the tiles
+        max_height: int, optional (default: 1024)
+            The maximum height of the tiles
+        overlap: int, optional (default: 0)
+            The number of pixels of overlapping between neighbouring tiles
+
         Notes
         -----
-        The function make sure that an offset of which the column is out of bound is never returned.
-        However, it returns an offset of which the row is out of bound when the given offset is the
-        last in the image.
+        Some tiles might actually be smaller than (max_width, max_height) on the edges of the image.
+        The same goes if the image's dimensions are smaller than (max_width, max_height).
         """
-        if self._is_last_offset_col(offset):
-            return 0, (offset[1] + self._max_height)
-        return offset[0] + self._max_width, offset[1]
+        self._image = image
+        self._max_width = max_width
+        self._max_height = max_height
+        self._overlap = overlap
 
-    @staticmethod
-    def _start_offset():
-        """Return first offset
+    def tile(self, identifier, tile_builder):
+        """Extract and build the tile corresponding to the given identifier.
+
+        Parameters
+        ----------
+        identifier: int
+            A tile identifier
+        tile_builder : TileBuilder
+            A builder for building a Tile object from the extracted tile
+        Returns
+        -------
+        tile: Tile
+            The tile object
+        """
+        self._check_identifier(identifier)
+        offset = self.tile_offset(identifier)
+        return self._image.tile(tile_builder, offset, self._max_width, self._max_height)
+
+    def tile_offset(self, identifier):
+        """Return the offset of the given tile
+
+        Parameters
+        ----------
+        identifier: int
+            A tile identifier
+
         Returns
         -------
         offset: (int, int)
-            The offset on which the iterator must start. The tuple is ordered as follows : (x, y).
+            The (x, y) coordinates of the pixel at the origin point of the tile in the parent image
         """
-        return 0, 0
+        self._check_identifier(identifier)
+        row, col = self._tile_coord(identifier)
+        offset_x = 0 if col == 0 else self._max_width - (col - 1) * self._overlap
+        offset_y = 0 if row == 0 else self._max_height - (row - 1) * self._overlap
+        return offset_x, offset_y
+
+    def _check_identifier(self, identifier):
+        """Check whether the identifiers is valid for the given topology.
+
+        Parameters
+        ----------
+        identifier: int
+            A tile identifier
+
+        Raises
+        ------
+        ValueError: if the identifier is out of range
+        """
+        tile_count = self.tile_count
+        if identifier > tile_count:
+            raise ValueError("The value {} is an invalid tile identifier. Maximum identifier is {}.".format(identifier,
+                                                                                                            tile_count))
+
+    def _tile_coord(self, identifier):
+        """Compute the row and column of the tile in the tile grid
+
+        Parameters
+        ----------
+        identifier: int
+            The tile identifier (starting at 1)
+
+        Returns
+        -------
+        tile_coord: (int, int)
+            Coordinates of the tile in the tile grid/topology. Coordinates tuple is structured as (row, col).
+
+        Notes
+        -----
+        Rows and columns identifiers start at 0
+        """
+        id_start_at_0 = identifier
+        return (id_start_at_0 // self.tile_vertical_count), (id_start_at_0 % self.tile_horizontal_count)
+
+    @property
+    def tile_count(self):
+        """Compute the total number of tiles in the given topology.
+
+        Returns
+        -------
+        tile_count: int
+            The number of tiles
+        """
+        return self.tile_vertical_count * self.tile_horizontal_count
+
+    @property
+    def tile_vertical_count(self):
+        """Compute the number of tiles that fits on the vertical dimension of the image
+        Returns
+        -------
+        tile_count: int
+            The number of tiles that fits vertically on the image
+        """
+        return TileTopology.tile_count_1d(self._image.heigth, self._max_height, self._overlap)
+
+    @property
+    def tile_horizontal_count(self):
+        """Compute the number of tiles that fits on the horizontal dimension of the image
+        Returns
+        -------
+        tile_count: int
+            The number of tiles that fits horizontally on the image
+        """
+        return TileTopology.tile_count_1d(self._image.width, self._max_width, self._overlap)
+
+    @staticmethod
+    def tile_count_1d(length, tile_length, overlap=0):
+        """Compute the number of tiles of length 'tile_length' that can be generated over one dimension of the an image
+        of length 'length' and with an overlap of 'overlap'.
+
+        Parameters
+        ----------
+        length: int
+            The number of pixels of one dimension of the image
+        tile_length: int
+            The number of pixels of a tile for the same dimension
+        overlap: int
+            The number of pixels that overlap between the tiles
+
+        Returns
+        -------
+        tile_count: int
+            The number of tile that fits in the image dimension given the tile_width and overlap constraints
+        """
+        return 1 if length < tile_length else int(math.ceil(float(length - overlap) / (tile_length - overlap)))
