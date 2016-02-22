@@ -169,3 +169,11 @@ class TestOverflowingTopology(TestCase):
         self.assertEqual(200, tile.offset_y, "Topology, tile 6 : y offset")
         self.assertEqual(200, tile.width, "Topology, tile 6 : width")
         self.assertEqual(250, tile.height, "Topology, tile 6 : height")
+
+        # neighbours
+        self.assertEqual(topology.tile_neighbours(1), (None, 4, None, 2))
+        self.assertEqual(topology.tile_neighbours(2), (None, 5, 1, 3))
+        self.assertEqual(topology.tile_neighbours(3), (None, 6, 2, None))
+        self.assertEqual(topology.tile_neighbours(4), (1, None, None, 5))
+        self.assertEqual(topology.tile_neighbours(5), (2, None, 4, 6))
+        self.assertEqual(topology.tile_neighbours(6), (3, None, 5, None))
