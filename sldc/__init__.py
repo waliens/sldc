@@ -3,7 +3,7 @@
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 from image import Image
-from tile import Tile, TileBuilder, TilesIterator
+from tile import Tile, TileBuilder, TileTopologyIterator
 from locator import Locator
 from segmenter import Segmenter
 from dispatcher import DispatchingRule, DispatcherClassifier
