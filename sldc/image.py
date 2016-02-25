@@ -43,6 +43,21 @@ class Image(object):
         """
         pass
 
+    @abstractmethod
+    def window(self, offset, max_width, max_height):
+        """Build an image object represeting an window of the image
+
+        Parameters
+        ----------
+        offset: (int, int)
+            The (x, y) coordinates of the pixel at the origin point of the window in the parent image
+        max_width:
+            The maximum width of the window
+        max_height:
+            The maximum height of the window
+        """
+        pass
+
     def tile(self, tile_builder, offset, max_width, max_height):
         """Extract a tile from the image
 
