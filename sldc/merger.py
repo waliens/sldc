@@ -94,7 +94,11 @@ class Merger(object):
             An array of polygons objects containing the merged polygons
         """
         tiles_dict, polygons_dict = Merger._build_dicts(polygons_tiles)
-        geom_graph = Graph()  # stores the polygons indexes as nodes
+        # no polygons
+        if len(polygons_dict) <= 0:
+            return []
+        # stores the polygons indexes as nodes
+        geom_graph = Graph()
         # add polygons
         for index in polygons_dict.keys():
             geom_graph.add_node(index)
