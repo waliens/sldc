@@ -12,4 +12,4 @@ from errors import ImageExtractionError, TileExtractionError
 
 __all__ = ["Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SLDCWorkflow", "Image", "Tile",
            "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionError",
-           "TileExtractionError"]
+           "TileExtractionError", "ImageWindow"]
