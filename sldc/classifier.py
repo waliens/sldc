@@ -12,11 +12,13 @@ class PolygonClassifier(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def predict(self, polygon):
+    def predict(self, image, polygon):
         """Predict the class associated with the given polygon
 
         Parameters
         ----------
+        image: Image
+            The image to which belongs the polygon
         polygon: shapely.geometry.Polygon
             The polygon of which the class must be predicted
 

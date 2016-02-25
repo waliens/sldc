@@ -53,12 +53,14 @@ class DispatcherClassifier(object):
         self._classifiers = classifiers
         self._fail_callback = fail_callback if fail_callback is not None else (lambda x: None)
 
-    def dispatch_classify(self, polygon):
+    def dispatch_classify(self, image, polygon):
         """Dispatch the polygon to its corresponding classifier according to the dispatching rules,
         then compute and return the associated prediction.
 
         Parameters
         ----------
+        image: Image
+            The image to which belongs the polygon
         polygon: shapely.geometry.Polygon
             The polygon of which the class must be predicted
 
@@ -70,7 +72,7 @@ class DispatcherClassifier(object):
             by the fail callback for the given polygon. Especially, if no fail callback was registered,
             None is returned.
         """
-        for i, rule in enumerate(self._predicates):
+        for rule, classifier in zip(self._predicates, self._classifiers):
             if rule.evaluate(polygon):
-                return self._classifiers[i].predict(polygon)
+                return classifier.predict(image, polygon)
         return self._fail_callback(polygon)
