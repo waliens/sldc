@@ -9,7 +9,8 @@ __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 class Image(object):
     """
-    Abstract representation of an image
+    Abstract representation of an image.
+    Construction of an image object can raise an ImageExtractionError exception.
     """
     __metaclass__ = ABCMeta
 
@@ -80,6 +81,7 @@ class Image(object):
         Raises
         ------
         IndexError: if the offset is not inside the image
+        TileExtractionError: if the tile cannot be extracted
         """
         if not self._check_tile_offset(offset):
             raise IndexError("Offset {} is out of the image.".format(offset))
@@ -237,6 +239,10 @@ class Tile(Image):
         -------
         numpy_repr: array-like, shape = [width, heigth{, channels}]
             The array-like representation of the tile image.
+
+        Raises
+        ------
+        TileExtractionError: when the tile cannot be extracted (and so is its representation)
         """
         pass
 
@@ -272,6 +278,7 @@ class TileBuilder(object):
         Errors
         ------
         TypeError: when the reference image is not set
+        TileExtractionImage: when the tile cannot be extracted
 
         Notes
         -----
