@@ -4,6 +4,8 @@
 import math
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+from sldc.errors import TileExtractionError
+
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 
@@ -146,31 +148,22 @@ class Image(object):
         return 0 <= offset[0] < self.width and 0 <= offset[1] < self.height
 
 
+class ImageWindow(Image):
 
-class Tile(Image):
-    """
-    Abstract representation of an image's tile
-    A tile is an image extracted from a bigger image
-    """
-
-    __metaclass__ = ABCMeta
-
-    def __init__(self, parent, offset, width, height, tile_identifier=None):
-        """Constructor for Tile objects
+    def __init__(self, parent, offset, width, height):
+        """Constructor for ImageWindow objects
 
         Parameters
         ----------
         parent: Image
-            The image from which is extracted the tile
+            The image from which is extracted the image
         offset: (int, int)
             The x and y coordinates of the pixel at the origin point of the slide in the parent image.
             Coordinates order is the following : (x, y).
         width: int
-            The width of the tile
+            The width of the image
         height: int
-            The height of the tile
-        tile_identifier: int, optional (default: None)
-            A integer identifier that identifies uniquely the tile among a set of tiles
+            The height of the image
 
         Notes
         -----
@@ -180,7 +173,6 @@ class Tile(Image):
         self._offset = offset
         self._width = width
         self._height = height
-        self._identifier = tile_identifier
 
     @property
     def offset_x(self):
@@ -223,6 +215,47 @@ class Tile(Image):
     @property
     def width(self):
         return self._width
+
+    def window(self, offset, max_width, max_height):
+        offset_x = offset[0] + self._offset[0]
+        offset_y = offset[1] + self._offset[1]
+        final_offset = (offset_x, offset_y)
+        # width are bound to the current window size, not the parent one
+        width = min(max_width, self.width - offset[0])
+        height = min(max_height, self.height - offset[1])
+        return ImageWindow(self._parent, final_offset, width, height)
+
+
+class Tile(ImageWindow):
+    """
+    Abstract representation of an image's tile
+    A tile is an image extracted from a bigger image
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self, parent, offset, width, height, tile_identifier=None):
+        """Constructor for Tile objects
+
+        Parameters
+        ----------
+        parent: Image
+            The image from which is extracted the tile
+        offset: (int, int)
+            The x and y coordinates of the pixel at the origin point of the slide in the parent image.
+            Coordinates order is the following : (x, y).
+        width: int
+            The width of the tile
+        height: int
+            The height of the tile
+        tile_identifier: int, optional (default: None)
+            A integer identifier that identifies uniquely the tile among a set of tiles
+
+        Notes
+        -----
+        The coordinates origin is the leftmost pixel at the top of the slide
+        """
+        ImageWindow.__init__(self, parent, offset, width, height)
+        self._identifier = tile_identifier
 
     @property
     def identifier(self):
@@ -292,7 +325,7 @@ class TileTopologyIterator(object):
     An object to iterate over an image tile per tile
     """
 
-    def __init__(self, builder, tile_topology):
+    def __init__(self, builder, tile_topology, skip_on_error=False):
         """Constructor for TilesIterator objects
 
         Parameters
@@ -308,10 +341,15 @@ class TileTopologyIterator(object):
         """
         self._builder = builder
         self._topology = tile_topology
+        self._skip_on_error = skip_on_error
 
     def __iter__(self):
         for tile_identifier in range(1, self._topology.tile_count + 1):
-            yield self._topology.tile(tile_identifier, self._builder)
+            try:
+                yield self._topology.tile(tile_identifier, self._builder)
+            except TileExtractionError:
+                if self._skip_on_error:
+                    continue
 
 
 class TileTopology(object):
