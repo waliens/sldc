@@ -44,7 +44,9 @@ class PostProcessor(object):
     """
     A post processor is a class encapsulating the processing of the results of several SLDCWorkflow
     """
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
     def post_process(self, image, polygons_classes):
         """Actually process the results
 
@@ -110,7 +112,7 @@ class WorkflowChain(object):
         """
         Execute the processing
         """
-        images = self._image_provider.get_image()
+        images = self._image_provider.get_images()
 
         for image in images:
             self._process_image(image)
@@ -125,14 +127,14 @@ class WorkflowChain(object):
         """
         polygons_classes = list()
         prev = self._first_workflow.process(image)
-        polygons_classes.append(prev)
+        polygons_classes.extend(prev)
 
         for workflow, linker in zip(self._workflows, self._linkers):
             sub_images = linker.get_images(image, prev)
             curr = list()
             for sub_image in sub_images:
                 curr.append(workflow.process(sub_image))
-            polygons_classes.append(curr)
+            polygons_classes.extend(curr)
             prev = curr
 
         self._post_processor.post_process(image, polygons_classes)

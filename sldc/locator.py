@@ -3,9 +3,42 @@
 import cv2
 from abc import ABCMeta, abstractmethod
 from shapely.geometry import Polygon
-from shapely.affinity import affine_transform
+from shapely.affinity import affine_transform as aff_transfo
+from functools import partial
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
+
+
+def affine_transform(xx_coef=1, xy_coef=0, yx_coef=0, yy_coef=1,
+                     delta_x=0, delta_y=0):
+    """
+    Represents a 2D affine trasnformation:
+
+    x' = xx_coef * x + xy_coef * y + delta_x
+    y' = yx_coef * x + yy_coef * y + delta_y
+
+    Constructor parameters
+    ----------------------
+    xx_coef : float (default : 1)
+        The x from x coefficient
+    xy_coef : float (default : 0)
+        The x from y coefficient
+    yx_coef : float (default : 0)
+        The y from x coefficient
+    yy_coef : float (default : 1)
+        The y from y coefficient
+    delta_x : float (default : 0)
+        The translation over x-axis
+    delta_y : float (default : 0)
+        The translation over y-axis
+
+    Return
+    ------
+    affine_transformer : callable: :class:`Shapely.Geometry` => :class:`Shapely.Geometry`
+        The function representing the 2D affine transformation
+    """
+    return partial(aff_transfo, matrix=[xx_coef, xy_coef, yx_coef, yy_coef,
+                                        delta_x, delta_y])
 
 
 class Locator(object):
