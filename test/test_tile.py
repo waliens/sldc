@@ -28,6 +28,24 @@ class TestTileFromImage(TestCase):
         self.assertEqual(100, tile.height, "Both overflowing tile from image : height")
 
 
+class TestSingleTileTopology(TestCase):
+    def testSingleTileTopology(self):
+        fake_builder = FakeTileBuilder()
+        fake_image = FakeImage(700, 700, 3)
+        topology = fake_image.tile_topology(700, 700, 100)
+
+        # topology metrics
+        self.assertEqual(1, topology.tile_count, "Topology : tile count")
+        self.assertEqual(1, topology.tile_horizontal_count, "Topology : tile horizontal count")
+        self.assertEqual(1, topology.tile_vertical_count, "Topology : tile vertical count")
+
+        tile = topology.tile(1, fake_builder)
+        self.assertEqual(0, tile.offset_x, "Tile from image : x offset")
+        self.assertEqual(0, tile.offset_y, "Tile from image : y offset")
+        self.assertEqual(700, tile.width, "Tile from image : width")
+        self.assertEqual(700, tile.height, "Tile from image : height")
+
+
 class TestFittingTileTopology(TestCase):
     def testFittingTileTopology(self):
         fake_builder = FakeTileBuilder()

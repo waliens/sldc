@@ -4,6 +4,78 @@ from shapely.geometry import Polygon
 from sldc.merger import Merger
 
 
+class TestMergerNoPolygon(TestCase):
+    def test_merge(self):
+        fake_image = FakeImage(11, 8, 3)
+        fake_builder = FakeTileBuilder()
+        topology = fake_image.tile_topology(5, 5, 1)
+
+        tile1 = topology.tile(1, fake_builder)
+        tile2 = topology.tile(2, fake_builder)
+        tile3 = topology.tile(3, fake_builder)
+        tile4 = topology.tile(4, fake_builder)
+
+        #    0    5    10 (col)
+        #  0 +---------+
+        #    |    |    |
+        #    |    |    |
+        #    |    |    |
+        #  4 |----+----+
+        #    |    |    |
+        #    |    |    |
+        #  7 +----G----H
+        # (row)
+        polygons_tiles = [(tile1, []),
+                          (tile2, []),
+                          (tile3, []),
+                          (tile4, [])]
+
+        merger = Merger(1)
+        polygons = merger.merge(polygons_tiles, topology)
+        self.assertEqual(len(polygons), 0, "Number of found polygon")
+
+
+class TestMergerSingleTil(TestCase):
+    def test_merge(self):
+        fake_image = FakeImage(11, 8, 3)
+        fake_builder = FakeTileBuilder()
+        topology = fake_image.tile_topology(11, 8, 1)
+
+        tile1 = topology.tile(1, fake_builder)
+
+        #    0    5    10 (col)
+        #  0 +---------+
+        #    | A--B    |
+        #    | |  |    |
+        #    | C--D    |
+        #  4 |         |
+        #    |    E----F
+        #    |    |    |
+        #  7 +----G----H
+        # (row)
+
+        A = (1, 2)
+        B = (1, 5)
+        C = (3, 1)
+        D = (2, 5)
+
+        E = (5, 5)
+        F = (5, 10)
+        G = (7, 5)
+        H = (7, 10)
+
+        ABCD = Polygon([A, B, D, C, A])
+        EFGH = Polygon([E, F, H, G, E])
+
+        polygons_tiles = [(tile1, [ABCD, EFGH])]
+
+        merger = Merger(1)
+        polygons = merger.merge(polygons_tiles, topology)
+        self.assertEqual(len(polygons), 2, "Number of found polygon")
+        self.assertTrue(polygons[0].equals(ABCD), "ABCD polygon")
+        self.assertTrue(polygons[1].equals(EFGH), "EFHG polygon")
+
+
 class TestMergerRectangle(TestCase):
     def test_merge(self):
         fake_image = FakeImage(30, 11, 3)

@@ -1,5 +1,6 @@
 import numpy as np
-from sldc import Image, Tile, TileBuilder
+from sldc import Image, Tile, TileBuilder, ImageWindow
+
 
 class FakeImage(Image):
     """
@@ -23,6 +24,14 @@ class FakeImage(Image):
     def channels(self):
         return self._c
 
+    def window(self, offset, max_width, max_height):
+        offset_x = offset[0]
+        offset_y = offset[1]
+        final_offset = (offset_x, offset_y)
+        # width are bound to the current window size, not the parent one
+        width = min(max_width, self.width - offset[0])
+        height = min(max_height, self.height - offset[1])
+        return ImageWindow(self, final_offset, width, height)
 
 class FakeTile(Tile):
     """
