@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
-
 from image import Image, TileBuilder, TileTopologyIterator
 from merger import Merger
+from locator import Locator
+
+__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 
 class SLDCWorkflow(object):
@@ -11,7 +12,7 @@ class SLDCWorkflow(object):
     A workflow for finding objects on large images and computing a class for these objects.
     """
 
-    def __init__(self, segmenter, locator, dispatcher_classifier, tile_builder,
+    def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=5,
                  boundary_thickness=7):
         """Constructor for SLDCWorkflow objects
@@ -20,8 +21,6 @@ class SLDCWorkflow(object):
         ----------
         segmenter: Segmenter
             The segmenter to use for the "Segment" step
-        locator: Locator
-            The locator to use for the "Locate" step
         dispatcher_classifier: DispatcherClassifier
             The dispatcher classifier to use for the "Dispatch" and "Classify" steps
         tile_builder: TileBuilder
@@ -40,7 +39,7 @@ class SLDCWorkflow(object):
         self._tile_overlap = tile_overlap
         self._tile_builder = tile_builder
         self._segmenter = segmenter
-        self._locator = locator
+        self._locator = Locator()
         self._merger = Merger(boundary_thickness)
         self._dispatch_classifier = dispatcher_classifier
 
