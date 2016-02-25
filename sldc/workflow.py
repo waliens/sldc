@@ -72,4 +72,4 @@ class SLDCWorkflow(object):
 
     def _segment_locate(self, tile):
         segmented = self._segmenter.segment(tile.get_numpy_repr())
-        return self._locator.locate(segmented)
+        return self._locator.locate(segmented, offset=tile.offset)
