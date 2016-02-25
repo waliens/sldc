@@ -46,7 +46,6 @@ class Image(object):
         """
         pass
 
-    @abstractmethod
     def window(self, offset, max_width, max_height):
         """Build an image object represeting an window of the image
 
@@ -59,7 +58,10 @@ class Image(object):
         max_height:
             The maximum height of the window
         """
-        pass
+        # width are bound to the current window size, not the parent one
+        width = min(max_width, self.width - offset[0])
+        height = min(max_height, self.height - offset[1])
+        return ImageWindow(self, offset, width, height)
 
     def tile(self, tile_builder, offset, max_width, max_height):
         """Extract a tile from the image
@@ -217,13 +219,14 @@ class ImageWindow(Image):
         return self._width
 
     def window(self, offset, max_width, max_height):
+        # translate offset so that it is expressed in parent image coordinates system
         offset_x = offset[0] + self._offset[0]
         offset_y = offset[1] + self._offset[1]
         final_offset = (offset_x, offset_y)
-        # width are bound to the current window size, not the parent one
+        # clamp image to current window
         width = min(max_width, self.width - offset[0])
         height = min(max_height, self.height - offset[1])
-        return ImageWindow(self._parent, final_offset, width, height)
+        return self._parent.window(final_offset, width, height)
 
 
 class Tile(ImageWindow):
