@@ -1,28 +1,11 @@
 import numpy as np
 from unittest import TestCase
 
-from PIL.ImageDraw import ImageDraw
-from PIL.Image import fromarray
 from shapely.geometry import Polygon
 from shapely.affinity import translate
 
 from sldc import Locator
-
-
-def mk_gray_img(w,h,level=0):
-    return np.ones((w, h)).astype("uint8") * level
-
-def draw_poly(image, poly, fill=255, edge=255):
-    pil = fromarray(image)
-    drawer = ImageDraw(pil)
-    drawer.polygon(poly.boundary.coords, fill=fill, outline=edge)
-    return np.asarray(pil)
-
-def draw_circle(image, center, radius, fill=255, edge=255):
-    from shapely.geometry import Point
-    polygon = Point(center[0], center[1])
-    polygon = polygon.buffer(radius)
-    return draw_poly(image, polygon, fill=fill, edge=edge), polygon
+from util import mk_gray_img, draw_circle, draw_poly
 
 
 class TestLocatorNothingToLocate(TestCase):
