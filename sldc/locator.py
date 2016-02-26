@@ -72,7 +72,7 @@ class Locator(object):
         # Note: points are represented as (col, row)-tuples apparently
         transform = lambda x:x
         if offset is not None:
-            row_off, col_off = offset
+            col_off, row_off = offset
             transform = affine_transform(delta_x=col_off, delta_y=row_off)
         components = []
         if len(contours) > 0:
