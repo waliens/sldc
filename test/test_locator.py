@@ -37,7 +37,7 @@ class TestLocatorRectangle(TestCase):
 
         # test locate with an offset
         locator2 = Locator()
-        polygons2 = locator.locate(image, offset=(250, 200))
+        polygons2 = locator2.locate(image, offset=(250, 200))
         self.assertEqual(1, len(polygons2), "One polygon found")
         self.assertTrue(translate(ABCD, 250, 200).equals(polygons2[0]), "Found translated polygon")
 
