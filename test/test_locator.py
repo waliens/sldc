@@ -62,6 +62,8 @@ class TestLocatorCircleAndRectangle(TestCase):
         self.assertEqual(2, len(polygons), "Two polygons found")
         self.assertTrue(ABCD.equals(polygons[1]), "Rectangle polygon is found")
 
-        # compute percentage of the area of the circle that is not covered by the area of the found circle
-        error = (circle.union(polygons[0]) - circle.intersection(polygons[0])).area / circle.area
-        self.assertLessEqual(error, 0.005, "Found circle covers well the drawn circle")
+        # use recall and false discovery rate to evaluate the error on the surface
+        tpr = circle.difference(polygons[0]).area / circle.area
+        fdr = polygons[0].difference(circle).area / polygons[0].area
+        self.assertLessEqual(tpr, 0.002, "Recall is low for circle area")
+        self.assertLessEqual(fdr, 0.002, "False discovery rate is low for circle area")

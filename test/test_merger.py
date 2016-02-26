@@ -1,6 +1,7 @@
 from unittest import TestCase
 from fake import FakeTileBuilder, FakeImage
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box, Point
+from shapely.affinity import translate
 from sldc.merger import Merger
 
 
@@ -149,3 +150,46 @@ class TestMergerRectangle(TestCase):
         self.assertTrue(polygons[0].equals(ABCD), "ABCD polygon")
         self.assertTrue(polygons[1].equals(EFHG), "EFHG polygon")
         self.assertTrue(polygons[2].equals(IJLK), "IJLK polygon")
+
+
+class TestMergerBigCircle(TestCase):
+    def testMerger(self):
+        # build chunks for the polygons
+        tile_box = box(0, 0, 512, 256)  # a box having the same dimension as the tile
+        circle = Point(600, 360)
+        circle = circle.buffer(250)
+
+        circle_part1 = tile_box.intersection(circle)
+        circle_part2 = translate(tile_box, xoff=512).intersection(circle)
+        circle_part3 = translate(tile_box, yoff=256).intersection(circle)
+        circle_part4 = translate(tile_box, xoff=512, yoff=256).intersection(circle)
+        circle_part5 = translate(tile_box, yoff=512).intersection(circle)
+        circle_part6 = translate(tile_box, xoff=512, yoff=512).intersection(circle)
+
+        # create topology
+        fake_image = FakeImage(1024, 768, 3)
+        fake_builder = FakeTileBuilder()
+        topology = fake_image.tile_topology(512, 256)
+
+        tile1 = topology.tile(1, fake_builder)
+        tile2 = topology.tile(2, fake_builder)
+        tile3 = topology.tile(3, fake_builder)
+        tile4 = topology.tile(4, fake_builder)
+        tile5 = topology.tile(5, fake_builder)
+        tile6 = topology.tile(6, fake_builder)
+
+        polygons_tiles = [(tile1, [circle_part1]),
+                          (tile2, [circle_part2]),
+                          (tile3, [circle_part3]),
+                          (tile4, [circle_part4]),
+                          (tile5, [circle_part5]),
+                          (tile6, [circle_part6])]
+
+        polygons = Merger(5).merge(polygons_tiles, topology)
+        self.assertEqual(len(polygons), 1, "Number of found polygon")
+
+        # use recall and false discovery rate to evaluate the error on the surface
+        tpr = circle.difference(polygons[0]).area / circle.area
+        fdr = polygons[0].difference(circle).area / polygons[0].area
+        self.assertLessEqual(tpr, 0.002, "Recall is low for circle area")
+        self.assertLessEqual(fdr, 0.002, "False discovery rate is low for circle area")
