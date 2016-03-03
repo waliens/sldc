@@ -24,6 +24,10 @@ class FakeImage(Image):
     def channels(self):
         return self._c
 
+    @property
+    def np_image(self):
+        return np.zeros((self._w,self._h,self._c), "uint8")
+
     def window(self, offset, max_width, max_height):
         offset_x = offset[0]
         offset_y = offset[1]

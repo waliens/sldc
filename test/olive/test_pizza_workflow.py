@@ -2,11 +2,11 @@ from unittest import TestCase
 import numpy as np
 from PIL.Image import fromarray
 from PIL.ImageDraw import ImageDraw
-from pizza_workflow import PizzaWorkflow, ObjectType
-from olive_workflow import OliveWorkflow
 from shapely.geometry import Point
-from image import NumpyImage
-from workflow import PizzaImageProvider, PizzaPostProcessor, PizzaOliveLinker
+from test.olive.pizza_workflow import PizzaWorkflow, ObjectType
+from test.olive.olive_workflow import OliveWorkflow
+from test.olive.workflow import PizzaImageProvider, PizzaPostProcessor, PizzaOliveLinker
+from test.olive.image import NumpyImage
 
 from sldc.chaining import WorkflowChain
 
