@@ -11,8 +11,35 @@ class ImageProvider(object):
     """
     __metaclass__ = ABCMeta
 
+    def __init__(self, silent_fail=False):
+        """Constructs instances of ImageProvider
+
+        Parameters
+        ----------
+        silent_fail: bool
+            True for putting the image provider in silent fail mode. In this situation, when an image cannot be
+            extracted, the provider simply ignore the error and skip the image. Otherwise, when set to False,
+            the provider raises an error when an image extraction fails.
+        """
+        self._silent_fail = silent_fail
+
     @abstractmethod
     def get_images(self):
+        """
+        Return the images to be processed by instances of the workflow
+
+        Returns
+        -------
+        images: array
+            An array of images
+
+        Exceptions
+        ----------
+        ImageExtractionError:
+            Raised when an image cannot be extracted. This error is never raised when the image provider is in
+            silent_fail mode. In this situation, the provider fetches as many images as possible and returns only the
+            successfully fetched images in the array.
+        """
         pass
 
 
@@ -133,7 +160,7 @@ class WorkflowChain(object):
             sub_images = linker.get_images(image, prev)
             curr = list()
             for sub_image in sub_images:
-                curr.append(workflow.process(sub_image))
+                curr.extend(workflow.process(sub_image))
             polygons_classes.extend(curr)
             prev = curr
 
