@@ -46,6 +46,22 @@ class Image(object):
         """
         pass
 
+    @abstractproperty
+    def np_image(self):
+        """Return a numpy representation of the image
+
+        Returns
+        -------
+        np_image: array-like
+            A number representation of the image
+
+        Notes
+        -----
+        This property should be used carefully as it will load the whole image into memory.
+        Therefore, it shouldn't be used with very big images.
+        """
+        pass
+
     def window(self, offset, max_width, max_height):
         """Build an image object represeting an window of the image
 
@@ -151,7 +167,6 @@ class Image(object):
 
 
 class ImageWindow(Image):
-
     def __init__(self, parent, offset, width, height):
         """Constructor for ImageWindow objects
 
@@ -217,6 +232,14 @@ class ImageWindow(Image):
     @property
     def width(self):
         return self._width
+
+    @property
+    def np_image(self):
+        minx = self.offset_x
+        miny = self.offset_y
+        maxx = self.offset_x + self.width
+        maxy = self.offset_y + self.height
+        return self._parent.np_image[minx:maxx, miny:maxy]
 
     def window(self, offset, max_width, max_height):
         # translate offset so that it is expressed in parent image coordinates system
