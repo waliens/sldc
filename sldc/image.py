@@ -55,6 +55,10 @@ class Image(object):
         np_image: array-like
             A number representation of the image
 
+        Raises
+        ------
+        ImageExtractionError: when the image cannot be extracted (and so is its representation)
+
         Notes
         -----
         This property should be used carefully as it will load the whole image into memory.
