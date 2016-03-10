@@ -78,8 +78,8 @@ class SLDCTiming(object):
         durations = np.array(self._durations[code])
         count = durations.shape[0]
         if count == 0:
-            return 0, 0, 0, 0
-        return np.min(durations), np.max(durations), np.mean(durations), count
+            return 0, 0, 0, 0, 0
+        return round(np.sum(durations), 5), round(np.min(durations), 5), round(np.mean(durations), 5), round(np.max(durations), 5), count
 
     def report(self, image, polygons_classes):
         print "========================================"
