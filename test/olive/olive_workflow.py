@@ -65,7 +65,7 @@ class OliveSegmenter(Segmenter):
 
 
 class OliveRule(DispatchingRule):
-    def evaluate(self, polygon):
+    def evaluate(self, image, polygon):
         return 1250 <= polygon.area < 3750
 
 

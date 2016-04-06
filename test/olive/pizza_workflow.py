@@ -48,12 +48,12 @@ class PizzaSegmenter(Segmenter):
 
 
 class SmallPizzaRule(DispatchingRule):
-    def evaluate(self, polygon):
+    def evaluate(self, image, polygon):
         return 125000 <= polygon.area < 200000
 
 
 class BigPizzaRule(DispatchingRule):
-    def evaluate(self, polygon):
+    def evaluate(self, image, polygon):
         return polygon.area >= 200000
 
 
