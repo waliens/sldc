@@ -12,9 +12,9 @@ class PizzaImageProvider(ImageProvider):
 
 
 class PizzaOliveLinker(WorkflowLinker):
-    def get_images(self, image, polygons_classes):
+    def get_images(self, image, workflow_information):
         images = []
-        for polygon, cls in polygons_classes:
+        for polygon, dispatch, cls in workflow_information.polygons_iterator():
             if cls == ObjectType.BIG_RED or cls == ObjectType.BIG_YELLOW:
                 minx, miny, maxx, maxy = polygon.bounds
                 images.append(image.window((int(miny), int(minx)), int(maxx - minx), int(maxy - miny)))
@@ -29,5 +29,5 @@ class PizzaPostProcessor(PostProcessor):
     def results(self):
         return self._results
 
-    def post_process(self, image, polygons_classes):
-        self._results.extend(polygons_classes)
+    def post_process(self, image, workflow_information):
+        self._results.extend(workflow_information)

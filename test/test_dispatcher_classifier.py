@@ -47,10 +47,11 @@ class TestDispatcherClassifier(TestCase):
         dispatcher_classifier = DispatcherClassifier([FakeRule()], [FakeClassifier()])
         range_list = list(range(0, 15))
         returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
-        self.assertEqual(range_list, returned_list)
+        self.assertEqual((range_list, 0), returned_list)
         ranges_list = [list(range(0, 15)), list(range(0, 16))]
+        tuple_list = (ranges_list, [0, 0])
         returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list)
-        self.assertEqual(ranges_list, returned_list_batch)
+        self.assertEqual(tuple_list, returned_list_batch)
 
     def testDispatcherClassifierThreeRule(self):
         rules = [FakeLTRule(5), FakeBetweenRule(5, 10), FakeGERule(10)]
@@ -58,7 +59,7 @@ class TestDispatcherClassifier(TestCase):
         dispatcher_classifier = DispatcherClassifier(rules, classifiers)
         range_list = list(range(0, 15))
         returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
-        self.assertEqual(range_list, returned_list)
+        self.assertEqual((range_list, 2), returned_list)
         ranges_list = [list(range(0, 15)), list(range(0, 16))]
         returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list)
-        self.assertEqual(ranges_list, returned_list_batch)
+        self.assertEqual((ranges_list, [2, 2]), returned_list_batch)
