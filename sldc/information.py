@@ -149,20 +149,22 @@ class WorkflowInformation(object):
     def __iter__(self):
         self.iterator()
 
-    def iterator(self, filterDispatch=None, filterClasses=None):
+    def iterator(self, filter_dispatch=None, filter_classes=None):
         """Yields an iterator that goes through the list of polygons of the workflow information
         The result is a tuple containing in this order the polygon, the dispatch index and the class
 
         Parameters
         ----------
-        filterDispatch: list of int
+        filter_dispatch: list of int (optional, default: [-1])
             The dispatch indexes to exclude from the iterated list
-        filterClasses: list of int
+        filter_classes: list of int (optional, default: [])
             The classes number to exclude from the iterated list
         """
+        if filter_dispatch is None:
+            filter_dispatch = [-1]
         for polygon, dispatch, cls in zip(self.polygons, self.dispatch, self.classes):
-            if (filterDispatch is None or dispatch not in filterDispatch) and \
-                    (filterClasses is not None or cls not in filterClasses):
+            if (filter_dispatch is None or dispatch not in filter_dispatch) and \
+                    (filter_classes is not None or cls not in filter_classes):
                 yield polygon, dispatch, cls
 
 
@@ -200,17 +202,17 @@ class WorkflowInformationCollection(object):
         """
         self._items.append(value)
 
-    def polygons_iterator(self, filterClasses=None, filterDispatch=None):
+    def polygons_iterator(self, filter_classes=None, filter_dispatch=None):
         """An iterator that goes through all the polygons stored in the collection
         The yielded value is a tuple containing the polygon, the dispatch index and the predicted
         class
 
         Parameters
         ----------
-        filterDispatch: list of int
-            The dispatch indexes to exclude from the iterated list
-        filterClasses: list of int
+        filter_dispatch: list of int (optional, default: [-1])
+            The dispatch indexes to exclude from the iterated list. By default unmatched polygon are excluded.
+        filter_classes: list of int (optional, default: [])
             The classes number to exclude from the iterated list
         """
         for workflow_info in self._items:
-            workflow_info.iterator(filterClasses=filterClasses, filterDispatch=filterDispatch)
+            workflow_info.iterator(filter_classes=filter_classes, filter_dispatch=filter_dispatch)
