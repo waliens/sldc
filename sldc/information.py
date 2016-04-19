@@ -148,8 +148,15 @@ class WorkflowInformation(object):
 
 
 class WorkflowInformationCollection(object):
-    # TODO document
+    """An collection for storing workflow information objects
+    """
     def __init__(self, items=None):
+        """
+        Parameters
+        ----------
+        items: list of WorlflowInformation
+            Object to insert in the list, if not provided the collection is initialized empty
+        """
         self._items = items if items is not None else []
 
     def __len__(self):
@@ -166,4 +173,19 @@ class WorkflowInformationCollection(object):
             yield item
 
     def append(self, value):
+        """Append the workflow information at the end of the collection
+        Parameters
+        ----------
+        value: WorkflowInformation
+            The object to append
+        """
         self._items.append(value)
+
+    def polygons_iterator(self):
+        """An iterator that goes through all the polygons stored in the collection
+        The yielded value is a tuple containing the polygon, the dispatch index and the predicted
+        class
+        """
+        for item in self._items:
+            for polygon, dispatch, cls in zip(item.polygons, item.dispach, item.classes):
+                yield polygon, dispatch, cls
