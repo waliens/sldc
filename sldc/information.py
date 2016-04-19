@@ -146,6 +146,25 @@ class WorkflowInformation(object):
     def timing(self):
         return self._timing
 
+    def __iter__(self):
+        self.iterator()
+
+    def iterator(self, filterDispatch=None, filterClasses=None):
+        """Yields an iterator that goes through the list of polygons of the workflow information
+        The result is a tuple containing in this order the polygon, the dispatch index and the class
+
+        Parameters
+        ----------
+        filterDispatch: list of int
+            The dispatch indexes to exclude from the iterated list
+        filterClasses: list of int
+            The classes number to exclude from the iterated list
+        """
+        for polygon, dispatch, cls in zip(self.polygons, self.dispatch, self.classes):
+            if (filterDispatch is None or dispatch not in filterDispatch) and \
+                    (filterClasses is not None or cls not in filterClasses):
+                yield polygon, dispatch, cls
+
 
 class WorkflowInformationCollection(object):
     """An collection for storing workflow information objects
@@ -181,11 +200,17 @@ class WorkflowInformationCollection(object):
         """
         self._items.append(value)
 
-    def polygons_iterator(self):
+    def polygons_iterator(self, filterClasses=None, filterDispatch=None):
         """An iterator that goes through all the polygons stored in the collection
         The yielded value is a tuple containing the polygon, the dispatch index and the predicted
         class
+
+        Parameters
+        ----------
+        filterDispatch: list of int
+            The dispatch indexes to exclude from the iterated list
+        filterClasses: list of int
+            The classes number to exclude from the iterated list
         """
-        for item in self._items:
-            for polygon, dispatch, cls in zip(item.polygons, item.dispach, item.classes):
-                yield polygon, dispatch, cls
+        for workflow_info in self._items:
+            workflow_info.iterator(filterClasses=filterClasses, filterDispatch=filterDispatch)
