@@ -166,6 +166,7 @@ class WorkflowInformation(object):
             if (filter_dispatch is None or dispatch not in filter_dispatch) and \
                     (filter_classes is not None or cls not in filter_classes):
                 yield polygon, dispatch, cls
+        return
 
 
 class WorkflowInformationCollection(object):
@@ -215,4 +216,6 @@ class WorkflowInformationCollection(object):
             The classes number to exclude from the iterated list
         """
         for workflow_info in self._items:
-            workflow_info.iterator(filter_classes=filter_classes, filter_dispatch=filter_dispatch)
+            for polygon, dispatch, cls in workflow_info.iterator(filter_classes=filter_classes, filter_dispatch=filter_dispatch):
+                yield polygon, dispatch, cls
+        return
