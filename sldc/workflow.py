@@ -3,7 +3,7 @@
 from image import Image, TileBuilder, TileTopologyIterator
 from merger import Merger
 from locator import Locator
-from sldc import WorkflowInformation
+from information import WorkflowInformation
 from timing import WorkflowTiming
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"

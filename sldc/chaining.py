@@ -2,7 +2,7 @@
 
 from abc import ABCMeta, abstractmethod
 
-from sldc import ChainInformation, WorkflowInformationCollection
+from information import ChainInformation, WorkflowInformationCollection
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
