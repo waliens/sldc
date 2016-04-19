@@ -164,7 +164,7 @@ class WorkflowInformation(object):
             filter_dispatch = [-1]
         for polygon, dispatch, cls in zip(self.polygons, self.dispatch, self.classes):
             if (filter_dispatch is None or dispatch not in filter_dispatch) and \
-                    (filter_classes is not None or cls not in filter_classes):
+                    (filter_classes is None or cls not in filter_classes):
                 yield polygon, dispatch, cls
         return
 
