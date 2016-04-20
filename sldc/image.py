@@ -316,6 +316,17 @@ class ImageWindow(Image):
         return self._width
 
     @property
+    def base_image(self):
+        """Return the base Image object from which the window was extracted. If the parent image is a Window then, the
+        base image is fetched recursively from it.
+        """
+        return self._parent.base_image if isinstance(self._parent, ImageWindow) else self._parent
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
     def np_image(self):
         minx = self.offset_x
         miny = self.offset_y
