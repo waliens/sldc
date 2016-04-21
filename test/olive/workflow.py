@@ -1,4 +1,4 @@
-from sldc.chaining import ImageProvider, PostProcessor, WorkflowLinker
+from sldc.chaining import ImageProvider, PostProcessor, WorkflowExecutor
 from pizza_workflow import ObjectType
 
 
@@ -11,7 +11,10 @@ class PizzaImageProvider(ImageProvider):
         return self._images
 
 
-class PizzaOliveLinker(WorkflowLinker):
+class PizzaOliveWorkflowExecutor(WorkflowExecutor):
+    def after(self, sub_image, workflow_information):
+        return
+
     def get_images(self, image, workflow_information):
         images = []
         for polygon, dispatch, cls in workflow_information.polygons_iterator():

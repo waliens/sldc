@@ -5,10 +5,10 @@ from PIL.ImageDraw import ImageDraw
 from shapely.geometry import Point
 from test.olive.pizza_workflow import PizzaWorkflow, ObjectType
 from test.olive.olive_workflow import OliveWorkflow
-from test.olive.workflow import PizzaImageProvider, PizzaPostProcessor, PizzaOliveLinker
+from test.olive.workflow import PizzaImageProvider, PizzaPostProcessor, PizzaOliveWorkflowExecutor
 from test.olive.image import NumpyImage
 
-from sldc.chaining import WorkflowChain
+from sldc.chaining import WorkflowChain, FullImageWorkflowExecutor
 
 
 def draw_poly(image, poly, fill=255, edge=255):
@@ -102,10 +102,10 @@ class TestOlivePizzaWorkflow(TestCase):
         pizza_workflow = PizzaWorkflow()
         image_provider = PizzaImageProvider([NumpyImage(pizza1), NumpyImage(pizza2)])
         olive_workflow = OliveWorkflow()
-        olive_linker = PizzaOliveLinker()
+        olive_executor = PizzaOliveWorkflowExecutor(olive_workflow)
         post_processor = PizzaPostProcessor(found_pizzas)
-        chain = WorkflowChain(image_provider, pizza_workflow, post_processor)
-        chain.append_workflow(olive_workflow, olive_linker)
+        executors = [FullImageWorkflowExecutor(pizza_workflow), olive_executor]
+        chain = WorkflowChain(image_provider, executors, post_processor)
         chain.execute()
 
         # results
