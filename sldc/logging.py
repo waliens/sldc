@@ -129,7 +129,7 @@ class Logger(object):
     def prefix(cls, level):
         from datetime import datetime
         now = datetime.now().isoformat()
-        tid = threading.current_thread().zfill(10)
+        tid = "{}".format(threading.current_thread().ident).zfill(6)
         if level == cls.DEBUG:
             return "[tid:{}][{}][DEBUG]".format(tid, now)
         elif level == cls.WARNING:

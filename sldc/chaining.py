@@ -5,7 +5,8 @@ from abc import ABCMeta, abstractmethod
 from shapely.affinity import translate
 
 from information import ChainInformation, WorkflowInformationCollection, WorkflowInformation
-from sldc import ImageWindow, StandardOutputLogger, Logger
+from sldc import ImageWindow
+from logging import StandardOutputLogger, Logger
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
