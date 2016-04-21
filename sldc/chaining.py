@@ -228,7 +228,7 @@ class WorkflowChain(object):
         collection = WorkflowInformationCollection()
         for i, executor in enumerate(self._workflow_executors):
             self._logger.info("WorkflowChain : start workflow {} for image #{}".format(i + 1, image_nb + 1))
-            collection.append(executor.execute(image, collection))
+            collection.append(executor.execute(image, collection, self._logger))
         self._logger.info("WorkflowChain : post-processing generated data for image #{}".format(image_nb + 1))
         self._post_processor.post_process(image, collection)
         # self._chain_information.register_workflow_collection(collection, image_nb)  # TODO thread safe
