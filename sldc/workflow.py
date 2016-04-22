@@ -96,7 +96,7 @@ class SLDCWorkflow(object):
         # dispatch classify
         logger.info("SLDCWorkflow : start dispatch/classify.")
         timing.start_dispatch_classify()
-        predictions, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons)
+        predictions, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, logger)
         timing.end_dispatch_classify()
         logger.info("SLDCWorkflow : end dispatch/classify.\n" +
                     "SLDCWorkflow : executed in {} s.".format(timing.duration_of(WorkflowTiming.DISPATCH_CLASSIFY)))
