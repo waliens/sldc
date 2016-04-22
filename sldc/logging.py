@@ -10,6 +10,7 @@ __version__ = "0.1"
 class Logger(object):
     """A class encaspulating logging
     """
+    SILENT = 0
     ERROR = 1
     WARNING = 2
     INFO = 3
@@ -189,3 +190,13 @@ class FileLogger(Logger):
         """Close the logging file
         """
         self._file.close()
+
+
+class SilentLogger(Logger):
+    """A logger that ignore messages
+    """
+    def __init__(self, prefix=True):
+        Logger.__init__(self, Logger.SILENT, prefix=prefix)
+
+    def _print(self, formatted_msg):
+        pass

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule
+from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, SilentLogger
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
@@ -44,16 +44,18 @@ class FakeGERule(DispatchingRule):
 
 class TestDispatcherClassifier(TestCase):
     def testDispatcherClassifierOneRule(self):
+        silent_logger = SilentLogger()
         dispatcher_classifier = DispatcherClassifier([FakeRule()], [FakeClassifier()])
         range_list = list(range(0, 15))
         returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
         self.assertEqual((range_list, 0), returned_list)
         ranges_list = [list(range(0, 15)), list(range(0, 16))]
         tuple_list = (ranges_list, [0, 0])
-        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list)
+        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list, silent_logger)
         self.assertEqual(tuple_list, returned_list_batch)
 
     def testDispatcherClassifierThreeRule(self):
+        silent_logger = SilentLogger()
         rules = [FakeLTRule(5), FakeBetweenRule(5, 10), FakeGERule(10)]
         classifiers = [FakeClassifier(), FakeClassifier(), FakeClassifier()]
         dispatcher_classifier = DispatcherClassifier(rules, classifiers)
@@ -61,5 +63,5 @@ class TestDispatcherClassifier(TestCase):
         returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
         self.assertEqual((range_list, 2), returned_list)
         ranges_list = [list(range(0, 15)), list(range(0, 16))]
-        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list)
+        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list, silent_logger)
         self.assertEqual((ranges_list, [2, 2]), returned_list_batch)
