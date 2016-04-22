@@ -75,25 +75,31 @@ class SLDCWorkflow(object):
         for i, tile in enumerate(tile_iterator):
             # log percentage of progress if there are enough tiles
             if tile_topology.tile_count > 25 and (i + 1) % (tile_topology.tile_count // 10) == 0:
-                pass
-            logger.info("SLDCWorkflow : {}% of tile segmented in {} s.".format(100.0 * i / tile_topology.tile_count,
-                                                                               self._sl_total_time(timing)))
-        polygons_tiles.append((tile, self._segment_locate(tile, timing)))
-        logger.info("SLDCWorkflow : end segment/locate. {} tile(s) processed in {} s.".format(len(polygons_tiles)))
+                percentage = 100.0 * i / tile_topology.tile_count
+                logger.info("SLDCWorkflow : {}% of the tiles processed (segment/locate).\n".format(percentage) +
+                            "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
+            polygons_tiles.append((tile, self._segment_locate(tile, timing)))
+
+        # log end of segment locate
+        logger.info("SLDCWorkflow : end segment/locate.\n" +
+                    "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(polygons_tiles), timing.sl_total_duration()))
 
         # merge
         logger.info("SLDCWorkflow : start merging")
         timing.start_merging()
         polygons = self._merger.merge(polygons_tiles, tile_topology)
         timing.end_merging()
-        logger.info("SLDCWorkflow : end segment locate. {} polygon(s) found.".format(len(polygons)))
+        logger.info("SLDCWorkflow : end segment locate.\n" +
+                    "SLDCWorkflow : {} polygon(s) found.\n".format(len(polygons)) +
+                    "SLDCWorkflow : executed in {} s.".format(timing.duration_of(WorkflowTiming.MERGING)))
 
         # dispatch classify
-        logger.info("SLDCWorkflow : start dispatch/classify")
+        logger.info("SLDCWorkflow : start dispatch/classify.")
         timing.start_dispatch_classify()
         predictions, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons)
         timing.end_dispatch_classify()
-        logger.info("SLDCWorkflow : end dispatch/classify ")
+        logger.info("SLDCWorkflow : end dispatch/classify.\n" +
+                    "SLDCWorkflow : executed in {} s.".format(timing.duration_of(WorkflowTiming.DISPATCH_CLASSIFY)))
 
         return WorkflowInformation(polygons, dispatch_indexes, predictions, timing, metadata=self.get_metadata())
 
