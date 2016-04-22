@@ -6,7 +6,7 @@ from .segmenter import Segmenter
 from .dispatcher import DispatchingRule, DispatcherClassifier
 from .workflow import SLDCWorkflow
 from .classifier import PolygonClassifier
-from .errors import ImageExtractionError, TileExtractionError
+from .errors import ImageExtractionException, TileExtractionException
 from .chaining import ImageProvider, WorkflowExecutor, PolygonTranslatorWorkflowExecutor, \
                       FullImageWorkflowExecutor, WorkflowChain, PostProcessor
 from .timing import WorkflowTiming
@@ -16,7 +16,7 @@ from .logging import Logger, StandardOutputLogger, FileLogger
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 __all__ = ["Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SLDCWorkflow", "Image", "Tile",
-           "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionError",
-           "TileExtractionError", "ImageWindow", "ImageProvider", "WorkflowExecutor", "WorkflowChain", "PostProcessor",
+           "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionException",
+           "TileExtractionException", "ImageWindow", "ImageProvider", "WorkflowExecutor", "WorkflowChain", "PostProcessor",
            "WorkflowInformation", "ChainInformation", "WorkflowInformationCollection", "FullImageWorkflowExecutor",
            "PolygonTranslatorWorkflowExecutor", "Logger", "StandardOutputLogger", "FileLogger"]
