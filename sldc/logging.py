@@ -130,14 +130,18 @@ class Logger(object):
         from datetime import datetime
         now = datetime.now().isoformat()
         tid = "{}".format(threading.current_thread().ident).zfill(6)
+        return "[tid:{}][{}][{}]".format(tid, now, cls.level2str(level))
+
+    @classmethod
+    def level2str(cls, level):
         if level == cls.DEBUG:
-            return "[tid:{}][{}][DEBUG]".format(tid, now)
+            return "DEBUG"
         elif level == cls.WARNING:
-            return "[tid:{}][{}][WARN ]".format(tid, now)
+            return "WARN "
         elif level == cls.ERROR:
-            return "[tid:{}][{}][ERROR]".format(tid, now)
+            return "ERROR"
         else:  # info
-            return "[tid:{}][{}][INFO ]".format(tid, now)
+            return "INFO "
 
     def _format_msg(self, level, msg):
         if self._prefix:
