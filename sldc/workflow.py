@@ -89,7 +89,7 @@ class SLDCWorkflow(object):
         timing.start_merging()
         polygons = self._merger.merge(polygons_tiles, tile_topology)
         timing.end_merging()
-        logger.info("SLDCWorkflow : end segment locate.\n" +
+        logger.info("SLDCWorkflow : end merging.\n" +
                     "SLDCWorkflow : {} polygon(s) found.\n".format(len(polygons)) +
                     "SLDCWorkflow : executed in {} s.".format(timing.duration_of(WorkflowTiming.MERGING)))
 
