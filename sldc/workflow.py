@@ -4,6 +4,7 @@ from image import Image, TileBuilder, TileTopologyIterator
 from merger import Merger
 from locator import Locator
 from information import WorkflowInformation
+from sldc import TileExtractionException
 from timing import WorkflowTiming
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
@@ -78,12 +79,12 @@ class SLDCWorkflow(object):
                 percentage = 100.0 * i / tile_topology.tile_count
                 logger.info("SLDCWorkflow : {}% of the tiles processed (segment/locate).\n".format(percentage) +
                             "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
-            polygons_tiles.append((tile, self._segment_locate(tile, timing)))
+            polygons_tiles.append((tile, self._segment_locate(tile, timing, logger)))
 
         # log end of segment locate
         logger.info("SLDCWorkflow : end segment/locate.\n" +
                     "SLDCWorkflow : {} tile(s) processed in {} s.\n".format(len(polygons_tiles), timing.sl_total_duration()) +
-                    "SLDCWorkflow : {} polygon(s) found.".format(sum([len(polygons) for _, polygons in polygons_tiles])))
+                    "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for _, polygons in polygons_tiles])))
 
         # merge
         logger.info("SLDCWorkflow : start merging")
@@ -104,17 +105,36 @@ class SLDCWorkflow(object):
 
         return WorkflowInformation(polygons, dispatch_indexes, predictions, timing, metadata=self.get_metadata())
 
-    def _segment_locate(self, tile, timing):
-        timing.start_fetching()
-        np_image = tile.np_image
-        timing.end_fetching()
-        timing.start_segment()
-        segmented = self._segmenter.segment(np_image)
-        timing.end_segment()
-        timing.start_location()
-        located = self._locator.locate(segmented, offset=tile.offset)
-        timing.end_location()
-        return located
+    def _segment_locate(self, tile, timing, logger):
+        """Fetch the tile and then perform the segment and locate steps
+        Parameters
+        ----------
+        tile: Tile
+            The tile to process for the segment locate
+        timing: WorkflowTiming
+            The workflow timing object for measuring the execution times of the various steps
+        logger: Logger
+            A logger
+        Returns
+        -------
+        polygons: list of Polygon
+            List containing the polygons found by the locate step
+        """
+        try:
+            timing.start_fetching()
+            np_image = tile.np_image
+            timing.end_fetching()
+            timing.start_segment()
+            segmented = self._segmenter.segment(np_image)
+            timing.end_segment()
+            timing.start_location()
+            located = self._locator.locate(segmented, offset=tile.offset)
+            timing.end_location()
+            return located
+        except TileExtractionException as e:
+            logger.warning("SLDCWorkflow : skip tile {} because it couldn't be extracted.\n".format(tile.identifier) +
+                           "SLDCWorkflow : fetch error : {}".format(e.message))
+            return []
 
     def get_metadata(self):
         """Return the metadata associated with this workflow
