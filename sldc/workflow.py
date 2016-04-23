@@ -82,7 +82,8 @@ class SLDCWorkflow(object):
 
         # log end of segment locate
         logger.info("SLDCWorkflow : end segment/locate.\n" +
-                    "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(polygons_tiles), timing.sl_total_duration()))
+                    "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(polygons_tiles), timing.sl_total_duration()) +
+                    "SLDCWorkflow : {} polygon(s) found.".format(sum([len(polygons) for _, polygons in polygons_tiles])))
 
         # merge
         logger.info("SLDCWorkflow : start merging")
