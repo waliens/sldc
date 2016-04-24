@@ -134,6 +134,9 @@ class WorkflowExecutor(Loggable):
 class FullImageWorkflowExecutor(WorkflowExecutor):
     """A workflow executor which processes the whole passed image and which doesn't post-process the generated data
     """
+    def __init__(self, workflow, logger=SilentLogger()):
+        WorkflowExecutor.__init__(self, workflow, logger)
+
     def get_images(self, image, workflow_info_collection):
         return [image]
 
@@ -146,6 +149,9 @@ class PolygonTranslatorWorkflowExecutor(WorkflowExecutor):
      translating them.
     """
     __metaclass__ = ABCMeta
+
+    def __init__(self, workflow, logger=SilentLogger()):
+        WorkflowExecutor.__init__(self, workflow, logger)
 
     def after(self, sub_image, workflow_information):
         if not isinstance(sub_image, ImageWindow):  # check if there is an offset
