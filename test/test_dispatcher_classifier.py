@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule
+from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
@@ -53,7 +53,7 @@ class TestDispatcherClassifier(TestCase):
         self.assertEqual((range_list, 0), returned_list)
         ranges_list = [list(range(0, 15)), list(range(0, 16))]
         tuple_list = (ranges_list, [0, 0])
-        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list)
+        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list, WorkflowTiming())
         self.assertEqual(tuple_list, returned_list_batch)
 
     def testDispatcherClassifierThreeRule(self):
@@ -64,5 +64,5 @@ class TestDispatcherClassifier(TestCase):
         returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
         self.assertEqual((range_list, 2), returned_list)
         ranges_list = [list(range(0, 15)), list(range(0, 16))]
-        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list)
+        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list, WorkflowTiming())
         self.assertEqual((ranges_list, [2, 2]), returned_list_batch)
