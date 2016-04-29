@@ -175,7 +175,7 @@ class DispatcherClassifier(Loggable):
             if indexes.shape[0] == 0:  # if there are no more elements to evaluate
                 break
             match, no_match = self._split_by_rule(image, rule, polygons, indexes, timing)
-            if len(match) > 0: # skip if there are no match
+            if len(match) > 0:  # skip if there are no match
                 match_dict[i] = match_dict.get(i, []) + take(polygons, match)
                 poly_ind_dict[i] = poly_ind_dict.get(i, []) + list(match)
                 indexes = np.setdiff1d(indexes, match, True)
@@ -183,7 +183,8 @@ class DispatcherClassifier(Loggable):
         # log the end of dispatching
         nb_polygons = len(polygons)
         nb_dispatched = nb_polygons - indexes.shape[0]
-        self.logger.info("DispatcherClassifier : end dispatching ({}/{} polygons dispatched).".format(nb_dispatched, nb_polygons))
+        self.logger.info("DispatcherClassifier : end dispatching ({}/{} polygons dispatched).".format(nb_dispatched,
+                                                                                                      nb_polygons))
 
         # add all polygons that didn't match any rule
         match_dict[-1] = take(polygons, indexes)
@@ -218,9 +219,9 @@ class DispatcherClassifier(Loggable):
             The image from which were extracted the polygons
         rule: DispatchingRule
             The rule with which the polygons must be evaluated
-        polygons: list of Polygon
+        polygons: iterable
             The list of polygons
-        poly_indexes: list of int
+        poly_indexes: iterable
             The indexes of the polygons from the list polygons to process
         timing: WorkflowTiming
             The timing object for computing the dispatching time
