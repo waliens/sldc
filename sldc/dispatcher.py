@@ -145,7 +145,7 @@ class DispatcherClassifier(Loggable):
         else:
             return self._classifiers[matching_rule].predict(image, polygon), matching_rule
 
-    def dispatch_classify_batch(self, image, polygons):
+    def dispatch_classify_batch(self, image, polygons, timing):
         """Apply the dispatching and classification steps to an ensemble of polygons.
 
         Parameters
@@ -154,6 +154,9 @@ class DispatcherClassifier(Loggable):
             The image to which belongs the polygon
         polygons: list of shapely.geometry.Polygon
             The polygons of which the classes must be predicted
+        timing: WorkflowTiming
+            The timing object for computing the execution times of dispatching and classification
+
         Returns
         -------
         predictions: list of int|None
@@ -171,7 +174,7 @@ class DispatcherClassifier(Loggable):
         for i, rule in enumerate(self._predicates):
             if indexes.shape[0] == 0:  # if there are no more elements to evaluate
                 break
-            match, no_match = self._split_by_rule(image, rule, polygons, indexes)
+            match, no_match = self._split_by_rule(image, rule, polygons, indexes, timing)
             if len(match) > 0: # skip if there are no match
                 match_dict[i] = match_dict.get(i, []) + take(polygons, match)
                 poly_ind_dict[i] = poly_ind_dict.get(i, []) + list(match)
@@ -193,7 +196,9 @@ class DispatcherClassifier(Loggable):
             if index == -1:
                 predictions = [self._fail_callback(polygon) for polygon in match_dict[index]]
             else:
+                timing.start_classify()
                 predictions = self._classifiers[index].predict_batch(image, match_dict[index])
+                timing.end_classify()
             # emplace prediction in prediction list
             emplace(predictions, predict_list, poly_ind_dict[index])
             # emplace dispatch id in dispatch list
@@ -202,7 +207,7 @@ class DispatcherClassifier(Loggable):
         self.logger.info("DispatcherClassifier : end classification.")
         return predict_list, dispatch_list
 
-    def _split_by_rule(self, image, rule, polygons, poly_indexes):
+    def _split_by_rule(self, image, rule, polygons, poly_indexes, timing):
         """Given a rule, splits all the poly_indexes list into two lists. The first list contains
         the indexes corresponding to the polygons that were evaluated True by the rule, the indexes that
         were evaluated False by the rule.
@@ -217,7 +222,8 @@ class DispatcherClassifier(Loggable):
             The list of polygons
         poly_indexes: list of int
             The indexes of the polygons from the list polygons to process
-
+        timing: WorkflowTiming
+            The timing object for computing the dispatching time
         Returns
         -------
         true_list: list of int
@@ -226,7 +232,9 @@ class DispatcherClassifier(Loggable):
             The indexes that were evaluated false
         """
         polygons_to_evaluate = take(polygons, poly_indexes)
+        timing.start_dispatch()
         eval_results = rule.evaluate_batch(image, polygons_to_evaluate)
+        timing.end_dispatch()
         np_indexes = np.array(poly_indexes)
         return np_indexes[np.where(eval_results)], np_indexes[np.where(np.logical_not(eval_results))]
 
