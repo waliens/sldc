@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from joblib import Parallel, delayed
 
 from image import Image, TileBuilder, TileTopologyIterator
 from merger import Merger
@@ -18,7 +19,7 @@ class SLDCWorkflow(Loggable):
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=5,
-                 boundary_thickness=7, logger=SilentLogger()):
+                 boundary_thickness=7, logger=SilentLogger(), n_jobs=1):
         """Constructor for SLDCWorkflow objects
 
         Parameters
@@ -39,6 +40,8 @@ class SLDCWorkflow(Loggable):
             The thickness between of the boundaries between the tiles for merging
         logger: Logger
             A logger object
+        n_jobs: int (default, optional: 1)
+            The number of jobs for segmenting and locating the tiles
         """
         Loggable.__init__(self, logger)
         self._tile_max_width = tile_max_width
@@ -49,6 +52,7 @@ class SLDCWorkflow(Loggable):
         self._locator = Locator()
         self._merger = Merger(boundary_thickness)
         self._dispatch_classifier = dispatcher_classifier
+        self._n_jobs = n_jobs
 
     def process(self, image):
         """Process the image using the SLDCWorkflow
@@ -74,15 +78,11 @@ class SLDCWorkflow(Loggable):
         tile_iterator = TileTopologyIterator(self._tile_builder, tile_topology, silent_fail=True)
 
         # segment locate
-        polygons_tiles = list()
         self.logger.info("SLDCWorkflow : start segment/locate.")
-        for i, tile in enumerate(tile_iterator):
-            # log percentage of progress if there are enough tiles
-            if tile_topology.tile_count > 25 and (i + 1) % (tile_topology.tile_count // 10) == 0:
-                percentage = 100.0 * i / tile_topology.tile_count
-                self.logger.info("SLDCWorkflow : {}% of the tiles processed (segment/locate).\n".format(percentage) +
-                                 "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
-            polygons_tiles.append((tile, self._segment_locate(tile, timing)))
+        if self._n_jobs == 1:
+            polygons_tiles = self._sl_sequential(tile_iterator, tile_topology, timing)
+        else:
+            polygons_tiles = self._sl_parallel(tile_iterator, timing)
 
         # log end of segment locate
         self.logger.info("SLDCWorkflow : end segment/locate.\n" +
@@ -145,3 +145,77 @@ class SLDCWorkflow(Loggable):
             The workflow metadata
         """
         return "Workflow class: {}\n".format(self.__class__.__name__)
+
+    def _sl_sequential(self, tile_iterator, tile_topology, timing):
+        """Execute the segment locate phase in a sequential order
+        Parameters
+        ----------
+        tile_iterator: TileIterator
+            An initialized tile iterator
+        tile_topology: TileTopology
+            A tile topology
+        timing: WorkflowTiming
+            A workflow timing object for computing time
+
+        Returns
+        -------
+        tiles_polygons: iterable
+            An iterable containing tuples (tile, polygons) where the tile is a Tile object and polygons another iterable
+            containing the polygons found on the tile
+        """
+        polygons_tiles = list()
+        for i, tile in enumerate(tile_iterator):
+            # log percentage of progress if there are enough tiles
+            if tile_topology.tile_count > 25 and (i + 1) % (tile_topology.tile_count // 10) == 0:
+                percentage = 100.0 * i / tile_topology.tile_count
+                self.logger.info("SLDCWorkflow : {}% of the tiles processed (segment/locate).\n".format(percentage) +
+                                 "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
+            polygons_tiles.append((tile, self._segment_locate(tile, timing)))
+        return polygons_tiles
+
+    def _sl_parallel(self, tile_iterator, timing):
+        """Execute the segment locate phase in parallel
+        Parameters
+        ----------
+        tile_iterator: TileIterator
+            An initialized tile iterator
+        timing: WorkflowTiming
+            A workflow timing object for computing time
+
+        Returns
+        -------
+        tiles_polygons: iterable
+            An iterable containing tuples (tile, polygons) where the tile is a Tile object and polygons another iterable
+            containing the polygons found on the tile
+        """
+        # execute in parallel
+        timing.start_fsl()
+        results = Parallel(n_jobs=self._n_jobs)(delayed(self._sl_with_timing)(tile) for tile in tile_iterator)
+        timing.end_fsl()
+        # merge sub timings
+        for sub_timing, _, _ in results:
+            timing.merge(sub_timing)
+        # return tiles polygons
+        return [(tile, polygons) for _, tile, polygons in results]
+
+    def _sl_with_timing(self, tile):
+        """Execute fetching, segmentation and location. The timing object is built in this function and passed to
+        self._segment_locate.
+
+        Parameters
+        ----------
+        tile: Tile
+            The tile to process
+
+        Returns
+        -------
+        timing: WorkflowTiming
+            The timing object containing information about the execution times for the tile
+        tile: Tile
+            The processed tile
+        polygons: iterable
+            The found polygons
+        """
+        timing = WorkflowTiming()
+        polygons = self._segment_locate(tile, timing)
+        return timing, tile, polygons
