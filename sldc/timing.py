@@ -10,6 +10,17 @@ __version__ = "0.1"
 class WorkflowTiming(object):
     """A class that computes and stores execution times for various phases of the workflow
     WorkflowTiming objects can be combined (their stored execution times are added)
+
+    Class constants:
+        - FETCHING : Time for loading image into memory (call of tile.np_image)
+        - SEGMENTATION : Time for segmenting the tiles (call of segmenter.segment)
+        - MERGING : Time for merging the polygons found in the tiles (call of merger.merge)
+        - LOCATION : Time for locating the polygons in the segmented tiles (call of locator.locate)
+        - DISPATCH : Time for dispatching the polygons (call of rule.evaluate_batch or rule.evaluate)
+        - CLASSIFY : Time for classifying the polygons (call of polygon_classifier.predict_batch or
+                     polygon_classifier.predict)
+        - FSL : Total time for executing the fetch/segment/locate (same as FETCHING + SEGMENTATION + MERGING in case of
+                sequential execution. Less then these in case of parallel execution)
     """
 
     FETCHING = "fetching"
@@ -18,6 +29,7 @@ class WorkflowTiming(object):
     LOCATION = "location"
     DISPATCH = "dispatch"
     CLASSIFY = "classify"
+    FSL = "fetch_segment_locate"
 
     def __init__(self):
         """Construct a WorkflowTiming object
@@ -28,7 +40,8 @@ class WorkflowTiming(object):
             WorkflowTiming.MERGING: [],
             WorkflowTiming.LOCATION: [],
             WorkflowTiming.DISPATCH: [],
-            WorkflowTiming.CLASSIFY: []
+            WorkflowTiming.CLASSIFY: [],
+            WorkflowTiming.FSL: []
         }
         self._start_dict = dict()
 
@@ -91,6 +104,16 @@ class WorkflowTiming(object):
         """Record the end for the 'merging' phase
         """
         self._record_end(WorkflowTiming.MERGING)
+
+    def start_fsl(self):
+        """Record the start for the 'fetch_segment_locate' phase
+        """
+        self._record_start(WorkflowTiming.FSL)
+
+    def end_fsl(self):
+        """Record the end for the 'fetch_segment_locate' phase
+        """
+        self._record_end(WorkflowTiming.FSL)
 
     def stats(self):
         """Compute time statistics tuples for each phase of the algorithm
@@ -228,6 +251,19 @@ class WorkflowTiming(object):
         for key in timing._durations.keys():
             timing._durations[key] = timing1._durations.get(key, []) + timing2._durations.get(key, [])
         return timing
+
+    def merge(self, other):
+        """Merge the other WorkflowTiming into the current one
+
+        Parameters
+        ----------
+        other: WorkflowTiming
+            The WorkflowTiming object to merge
+        """
+        if other is None or not isinstance(WorkflowTiming, other):
+            return
+        for key in self._durations.keys():
+            self._durations[key] += other._durations.get(key, [])
 
     def report(self, logger):
         """Report the execution times of the workflow phases using the given logger
