@@ -13,6 +13,41 @@ __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version = "0.1"
 
 
+def _parallel_sl_with_timing(tile, segmenter, locator):
+    """Helper function for parallel execution. Error occurring in this method is notified by returning None in place of
+    the timing object.
+
+    Parameters
+    ----------
+    tile: Tile
+        The tile object to process
+    segmenter: Segementer
+        The segmenter object
+    locator: Locator
+        The locator object
+
+    Returns
+    -------
+    timing: WorkflowTiming
+        The timing of execution for processing of the tile.
+    tile: Tile
+        The tile object
+    polygons: iterable (subtype: shapely.geometry.Polygon)
+        The polygons found in the tile
+    """
+    timing = WorkflowTiming()
+    timing.start_fetching()
+    np_image = tile.np_image
+    timing.end_fetching()
+    timing.start_segment()
+    segmented = segmenter.segment(np_image)
+    timing.end_segment()
+    timing.start_location()
+    located = locator.locate(segmented, offset=tile.offset)
+    timing.end_location()
+    return timing, tile, located
+
+
 class SLDCWorkflow(Loggable):
     """A class that coordinates various components of the SLDC workflow in order to detect objects and return
     their information.
@@ -20,7 +55,7 @@ class SLDCWorkflow(Loggable):
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=5,
-                 boundary_thickness=7, logger=SilentLogger(), n_jobs=1):
+                 boundary_thickness=7, logger=SilentLogger(), worker_pool=None):
         """Constructor for SLDCWorkflow objects
 
         Parameters
@@ -41,7 +76,7 @@ class SLDCWorkflow(Loggable):
             The thickness between of the boundaries between the tiles for merging
         logger: Logger (optional, default: SilentLogger)
             A logger object
-        n_jobs: int (default, optional: 1)
+        worker_pool: Parallel (optional, default: null)
             The number of jobs for segmenting and locating the tiles
         """
         Loggable.__init__(self, logger)
@@ -53,7 +88,8 @@ class SLDCWorkflow(Loggable):
         self._locator = Locator()
         self._merger = Merger(boundary_thickness)
         self._dispatch_classifier = dispatcher_classifier
-        self._n_jobs = n_jobs
+        self._pool = worker_pool
+        self._n_jobs = worker_pool.n_jobs if self._pool is not None else 1
 
     def process(self, image):
         """Process the given image using the workflow
@@ -190,13 +226,16 @@ class SLDCWorkflow(Loggable):
         """
         # execute in parallel
         timing.start_fsl()
-        results = Parallel(n_jobs=self._n_jobs)(delayed(self._sl_with_timing)(tile) for tile in tile_iterator)
+        results = self._pool(delayed(_parallel_sl_with_timing)(tile, self._segmenter, self._locator)
+                             for tile in tile_iterator)
         timing.end_fsl()
         # merge sub timings
         for sub_timing, _, _ in results:
+            if sub_timing is None:
+                self._logger.warning("SLDCWorkflow : Tile {} couldn't be fetched during parallel computations.")
             timing.merge(sub_timing)
         # return tiles polygons
-        return [(tile, polygons) for _, tile, polygons in results]
+        return [(tile, [] if sub_timing is None else polygons) for sub_timing, tile, polygons in results]
 
     def _sl_with_timing(self, tile):
         """Execute fetching, segmentation and location. The timing object is built in this function and passed to
