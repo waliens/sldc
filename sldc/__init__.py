@@ -3,7 +3,7 @@
 from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow
 from .locator import Locator
 from .segmenter import Segmenter
-from .dispatcher import DispatchingRule, DispatcherClassifier
+from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule
 from .workflow import SLDCWorkflow
 from .classifier import PolygonClassifier
 from .errors import ImageExtractionException, TileExtractionException

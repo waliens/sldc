@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from dispatcher import DispatcherClassifier
+from dispatcher import DispatcherClassifier, CatchAllRule
 from workflow import SLDCWorkflow
 from logging import SilentLogger
 from errors import MissingComponentException
@@ -128,8 +128,14 @@ class WorkflowBuilder(object):
             The builder
         """
         self._rules.append(rule)
-        self._classifiers.append(rule)
+        self._classifiers.append(classifier)
         return self
+
+    def add_catchall_classifier(self, classifier):
+        """Add a classifier which is dispatched all the polygons that were note dispatched by the previously added
+        classifiers.
+        """
+        return self.add_classifier(CatchAllRule(), classifier)
 
     def get(self):
         """Build the workflow with the set parameters
