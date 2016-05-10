@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow
+from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow, DefaultTileBuilder
 from .locator import Locator
 from .segmenter import Segmenter
 from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule
@@ -21,4 +21,4 @@ __all__ = ["Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "S
            "TileExtractionException", "ImageWindow", "ImageProvider", "WorkflowExecutor", "WorkflowChain",
            "PostProcessor", "WorkflowInformation", "ChainInformation", "WorkflowInformationCollection",
            "FullImageWorkflowExecutor", "PolygonTranslatorWorkflowExecutor", "Logger", "StandardOutputLogger",
-           "FileLogger", "SilentLogger", "WorkflowTiming", "Loggable", "WorkflowBuilder"]
+           "FileLogger", "SilentLogger", "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder"]

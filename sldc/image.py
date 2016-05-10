@@ -436,6 +436,7 @@ class Tile(ImageWindow):
     def identifier(self, value):
         self._identifier = value
 
+    @property
     def np_image(self):
         """Return a numpy representation of the tile
 
@@ -518,6 +519,12 @@ class TileBuilder(object):
         TileExtractionImage: when the tile cannot be extracted
         """
         return image.tile_from_polygon(self, polygon)
+
+
+class DefaultTileBuilder(TileBuilder):
+    """A tile builder which builds Tile objects"""
+    def build(self, image, offset, width, height):
+        return Tile(image, offset, width, height)
 
 
 class TileTopologyIterator(object):
