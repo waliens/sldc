@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import multiprocessing
 import threading
 from abc import abstractmethod, ABCMeta
 
@@ -26,7 +27,7 @@ class Logger(object):
         """
         self._level = level
         self._prefix = prefix
-        self._lock = threading.Lock()
+        self._lock = multiprocessing.Lock()
 
     @property
     def level(self):
