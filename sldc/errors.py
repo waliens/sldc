@@ -12,3 +12,8 @@ class TileExtractionException(Exception):
 class ImageExtractionException(Exception):
     """Thrown when an image is requested cannot be extracted"""
     pass
+
+
+class MissingComponentException(Exception):
+    """Thrown when a component is missing for building an object"""
+    pass
