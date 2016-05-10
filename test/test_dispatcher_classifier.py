@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 from shapely.geometry import box, Polygon
 
-from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming
+from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming, CatchAllRule
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
@@ -23,22 +23,16 @@ class AreaClassifier(PolygonClassifier):
 class QuadrilaterRule(DispatchingRule):
     """A rule that matches polygons that are quadrilaters
     """
-    def evaluate(self, image, polygon):
-        return len(polygon.boundary.coords) == 5
+    def evaluate_batch(self, image, polygons):
+        return [len(polygon.boundary.coords) == 5 for polygon in polygons]
 
 
 class NotQuadrilaterRule(QuadrilaterRule):
     """A rule that matches polygons which are not quadrilaters
     """
-    def evaluate(self, image, polygon):
-        return not super(NotQuadrilaterRule, self).evaluate(image, polygon)
-
-
-class CatchAllRule(DispatchingRule):
-    """A rule that matches all polygons
-    """
-    def evaluate(self, image, polygon):
-        return True
+    def evaluate_batch(self, image, polygons):
+        booleans = super(NotQuadrilaterRule, self).evaluate_batch(image, polygons)
+        return [not b for b in booleans]
 
 
 class TestDispatcherClassifier(TestCase):
