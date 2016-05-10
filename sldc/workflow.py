@@ -9,12 +9,13 @@ from logging import Loggable, SilentLogger
 from timing import WorkflowTiming
 from errors import TileExtractionException
 
-__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
+__author__ = "Romain Mormont <romainmormont@hotmail.com>"
+__version = "0.1"
 
 
 class SLDCWorkflow(Loggable):
-    """
-    A workflow for finding objects on large images and computing a class for these objects.
+    """A class that coordinates various components of the SLDC workflow in order to detect objects and return
+    their information.
     """
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
@@ -25,20 +26,20 @@ class SLDCWorkflow(Loggable):
         Parameters
         ----------
         segmenter: Segmenter
-            The segmenter to use for the "Segment" step
+            The segmenter implementing segmentation procedure to apply on tiles.
         dispatcher_classifier: DispatcherClassifier
-            The dispatcher classifier to use for the "Dispatch" and "Classify" steps
+            The dispatcher classifier object for dispatching polygons and classify them.
         tile_builder: TileBuilder
-            An object for building tiles
-        tile_max_width: int, optional (default: 1024)
+            An object for building specific tiles
+        tile_max_width: int (optional, default: 1024)
             The maximum width of the tiles when iterating over the image
-        tile_max_height: int, optional (default: 1024)
+        tile_max_height: int (optional, default: 1024)
             The maximum height of the tiles when iterating over the image
-        tile_overlap: int, optional (default: 5)
+        tile_overlap: int (optional, default: 5)
             The number of pixels of overlap between tiles when iterating over the image
-        boundary_thickness: int, optional (default, 7)
+        boundary_thickness: int (optional, default, 7)
             The thickness between of the boundaries between the tiles for merging
-        logger: Logger
+        logger: Logger (optional, default: SilentLogger)
             A logger object
         n_jobs: int (default, optional: 1)
             The number of jobs for segmenting and locating the tiles
@@ -55,17 +56,16 @@ class SLDCWorkflow(Loggable):
         self._n_jobs = n_jobs
 
     def process(self, image):
-        """Process the image using the SLDCWorkflow
+        """Process the given image using the workflow
         Parameters
         ----------
         image: Image
             The image to process
+
         Returns
         -------
-        polygons_classes: array of 2-tuples
-            An array containing the found polygons as well as the predicted class. These data are
-            structured in an array of tuple where a tuple contains as its first element the polygon
-            object (shapely.geometry.Polygon) and as second element the predicted class (integer code).
+        workflow_information: WorkflowInformation
+            The workflow information object containing all the information about detected objects, execution times...
 
         Notes
         -----
@@ -100,14 +100,15 @@ class SLDCWorkflow(Loggable):
 
         # dispatch classify
         self.logger.info("SLDCWorkflow : start dispatch/classify.")
-        predictions, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, timing)
+        pred, proba, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, timing)
         self.logger.info("SLDCWorkflow : end dispatch/classify.\n" +
                          "SLDCWorkflow : executed in {} s.".format(timing.dc_total_duration()))
 
-        return WorkflowInformation(polygons, dispatch_indexes, predictions, timing, metadata=self.get_metadata())
+        return WorkflowInformation(polygons, dispatch_indexes, pred, proba, timing, metadata=self.get_metadata())
 
     def _segment_locate(self, tile, timing):
-        """Fetch the tile and then perform the segment and locate steps
+        """Fetch a tile and applies it segmentation and location
+
         Parameters
         ----------
         tile: Tile
@@ -117,8 +118,8 @@ class SLDCWorkflow(Loggable):
 
         Returns
         -------
-        polygons: list of Polygon
-            List containing the polygons found by the locate step
+        polygons: iterable (subtype: shapely.geometry.Polygon)
+            Iterable containing the polygons found by the locate step
         """
         try:
             timing.start_fetching()

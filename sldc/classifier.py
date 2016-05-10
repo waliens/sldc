@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
-
 from abc import ABCMeta, abstractmethod
+
+__author__ = "Romain Mormont <romainmormont@hotmail.com>"
+__version__ = "0.1"
 
 
 class PolygonClassifier(object):
-    """
-    A classifier for polygons of an image
+    """A classifier that classifies polygons
     """
     __metaclass__ = ABCMeta
 
-    @abstractmethod
     def predict(self, image, polygon):
         """Predict the class associated with the given polygon
 
         Parameters
         ----------
         image: Image
-            The image to which belongs the polygon
+            The image the object of interest delimited by the polygon
         polygon: shapely.geometry.Polygon
             The polygon of which the class must be predicted
 
@@ -26,26 +25,28 @@ class PolygonClassifier(object):
         -------
         prediction: int
             An integer code indicating the predicted class
+        probability: float (in [0,1])
+            The prediction probability
         """
-        pass
+        pred, proba = self.predict_batch(image, [polygon])
+        return pred[0], proba[0]
 
+    @abstractmethod
     def predict_batch(self, image, polygons):
         """Predict the classes associated with the given polygons
 
         Parameters
         ----------
         image: Image
-            The image to which belongs the polygons
-        polygons: list of shapely.geometry.Polygon
-            The polygons of which the class must be predicted
+            The image the objects of interest delimited by the polygons
+        polygons: iterable (subtype: shapely.geometry.Polygon, size: N)
+            The polygons of which the classes must be predicted
 
         Returns
         -------
-        predictions: list of int
-            A list of integer codes indicating the predicted classes
-
-        Note
-        ----
-        Default implementation simply loops over the polygons and call predict(image, polygons[i])
+        predictions: iterable (subtype: int, size: N)
+            An iterable of integer codes indicating the predicted classes
+        probabilities: iterable (subtype: int, range: [0,1], size: N)
+            The probabilities associated with the classes predicted for each polygon
         """
-        return [self.predict(image, polygon) for polygon in polygons]
+        pass

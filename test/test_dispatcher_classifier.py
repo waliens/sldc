@@ -1,68 +1,84 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming
+import numpy as np
+from shapely.geometry import box, Polygon
+
+from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming, CatchAllRule
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
 
 
-class FakeClassifier(PolygonClassifier):
-    def predict(self, image, polygon):
-        return polygon
+class AreaClassifier(PolygonClassifier):
+    """Predict 1 if the polygon has an area greater than a value, 0 otherwise
+    """
+    def __init__(self, value):
+        self._value = value
+
+    def predict_batch(self, image, polygons):
+        return [1 if p.area > self._value else 0 for p in polygons], np.full((len(polygons),), 1.0)
 
 
-class FakeRule(DispatchingRule):
-    def evaluate(self, image, polygon):
-        return True
+class QuadrilaterRule(DispatchingRule):
+    """A rule that matches polygons that are quadrilaters
+    """
+    def evaluate_batch(self, image, polygons):
+        return [len(polygon.boundary.coords) == 5 for polygon in polygons]
 
 
-class FakeBetweenRule(DispatchingRule):
-    def __init__(self, low, high):
-        DispatchingRule.__init__(self)
-        self._low = low
-        self._high = high
-
-    def evaluate(self, image, polygon):
-        return self._low <= polygon < self._high
-
-
-class FakeLTRule(DispatchingRule):
-    def __init__(self, threshold):
-        DispatchingRule.__init__(self)
-        self._threshold = threshold
-
-    def evaluate(self, image, polygon):
-        return polygon < self._threshold
-
-
-class FakeGERule(DispatchingRule):
-    def __init__(self, threshold):
-        DispatchingRule.__init__(self)
-        self._threshold = threshold
-
-    def evaluate(self, image, polygon):
-        return polygon >= self._threshold
+class NotQuadrilaterRule(QuadrilaterRule):
+    """A rule that matches polygons which are not quadrilaters
+    """
+    def evaluate_batch(self, image, polygons):
+        booleans = super(NotQuadrilaterRule, self).evaluate_batch(image, polygons)
+        return [not b for b in booleans]
 
 
 class TestDispatcherClassifier(TestCase):
     def testDispatcherClassifierOneRule(self):
-        dispatcher_classifier = DispatcherClassifier([FakeRule()], [FakeClassifier()])
-        range_list = list(range(0, 15))
-        returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
-        self.assertEqual((range_list, 0), returned_list)
-        ranges_list = [list(range(0, 15)), list(range(0, 16))]
-        tuple_list = (ranges_list, [0, 0])
-        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list, WorkflowTiming())
-        self.assertEqual(tuple_list, returned_list_batch)
+        # create polygons to test
+        box1 = box(0, 0, 100, 100)
+        box2 = box(0, 0, 10, 10)
+
+        dispatcher_classifier = DispatcherClassifier([CatchAllRule()], [AreaClassifier(500)])
+        # simple dispatch test
+        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1)
+        self.assertEquals(1, cls)
+        self.assertEquals(1.0, probability)
+        self.assertEquals(0, dispatch)
+        classes, probas, dispatches = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2], WorkflowTiming())
+        self.assertEquals(1, classes[0])
+        self.assertEquals(0, classes[1])
+        self.assertEquals(1.0, probas[0])
+        self.assertEquals(1.0, probas[1])
+        self.assertEquals(0, dispatches[0])
+        self.assertEquals(0, dispatches[1])
 
     def testDispatcherClassifierThreeRule(self):
-        rules = [FakeLTRule(5), FakeBetweenRule(5, 10), FakeGERule(10)]
-        classifiers = [FakeClassifier(), FakeClassifier(), FakeClassifier()]
-        dispatcher_classifier = DispatcherClassifier(rules, classifiers)
-        range_list = list(range(0, 15))
-        returned_list = dispatcher_classifier.dispatch_classify(None, range_list)
-        self.assertEqual((range_list, 2), returned_list)
-        ranges_list = [list(range(0, 15)), list(range(0, 16))]
-        returned_list_batch = dispatcher_classifier.dispatch_classify_batch(None, ranges_list, WorkflowTiming())
-        self.assertEqual((ranges_list, [2, 2]), returned_list_batch)
+        # create polygons to test
+        box1 = box(0, 0, 100, 100)
+        box2 = box(0, 0, 10, 10)
+        poly = Polygon([(0, 0), (0, 1000), (50, 1250), (1000, 1000), (1000, 0), (0, 0)])
+
+        dispatcher_classifier = DispatcherClassifier([QuadrilaterRule(), NotQuadrilaterRule()],
+                                                     [AreaClassifier(500), AreaClassifier(500)])
+
+        # simple dispatch test
+        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1)
+        self.assertEquals(1, cls)
+        self.assertEquals(1.0, probability)
+        self.assertEquals(0, dispatch)
+
+        # batch dispatch test
+        classes, probas, dispatches = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2, poly],
+                                                                                    WorkflowTiming())
+        self.assertEquals(1, classes[0])
+        self.assertEquals(0, classes[1])
+        self.assertEquals(1, classes[2])
+        self.assertEquals(1.0, probas[0])
+        self.assertEquals(1.0, probas[1])
+        self.assertEquals(1.0, probas[2])
+        self.assertEquals(0, dispatches[0])
+        self.assertEquals(0, dispatches[1])
+        self.assertEquals(1, dispatches[2])
