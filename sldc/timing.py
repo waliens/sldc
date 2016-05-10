@@ -3,12 +3,12 @@
 import timeit
 import numpy as np
 
-__author__ = "Mormont Romain <romain.mormont@gmail.com>"
-__version__ = "0.1"
+__author__ = "Romain Mormont <romainmormont@hotmail.com>"
+__version = "0.1"
 
 
 class WorkflowTiming(object):
-    """A class that computes and stores execution times for various phases of the workflow
+    """A class that computes and stores execution times for various phases of the workflow.
     WorkflowTiming objects can be combined (their stored execution times are added)
     """
 
@@ -92,7 +92,7 @@ class WorkflowTiming(object):
         """
         self._record_end(WorkflowTiming.MERGING)
 
-    def stats(self):
+    def statistics(self):
         """Compute time statistics tuples for each phase of the algorithm
         Returns
         -------
@@ -151,8 +151,8 @@ class WorkflowTiming(object):
         """Return the total dûration of the given phases
         Parameters
         ----------
-        phases: list of string
-            List containing the strings of the phases to included in the computed times
+        phases: iterable (subtype: string)
+            Iterable containing the strings of the phases to be included in the computed times
         Returns
         -------
         time: float
@@ -237,7 +237,7 @@ class WorkflowTiming(object):
             The logger to which the times must be notified
         """
         to_report = "Execution times of the workflow phases."
-        stats = self.stats()
+        stats = self.statistics()
         for key in stats.keys():
             curr_stat = stats[key]
             to_report += "\n  {} : {} s (avg: {} s, std: {} s)".format(key, curr_stat[0], curr_stat[2], curr_stat[4])
