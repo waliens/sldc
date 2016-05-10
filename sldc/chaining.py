@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 from shapely.affinity import translate
 
-from sldc import ImageWindow
+from image import ImageWindow
 from logging import Loggable, SilentLogger
 from information import ChainInformation, WorkflowInformationCollection, WorkflowInformation
 
