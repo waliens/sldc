@@ -18,6 +18,7 @@ class WorkflowBuilder(object):
         self._classifiers = None
         self._tile_max_width = None
         self._tile_max_height = None
+        self._overlap = None
         self._boundary_thickness = None
         self._logger = None
         self._tile_builder = None
@@ -31,6 +32,7 @@ class WorkflowBuilder(object):
         self._classifiers = []
         self._tile_max_width = 1024
         self._tile_max_height = 1024
+        self._overlap = 5
         self._boundary_thickness = 7
         self._logger = SilentLogger()
 
@@ -97,6 +99,21 @@ class WorkflowBuilder(object):
         self._tile_max_height = height
         return self
 
+    def set_overlap(self, overlap):
+        """Set the tile overlap. If not called, an overlap of 5 is provided by default.
+        Parameters
+        ----------
+        overlap: int
+            The tile overlap
+
+        Returns
+        -------
+        builder: WorkflowBuilder
+            The builder
+        """
+        self._overlap = overlap
+        return self
+
     def set_boundary_thickness(self, thickness):
         """Set the boundary thickness. If not called, a thickness of 7 is provided by default.
         Parameters
@@ -154,5 +171,5 @@ class WorkflowBuilder(object):
         dispatcher_classifier = DispatcherClassifier(self._rules, self._classifiers, logger=self._logger)
         return SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
                             boundary_thickness=self._boundary_thickness,
-                            tile_max_height=self._tile_max_height,
-                            tile_max_width=self._tile_max_width, logger=self._logger)
+                            tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
+                            tile_overlap=self._overlap, logger=self._logger)
