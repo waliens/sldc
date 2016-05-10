@@ -169,7 +169,9 @@ class WorkflowBuilder(object):
             raise MissingComponentException("Missing classifiers.")
 
         dispatcher_classifier = DispatcherClassifier(self._rules, self._classifiers, logger=self._logger)
-        return SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
-                            boundary_thickness=self._boundary_thickness,
-                            tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
-                            tile_overlap=self._overlap, logger=self._logger)
+        workflow = SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
+                                boundary_thickness=self._boundary_thickness,
+                                tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
+                                tile_overlap=self._overlap, logger=self._logger)
+        self._reset()
+        return workflow
