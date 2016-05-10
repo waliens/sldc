@@ -390,7 +390,7 @@ class ImageWindow(Image):
         miny = self.offset_y
         maxx = self.offset_x + self.width
         maxy = self.offset_y + self.height
-        return self._parent.np_image[minx:maxx, miny:maxy]
+        return self._parent.np_image[miny:maxy, minx:maxx]
 
 
 class Tile(ImageWindow):
