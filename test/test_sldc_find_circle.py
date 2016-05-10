@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-import cv2
 import numpy as np
 from PIL.Image import fromarray
 from PIL.ImageDraw import ImageDraw
-from numpy.random.mtrand import randint
 from shapely.geometry import Point
 
 from sldc import Segmenter, WorkflowBuilder, DefaultTileBuilder, PolygonClassifier, Image
