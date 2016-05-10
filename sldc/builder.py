@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from joblib import Parallel
+
 from dispatcher import DispatcherClassifier, CatchAllRule
 from workflow import SLDCWorkflow
 from logging import SilentLogger
@@ -9,10 +11,19 @@ __version__ = "0.1"
 
 
 class WorkflowBuilder(object):
-    """A class for building SLDC Workflow objects.
+    """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
+    be with the same Builder object, especially if the workflow should work in parallel.
     """
-    def __init__(self):
-        """Constructor for WorkflowBuilderObjects"""
+    def __init__(self, n_jobs=1):
+        """Constructor for WorkflowBuilderObjects
+        Parameters
+        ----------
+        n_jobs: int
+            Number of jobs to use for executing the workflow
+        """
+        # Pool is preserved for building several instances of the workflow
+        self._pool = Parallel(n_jobs=n_jobs)
+        # Fields below are reset after each get()
         self._segmenter = None
         self._rules = None
         self._classifiers = None
@@ -22,6 +33,7 @@ class WorkflowBuilder(object):
         self._boundary_thickness = None
         self._logger = None
         self._tile_builder = None
+        self._parallel = None
         self._reset()
 
     def _reset(self):
@@ -34,7 +46,19 @@ class WorkflowBuilder(object):
         self._tile_max_height = 1024
         self._overlap = 5
         self._boundary_thickness = 7
+        self._parallel = False
         self._logger = SilentLogger()
+
+    def set_parallel(self):
+        """Enable parallel processing for the workflow
+
+        Returns
+        -------
+        builder: WorkflowBuilder
+            The builder
+        """
+        self._parallel = True
+        return self
 
     def set_segmenter(self, segmenter):
         """Set the segmenter (mandatory)
@@ -172,6 +196,7 @@ class WorkflowBuilder(object):
         workflow = SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
                                 boundary_thickness=self._boundary_thickness,
                                 tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
-                                tile_overlap=self._overlap, logger=self._logger)
+                                tile_overlap=self._overlap, logger=self._logger,
+                                worker_pool=self._pool if self._parallel else None)
         self._reset()
         return workflow
