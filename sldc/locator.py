@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import cv2
+from shapely.validation import explain_validity
 from shapely.geometry import Polygon
 from shapely.affinity import affine_transform as aff_transfo
 from functools import partial
@@ -62,7 +63,7 @@ class Locator(object):
     """A class providing methods for extracting polygons from a binary mask.
     """
 
-    def locate(self, segmented, offset=(0, 0)):
+    def locate(self, segmented, offset=None):
         """Extract polygons for the foreground elements of the segmented image.
         Parameters
         ----------
@@ -115,8 +116,10 @@ class Locator(object):
                 if len(exterior) > 3:
                     polygon = Polygon(exterior, interiors)
                     polygon = transform(polygon)
-                    if polygon.is_valid:  # some polygons might be invalid so skip them
+                    if polygon.is_valid:  # some polygons might be invalid
                         components.append(polygon)
+                    else:
+                        print explain_validity(polygon)
 
                 # check if there is another top contour
                 if hierarchy[0][top_index][0] != -1:
