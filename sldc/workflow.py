@@ -168,8 +168,7 @@ class SLDCWorkflow(Loggable):
         for i, tile in enumerate(tile_iterator):
             # log percentage of progress if there are enough tiles
             if tile_topology.tile_count > 25 and (i + 1) % (tile_topology.tile_count // 10) == 0:
-                percentage = 100.0 * i / tile_topology.tile_count
-                self.logger.info("SLDCWorkflow : {}% of the tiles processed (segment/locate).\n".format(percentage) +
+                self.logger.info("SLDCWorkflow : {}/{} tiles processed (segment/locate).\n".format(i+1, tile_topology.tile_count) +
                                  "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
             polygons_tiles.append((tile, self._segment_locate(tile, timing)))
         return polygons_tiles
