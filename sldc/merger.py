@@ -4,7 +4,8 @@ from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
-__contributor__ = ["Romain Mormont <r.mormont@student.ulg.ac.be>"]
+__contributor__ = ["Romain Mormont <romainmormont@hotmail.com>"]
+__version = "0.1"
 
 
 class Graph(object):
