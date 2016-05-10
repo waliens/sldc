@@ -56,7 +56,6 @@ class DispatchingRule(Loggable):
         """
         Loggable.__init__(self, logger)
 
-    @abstractmethod
     def evaluate(self, image, polygon):
         """Evaluate a polygon
 
@@ -72,8 +71,9 @@ class DispatchingRule(Loggable):
         result: bool
             True if the dispatching rule matched the polygon, False otherwise.
         """
-        pass
+        return self.evaluate_batch(image, [polygon])[0]
 
+    @abstractmethod
     def evaluate_batch(self, image, polygons):
         """Evaluate the polygons
 
@@ -89,7 +89,13 @@ class DispatchingRule(Loggable):
         result: iterable (subtype: bool)
             Iterable of which the ith element is True if the ith polygon is evaluated to True, False otherwise
         """
-        return [self.evaluate(image, polygon) for polygon in polygons]
+        pass
+
+
+class CatchAllRule(DispatchingRule):
+    """A rule which evaluates all the polygons to True"""
+    def evaluate_batch(self, image, polygons):
+        return [True] * len(polygons)
 
 
 class DispatcherClassifier(Loggable):
