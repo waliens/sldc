@@ -205,7 +205,7 @@ class WorkflowChain(Loggable):
         ----------
         image_provider: ImageProvider
             An image provider that will provide the images to be processed by the first workflow
-        executors: iterable (subtype: WorkflowExecutors)
+        executors: iterable (subtype: WorkflowExecutor)
             The first instance of the workflow to be applied
         post_processor: PostProcessor
             The post-processor to execute when an image has gone through the whole processing chain
