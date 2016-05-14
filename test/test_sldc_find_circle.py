@@ -75,9 +75,10 @@ class TestFullWorkflow(TestCase):
 
         # build workflow
         builder = WorkflowBuilder()
-        workflow = builder.set_segmenter(CircleSegmenter()).\
-            set_tile_builder(DefaultTileBuilder()).\
-            add_catchall_classifier(CircleClassifier()).get()
+        builder.set_segmenter(CircleSegmenter())
+        builder.set_tile_builder(DefaultTileBuilder())
+        builder.add_catchall_classifier(CircleClassifier())
+        workflow = builder.get()
 
         # process image
         workflow_info = workflow.process(NumpyImage(image))
