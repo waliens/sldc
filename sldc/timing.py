@@ -260,7 +260,7 @@ class WorkflowTiming(object):
         other: WorkflowTiming
             The WorkflowTiming object to merge
         """
-        if other is None or not isinstance(WorkflowTiming, other):
+        if other is None or not isinstance(other, WorkflowTiming):
             return
         for key in self._durations.keys():
             self._durations[key] += other._durations.get(key, [])
