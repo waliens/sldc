@@ -245,4 +245,3 @@ class WorkflowChain(Loggable):
             collection.append(executor.execute(image, collection))
         self.logger.info("WorkflowChain : post-processing generated data for image #{}".format(image_nb + 1))
         self._post_processor.post_process(image, collection)
-        # self._chain_information.register_workflow_collection(collection, image_nb)  # TODO thread safe
