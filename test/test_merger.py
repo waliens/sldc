@@ -36,7 +36,7 @@ class TestMergerNoPolygon(TestCase):
         self.assertEqual(len(polygons), 0, "Number of found polygon")
 
 
-class TestMergerSingleTil(TestCase):
+class TestMergerSingleTile(TestCase):
     def test_merge(self):
         fake_image = FakeImage(11, 8, 3)
         fake_builder = FakeTileBuilder()
