@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from joblib import Parallel
 
+from chaining import WorkflowChain
 from dispatcher import DispatcherClassifier, CatchAllRule
 from workflow import SLDCWorkflow
 from logging import SilentLogger
@@ -12,7 +13,7 @@ __version__ = "0.1"
 
 class WorkflowBuilder(object):
     """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
-    be with the same Builder object, especially if the workflow should work in parallel.
+    be with the same Builder object, especially if the workflows should work in parallel.
     """
     def __init__(self, n_jobs=1):
         """Constructor for WorkflowBuilderObjects
@@ -184,6 +185,11 @@ class WorkflowBuilder(object):
         -------
         workflow: SLDCWorkflow
             The SLDC Workflow
+
+        Raises
+        ------
+        MissingComponentException:
+            If some mandatory elements were not provided to the builder
         """
         if self._segmenter is None:
             raise MissingComponentException("Missing segmenter.")
@@ -200,3 +206,109 @@ class WorkflowBuilder(object):
                                 worker_pool=self._pool if self._parallel else None)
         self._reset()
         return workflow
+
+
+class WorkflowChainBuilder(object):
+    """A class for building workflow chains objects
+    """
+    def __init__(self):
+        self._executors = None
+        self._provider = None
+        self._post_processor = None
+        self._logger = None
+        self._reset()
+
+    def _reset(self):
+        """Resets the builder so that it can build a new workflow chain
+        """
+        self._executors = []
+        self._provider = None
+        self._post_processor = None
+        self._logger = SilentLogger()
+
+    def add_executor(self, workflow_executor):
+        """Adds a workflow executor to be executed by the workflow chain.
+        The executors added through this method are submitted to the built WorkflowChain in the same order.
+
+        Parameters
+        ----------
+        workflow_executor: WorkflowExecutor
+            The workflow executor
+
+        Returns
+        -------
+        builder: WorkflowChainBuilder
+            The builder
+        """
+        self._executors.append(workflow_executor)
+        return self
+
+    def set_post_processor(self, post_processor):
+        """Set the post processor of the workflow chain
+
+        Parameters
+        ----------
+        post_processor: PostProcessor
+            The post processor
+
+        Returns
+        -------
+        builder: WorkflowChainBuilder
+            The builder
+        """
+        self._post_processor = post_processor
+        return self
+
+    def set_image_provider(self, image_provider):
+        """Set the image provider of the workflow chain
+
+        Parameters
+        ----------
+        image_provider: ImageProvider
+
+        Returns
+        -------
+        builder: WorkflowChainBuilder
+            The builder
+        """
+        self._provider = image_provider
+        return self
+
+    def set_logger(self, logger):
+        """Set the logger of the workflow chain
+
+        Parameters
+        ----------
+        logger: Logger
+            The logger
+
+        Returns
+        -------
+        builder: WorkflowChainBuilder
+            The builder
+        """
+        self._logger = logger
+        return self
+
+    def get(self):
+        """Build the workflow chain with the set parameters
+        Returns
+        -------
+        workflow: WorkflowChain
+            The workflow chain
+
+        Raises
+        ------
+        MissingComponentException:
+            If some mandatory elements were not provided to the builder
+        """
+        if self._provider is None:
+            raise MissingComponentException("Missing image provider.")
+        if self._post_processor is None:
+            raise MissingComponentException("Missing post processor")
+        if len(self._executors) <= 0:
+            raise MissingComponentException("At least one workflow executor should be provided.")
+
+        chain = WorkflowChain(self._provider, self._executors, self._post_processor, logger=self._logger)
+        self._reset()
+        return chain
