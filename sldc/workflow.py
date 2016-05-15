@@ -122,7 +122,7 @@ class SLDCWorkflow(Loggable):
 
         # log end of segment locate
         self.logger.info("SLDCWorkflow : end segment/locate.\n" +
-                         "SLDCWorkflow : {} tile(s) processed in {} s.\n".format(len(polygons_tiles), timing.sl_total_duration()) +
+                         "SLDCWorkflow : {} tile(s) processed in {} s.\n".format(len(polygons_tiles), timing.fsl_total_duration()) +
                          "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for _, polygons in polygons_tiles])))
 
         # merge
@@ -201,12 +201,14 @@ class SLDCWorkflow(Loggable):
             containing the polygons found on the tile
         """
         polygons_tiles = list()
+        timing.start_fsl()
         for i, tile in enumerate(tile_iterator):
             # log percentage of progress if there are enough tiles
             if tile_topology.tile_count > 25 and (i + 1) % (tile_topology.tile_count // 10) == 0:
                 self.logger.info("SLDCWorkflow : {}/{} tiles processed (segment/locate).\n".format(i+1, tile_topology.tile_count) +
                                  "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
             polygons_tiles.append((tile, self._segment_locate(tile, timing)))
+        timing.end_fsl()
         return polygons_tiles
 
     def _sl_parallel(self, tile_iterator, timing):
@@ -233,7 +235,8 @@ class SLDCWorkflow(Loggable):
         for sub_timing, _, _ in results:
             if sub_timing is None:
                 self._logger.warning("SLDCWorkflow : Tile {} couldn't be fetched during parallel computations.")
-            timing.merge(sub_timing)
+            else:
+                timing.merge(sub_timing)
         # return tiles polygons
         return [(tile, [] if sub_timing is None else polygons) for sub_timing, tile, polygons in results]
 

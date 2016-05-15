@@ -144,6 +144,15 @@ class WorkflowTiming(object):
         """
         return self.total_duration_of([WorkflowTiming.SEGMENTATION, WorkflowTiming.LOCATION])
 
+    def fsl_total_duration(self):
+        """Return the total execution time for the fetching, segment and locate phase
+        Returns
+        -------
+        time: float
+            The execution time in second
+        """
+        return self.total_duration_of([WorkflowTiming.FSL])
+
     def dc_total_duration(self):
         """Return the total execution time for dispatching and classifying polygons recoreded so far
 
