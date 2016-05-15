@@ -36,9 +36,9 @@ def _parallel_sl_with_timing(tile, segmenter, locator):
         The polygons found in the tile
     """
     timing = WorkflowTiming()
-    timing.start_fetching()
+    timing.start_loading()
     np_image = tile.np_image
-    timing.end_fetching()
+    timing.end_loading()
     timing.start_segment()
     segmented = segmenter.segment(np_image)
     timing.end_segment()
@@ -122,7 +122,7 @@ class SLDCWorkflow(Loggable):
 
         # log end of segment locate
         self.logger.info("SLDCWorkflow : end segment/locate.\n" +
-                         "SLDCWorkflow : {} tile(s) processed in {} s.\n".format(len(polygons_tiles), timing.fsl_total_duration()) +
+                         "SLDCWorkflow : {} tile(s) processed in {} s.\n".format(len(polygons_tiles), timing.lsl_total_duration()) +
                          "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for _, polygons in polygons_tiles])))
 
         # merge
@@ -158,9 +158,9 @@ class SLDCWorkflow(Loggable):
             Iterable containing the polygons found by the locate step
         """
         try:
-            timing.start_fetching()
+            timing.start_loading()
             np_image = tile.np_image
-            timing.end_fetching()
+            timing.end_loading()
             timing.start_segment()
             segmented = self._segmenter.segment(np_image)
             timing.end_segment()
@@ -201,14 +201,14 @@ class SLDCWorkflow(Loggable):
             containing the polygons found on the tile
         """
         polygons_tiles = list()
-        timing.start_fsl()
+        timing.start_lsl()
         for i, tile in enumerate(tile_iterator):
             # log percentage of progress if there are enough tiles
             if tile_topology.tile_count > 25 and (i + 1) % (tile_topology.tile_count // 10) == 0:
                 self.logger.info("SLDCWorkflow : {}/{} tiles processed (segment/locate).\n".format(i+1, tile_topology.tile_count) +
                                  "SLDCWorkflow : segment/locate duration is {} s until now.".format(timing.sl_total_duration()))
             polygons_tiles.append((tile, self._segment_locate(tile, timing)))
-        timing.end_fsl()
+        timing.end_lsl()
         return polygons_tiles
 
     def _sl_parallel(self, tile_iterator, timing):
@@ -227,10 +227,10 @@ class SLDCWorkflow(Loggable):
             containing the polygons found on the tile
         """
         # execute in parallel
-        timing.start_fsl()
+        timing.start_lsl()
         results = self._pool(delayed(_parallel_sl_with_timing)(tile, self._segmenter, self._locator)
                              for tile in tile_iterator)
-        timing.end_fsl()
+        timing.end_lsl()
         # merge sub timings
         for sub_timing, _, _ in results:
             if sub_timing is None:
