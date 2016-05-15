@@ -55,7 +55,7 @@ class SLDCWorkflow(Loggable):
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=5,
-                 boundary_thickness=7, logger=SilentLogger(), worker_pool=None):
+                 dist_tolerance=7, logger=SilentLogger(), worker_pool=None):
         """Constructor for SLDCWorkflow objects
 
         Parameters
@@ -72,8 +72,8 @@ class SLDCWorkflow(Loggable):
             The maximum height of the tiles when iterating over the image
         tile_overlap: int (optional, default: 5)
             The number of pixels of overlap between tiles when iterating over the image
-        boundary_thickness: int (optional, default, 7)
-            The thickness between of the boundaries between the tiles for merging
+        dist_tolerance: int (optional, default, 7)
+            Maximal distance between two polygons so that they are considered from the same object
         logger: Logger (optional, default: SilentLogger)
             A logger object
         worker_pool: Parallel (optional, default: null)
@@ -86,7 +86,7 @@ class SLDCWorkflow(Loggable):
         self._tile_builder = tile_builder
         self._segmenter = segmenter
         self._locator = Locator()
-        self._merger = Merger(boundary_thickness)
+        self._merger = Merger(dist_tolerance)
         self._dispatch_classifier = dispatcher_classifier
         self._pool = worker_pool
         self._n_jobs = worker_pool.n_jobs if self._pool is not None else 1

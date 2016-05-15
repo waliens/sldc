@@ -31,7 +31,7 @@ class WorkflowBuilder(object):
         self._tile_max_width = None
         self._tile_max_height = None
         self._overlap = None
-        self._boundary_thickness = None
+        self._distance_tolerance = None
         self._logger = None
         self._tile_builder = None
         self._parallel = None
@@ -46,7 +46,7 @@ class WorkflowBuilder(object):
         self._tile_max_width = 1024
         self._tile_max_height = 1024
         self._overlap = 5
-        self._boundary_thickness = 7
+        self._distance_tolerance = 7
         self._parallel = False
         self._logger = SilentLogger()
 
@@ -139,19 +139,19 @@ class WorkflowBuilder(object):
         self._overlap = overlap
         return self
 
-    def set_boundary_thickness(self, thickness):
-        """Set the boundary thickness. If not called, a thickness of 7 is provided by default.
+    def set_distance_tolerance(self, tolerance):
+        """Set the distance tolerance. If not called, a thickness of 7 is provided by default.
         Parameters
         ----------
-        thickness: int
-            The boundary thickness
+        tolerance: int
+            The maximal distance between two polygons so that they are considered from the same object
 
         Returns
         -------
         builder: WorkflowBuilder
             The builder
         """
-        self._boundary_thickness = thickness
+        self._distance_tolerance = tolerance
         return self
 
     def add_classifier(self, rule, classifier):
@@ -200,7 +200,7 @@ class WorkflowBuilder(object):
 
         dispatcher_classifier = DispatcherClassifier(self._rules, self._classifiers, logger=self._logger)
         workflow = SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
-                                boundary_thickness=self._boundary_thickness,
+                                dist_tolerance=self._distance_tolerance,
                                 tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
                                 tile_overlap=self._overlap, logger=self._logger,
                                 worker_pool=self._pool if self._parallel else None)
