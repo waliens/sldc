@@ -220,7 +220,8 @@ class DispatcherClassifier(Loggable):
         self.logger.info("DispatcherClassifier : end classification.")
         return predict_list, probabilities_list, dispatch_list
 
-    def _split_by_rule(self, image, rule, polygons, poly_indexes, timing):
+    @staticmethod
+    def _split_by_rule(image, rule, polygons, poly_indexes, timing):
         """Given a rule, splits all the poly_indexes list into two lists. The first list contains
         the indexes corresponding to the polygons that were evaluated True by the rule, the indexes that
         were evaluated False by the rule.

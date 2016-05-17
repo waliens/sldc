@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from joblib import Parallel, delayed
+from joblib import delayed
 
 from image import Image, TileBuilder, TileTopologyIterator
 from merger import Merger
