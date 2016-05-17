@@ -6,6 +6,7 @@ from dispatcher import DispatcherClassifier, CatchAllRule
 from workflow import SLDCWorkflow
 from logging import SilentLogger
 from errors import MissingComponentException
+from image import DefaultTileBuilder
 
 __author__ = "Mormont Romain <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -40,7 +41,7 @@ class WorkflowBuilder(object):
     def _reset(self):
         """Reset the sldc workflow fields to their default values"""
         self._segmenter = None
-        self._tile_builder = None
+        self._tile_builder = DefaultTileBuilder()
         self._rules = []
         self._classifiers = []
         self._tile_max_width = 1024
@@ -92,7 +93,7 @@ class WorkflowBuilder(object):
         return self
 
     def set_tile_builder(self, tile_builder):
-        """Set the tile builder (mandatory)
+        """Set the tile builder
         Parameters
         ----------
         tile_builder: TileBuilder
@@ -104,6 +105,17 @@ class WorkflowBuilder(object):
             The builder
         """
         self._tile_builder = tile_builder
+        return self
+
+    def set_default_tile_builder(self):
+        """Set the default tile builder as tile builder
+
+        Returns
+        -------
+        builder: WorkflowBuilder
+            The builder
+        """
+        self._tile_builder = DefaultTileBuilder()
         return self
 
     def set_tile_size(self, width, height):
