@@ -76,20 +76,24 @@ class TestFullWorkflow(TestCase):
         # build workflow
         builder = WorkflowBuilder()
         builder.set_segmenter(CircleSegmenter())
-        builder.set_tile_builder(DefaultTileBuilder())
         builder.add_catchall_classifier(CircleClassifier())
         workflow = builder.get()
 
         # process image
         workflow_info = workflow.process(NumpyImage(image))
 
-        # check results
+        # Check results
         self.assertEquals(len(workflow_info.polygons), 1)
-        # polygon aera relative error less than 1%
-        parea = workflow_info.polygons[0].area
-        raera = np.pi * 750 * 750
-        error = np.abs(parea - raera) / np.max([parea, raera])
-        self.assertEquals(error <= 0.01, True, msg="Relative error on area less then 1%")
+
+        # Check circle
+        polygon = workflow_info.polygons[0]
+        self.assertEquals(self.relative_error(polygon.area, np.pi * 750 * 750) <= 0.005, True)
+        self.assertEquals(self.relative_error(polygon.centroid.x, 1000) <= 0.005, True)
+        self.assertEquals(self.relative_error(polygon.centroid.y, 1000) <= 0.005, True)
         self.assertEquals(workflow_info.classes, [1])
         self.assertEquals(workflow_info.probas, [1.0])
         self.assertEquals(workflow_info.dispatch, [0])
+
+    @staticmethod
+    def relative_error(val, ref):
+        return np.abs(val - ref) / ref
