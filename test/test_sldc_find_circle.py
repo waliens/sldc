@@ -49,18 +49,20 @@ class CircleClassifier(PolygonClassifier):
 
 
 def draw_circle(image, radius, center, color):
+    """Draw a circle of radius 'radius' and centered in 'centered'"""
     circle_center = Point(*center)
     circle_polygon = circle_center.buffer(radius)
-    pil_image = fromarray(image)
-    draw = ImageDraw(pil_image)
-    draw.polygon(circle_polygon.boundary.coords, fill=tuple(color), outline=tuple(color))
-    return np.asarray(pil_image)
+    return draw(image, circle_polygon, color)
 
 
 def draw(image, polygon, color):
+    """Draw a polygon in the given color at the given location"""
     pil_image = fromarray(image)
+    validated_color = color
     draw = ImageDraw(pil_image)
-    draw.polygon(polygon.boundary.coords, fill=tuple(color), outline=tuple(color))
+    if len(image.shape) > 2 and image.shape[2] > 1:
+        validated_color = tuple(color)
+    draw.polygon(polygon.boundary.coords, fill=validated_color, outline=validated_color)
     return np.asarray(pil_image)
 
 

@@ -37,6 +37,7 @@ class FakeImage(Image):
         height = min(max_height, self.height - offset[1])
         return ImageWindow(self, final_offset, width, height)
 
+
 class FakeTile(Tile):
     """
     Fake tile for testing
