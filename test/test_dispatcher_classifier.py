@@ -43,7 +43,7 @@ class TestDispatcherClassifier(TestCase):
 
         dispatcher_classifier = DispatcherClassifier([CatchAllRule()], [AreaClassifier(500)])
         # simple dispatch test
-        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1)
+        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
         self.assertEquals(1, cls)
         self.assertEquals(1.0, probability)
         self.assertEquals(0, dispatch)
@@ -65,7 +65,7 @@ class TestDispatcherClassifier(TestCase):
                                                      [AreaClassifier(500), AreaClassifier(500)])
 
         # simple dispatch test
-        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1)
+        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
         self.assertEquals(1, cls)
         self.assertEquals(1.0, probability)
         self.assertEquals(0, dispatch)
