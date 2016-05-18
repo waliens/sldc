@@ -48,18 +48,24 @@ class WorkflowBuilder(object):
         self._tile_max_height = 1024
         self._overlap = 5
         self._distance_tolerance = 7
-        self._parallel = False
+        self._parallel = self._pool.n_jobs > 1
         self._logger = SilentLogger()
 
-    def set_parallel(self):
-        """Enable parallel processing for the workflow
+    def set_parallel(self, in_parallel=True):
+        """Enable/Disable parallelism parallel processing for the workflow
+        By default, parallelism is enabled if the number of jobs passed in the constructor is more than 0.
+
+        Parameters
+        ----------
+        in_parallel: bool (optional, default: True)
+            True for executing the workflow in parallel, False to execute it sequentially
 
         Returns
         -------
         builder: WorkflowBuilder
             The builder
         """
-        self._parallel = True
+        self._parallel = in_parallel
         return self
 
     def set_segmenter(self, segmenter):
