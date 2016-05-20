@@ -94,7 +94,7 @@ class TestFullWorkflow(TestCase):
         self.assertEquals(self.relative_error(polygon.centroid.y, 1000) <= 0.005, True)
         self.assertEquals(workflow_info.classes, [1])
         self.assertEquals(workflow_info.probas, [1.0])
-        self.assertEquals(workflow_info.dispatch, [0])
+        self.assertEquals(workflow_info.dispatch, ["catchall"])
 
     def testDetectCircleParallel(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image in
@@ -124,7 +124,7 @@ class TestFullWorkflow(TestCase):
         self.assertEquals(self.relative_error(polygon.centroid.y, 1000) <= 0.005, True)
         self.assertEquals(workflow_info.classes, [1])
         self.assertEquals(workflow_info.probas, [1.0])
-        self.assertEquals(workflow_info.dispatch, [0])
+        self.assertEquals(workflow_info.dispatch, ["catchall"])
 
     @staticmethod
     def relative_error(val, ref):

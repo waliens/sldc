@@ -129,7 +129,7 @@ class TestFullWorkflow(TestCase):
         # Build the workflow
         builder = WorkflowBuilder(n_jobs=1)
         builder.set_segmenter(CustomSegementer())
-        builder.add_classifier(CircleRule(), ColorClassifier())
+        builder.add_classifier(CircleRule(), ColorClassifier(), dispatching_label="circle")
         builder.add_classifier(SquareRule(), ColorClassifier())
         workflow = builder.get()
 
@@ -158,7 +158,7 @@ class TestFullWorkflow(TestCase):
         self.assertEquals(self.relative_error(circle1.area, np.pi * 100 * 100) < 0.005, True)
         self.assertEquals(self.relative_error(circle1.centroid.x, 3000) < 0.005, True)
         self.assertEquals(self.relative_error(circle1.centroid.y, 1000) < 0.005, True)
-        self.assertEquals(results.dispatch[1], 0)  # circle
+        self.assertEquals(results.dispatch[1], "circle")  # circle
         self.assertEquals(results.classes[1], ColorClassifier.GREY)  # grey
         self.assertAlmostEquals(results.probas[1], 1.0)
 
@@ -176,7 +176,7 @@ class TestFullWorkflow(TestCase):
         self.assertEquals(self.relative_error(circle2.area, np.pi * 100 * 100) < 0.005, True)
         self.assertEquals(self.relative_error(circle2.centroid.x, 1000) < 0.005, True)
         self.assertEquals(self.relative_error(circle2.centroid.y, 3000) < 0.005, True)
-        self.assertEquals(results.dispatch[3], 0)  # circle
+        self.assertEquals(results.dispatch[3], "circle")  # circle
         self.assertEquals(results.classes[3], ColorClassifier.WHITE)  # grey
         self.assertAlmostEquals(results.probas[3], 1.0)
 
