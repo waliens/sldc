@@ -32,14 +32,14 @@ class TestSingleTileTopology(TestCase):
     def testSingleTileTopology(self):
         fake_builder = FakeTileBuilder()
         fake_image = FakeImage(700, 700, 3)
-        topology = fake_image.tile_topology(700, 700, 100)
+        topology = fake_image.tile_topology(fake_builder, 700, 700, 100)
 
         # topology metrics
         self.assertEqual(1, topology.tile_count, "Topology : tile count")
         self.assertEqual(1, topology.tile_horizontal_count, "Topology : tile horizontal count")
         self.assertEqual(1, topology.tile_vertical_count, "Topology : tile vertical count")
 
-        tile = topology.tile(1, fake_builder)
+        tile = topology.tile(1)
         self.assertEqual(0, tile.offset_x, "Tile from image : x offset")
         self.assertEqual(0, tile.offset_y, "Tile from image : y offset")
         self.assertEqual(700, tile.width, "Tile from image : width")
@@ -50,7 +50,7 @@ class TestFittingTileTopology(TestCase):
     def testFittingTileTopology(self):
         fake_builder = FakeTileBuilder()
         fake_image = FakeImage(700, 700, 3)
-        topology = fake_image.tile_topology(300, 300, 100)
+        topology = fake_image.tile_topology(fake_builder, 300, 300, 100)
 
         # topology metrics
         self.assertEqual(9, topology.tile_count, "Topology : tile count")
@@ -58,63 +58,63 @@ class TestFittingTileTopology(TestCase):
         self.assertEqual(3, topology.tile_vertical_count, "Topology : tile vertical count")
 
         # Topology that fits exactely the image
-        tile = topology.tile(1, fake_builder)
+        tile = topology.tile(1)
         self.assertEqual(1, tile.identifier, "Topology, tile 1 : x offset")
         self.assertEqual(0, tile.offset_x, "Topology, tile 1 : x offset")
         self.assertEqual(0, tile.offset_y, "Topology, tile 1 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 1 : width")
         self.assertEqual(300, tile.height, "Topology, tile 1 : height")
 
-        tile = topology.tile(2, fake_builder)
+        tile = topology.tile(2)
         self.assertEqual(2, tile.identifier, "Topology, tile 2 : x offset")
         self.assertEqual(200, tile.offset_x, "Topology, tile 2 : x offset")
         self.assertEqual(0, tile.offset_y, "Topology, tile 2 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 2 : width")
         self.assertEqual(300, tile.height, "Topology, tile 2 : height")
 
-        tile = topology.tile(3, fake_builder)
+        tile = topology.tile(3)
         self.assertEqual(3, tile.identifier, "Topology, tile 3 : x offset")
         self.assertEqual(400, tile.offset_x, "Topology, tile 3 : x offset")
         self.assertEqual(0, tile.offset_y, "Topology, tile 3 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 3 : width")
         self.assertEqual(300, tile.height, "Topology, tile 3 : height")
 
-        tile = topology.tile(4, fake_builder)
+        tile = topology.tile(4)
         self.assertEqual(4, tile.identifier, "Topology, tile 4 : x offset")
         self.assertEqual(0, tile.offset_x, "Topology, tile 4 : x offset")
         self.assertEqual(200, tile.offset_y, "Topology, tile 4 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 4 : width")
         self.assertEqual(300, tile.height, "Topology, tile 4 : height")
 
-        tile = topology.tile(5, fake_builder)
+        tile = topology.tile(5)
         self.assertEqual(5, tile.identifier, "Topology, tile 5 : x offset")
         self.assertEqual(200, tile.offset_x, "Topology, tile 5 : x offset")
         self.assertEqual(200, tile.offset_y, "Topology, tile 5 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 5 : width")
         self.assertEqual(300, tile.height, "Topology, tile 5 : height")
 
-        tile = topology.tile(6, fake_builder)
+        tile = topology.tile(6)
         self.assertEqual(6, tile.identifier, "Topology, tile 6 : x offset")
         self.assertEqual(400, tile.offset_x, "Topology, tile 6 : x offset")
         self.assertEqual(200, tile.offset_y, "Topology, tile 6 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 6 : width")
         self.assertEqual(300, tile.height, "Topology, tile 6 : height")
 
-        tile = topology.tile(7, fake_builder)
+        tile = topology.tile(7)
         self.assertEqual(7, tile.identifier, "Topology, tile 7 : x offset")
         self.assertEqual(0, tile.offset_x, "Topology, tile 7 : x offset")
         self.assertEqual(400, tile.offset_y, "Topology, tile 7 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 7 : width")
         self.assertEqual(300, tile.height, "Topology, tile 7 : height")
 
-        tile = topology.tile(8, fake_builder)
+        tile = topology.tile(8)
         self.assertEqual(8, tile.identifier, "Topology, tile 8 : x offset")
         self.assertEqual(200, tile.offset_x, "Topology, tile 8 : x offset")
         self.assertEqual(400, tile.offset_y, "Topology, tile 8 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 8 : width")
         self.assertEqual(300, tile.height, "Topology, tile 8 : height")
 
-        tile = topology.tile(9, fake_builder)
+        tile = topology.tile(9)
         self.assertEqual(9, tile.identifier, "Topology, tile 9 : x offset")
         self.assertEqual(400, tile.offset_x, "Topology, tile 9 : x offset")
         self.assertEqual(400, tile.offset_y, "Topology, tile 9 : y offset")
@@ -138,7 +138,7 @@ class TestOverflowingTopology(TestCase):
     def testOverFlowingTopology(self):
         fake_builder = FakeTileBuilder()
         fake_image = FakeImage(600, 450, 3)
-        topology = fake_image.tile_topology(300, 300, 100)
+        topology = fake_image.tile_topology(fake_builder, 300, 300, 100)
 
         # topology metrics
         self.assertEqual(6, topology.tile_count, "Topology : tile count")
@@ -146,42 +146,42 @@ class TestOverflowingTopology(TestCase):
         self.assertEqual(2, topology.tile_vertical_count, "Topology : tile vertical count")
 
         # Topology that fits exactely the image
-        tile = topology.tile(1, fake_builder)
+        tile = topology.tile(1)
         self.assertEqual(1, tile.identifier, "Topology, tile 1 : x offset")
         self.assertEqual(0, tile.offset_x, "Topology, tile 1 : x offset")
         self.assertEqual(0, tile.offset_y, "Topology, tile 1 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 1 : width")
         self.assertEqual(300, tile.height, "Topology, tile 1 : height")
 
-        tile = topology.tile(2, fake_builder)
+        tile = topology.tile(2)
         self.assertEqual(2, tile.identifier, "Topology, tile 2 : x offset")
         self.assertEqual(200, tile.offset_x, "Topology, tile 2 : x offset")
         self.assertEqual(0, tile.offset_y, "Topology, tile 2 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 2 : width")
         self.assertEqual(300, tile.height, "Topology, tile 2 : height")
 
-        tile = topology.tile(3, fake_builder)
+        tile = topology.tile(3)
         self.assertEqual(3, tile.identifier, "Topology, tile 3 : x offset")
         self.assertEqual(400, tile.offset_x, "Topology, tile 3 : x offset")
         self.assertEqual(0, tile.offset_y, "Topology, tile 3 : y offset")
         self.assertEqual(200, tile.width, "Topology, tile 3 : width")
         self.assertEqual(300, tile.height, "Topology, tile 3 : height")
 
-        tile = topology.tile(4, fake_builder)
+        tile = topology.tile(4)
         self.assertEqual(4, tile.identifier, "Topology, tile 4 : x offset")
         self.assertEqual(0, tile.offset_x, "Topology, tile 4 : x offset")
         self.assertEqual(200, tile.offset_y, "Topology, tile 4 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 4 : width")
         self.assertEqual(250, tile.height, "Topology, tile 4 : height")
 
-        tile = topology.tile(5, fake_builder)
+        tile = topology.tile(5)
         self.assertEqual(5, tile.identifier, "Topology, tile 5 : x offset")
         self.assertEqual(200, tile.offset_x, "Topology, tile 5 : x offset")
         self.assertEqual(200, tile.offset_y, "Topology, tile 5 : y offset")
         self.assertEqual(300, tile.width, "Topology, tile 5 : width")
         self.assertEqual(250, tile.height, "Topology, tile 5 : height")
 
-        tile = topology.tile(6, fake_builder)
+        tile = topology.tile(6)
         self.assertEqual(6, tile.identifier, "Topology, tile 6 : x offset")
         self.assertEqual(400, tile.offset_x, "Topology, tile 6 : x offset")
         self.assertEqual(200, tile.offset_y, "Topology, tile 6 : y offset")
@@ -195,3 +195,37 @@ class TestOverflowingTopology(TestCase):
         self.assertEqual(topology.tile_neighbours(4), (1, None, None, 5))
         self.assertEqual(topology.tile_neighbours(5), (2, None, 4, 6))
         self.assertEqual(topology.tile_neighbours(6), (3, None, 5, None))
+
+
+class TestTileTopologyPartition(TestCase):
+    def testPartition(self):
+        fake_builder = FakeTileBuilder()
+        fake_image = FakeImage(600, 700, 3)
+        topology = fake_image.tile_topology(fake_builder, 300, 300, 100)
+
+        # Test 5 batches
+        batches1 = topology.partition_tiles(5)
+        self.assertEquals(len(batches1), 5)
+        self.checkBatches(batches1)
+
+        # Test 1 batches
+        batches2 = topology.partition_tiles(1)
+        self.assertEquals(len(batches2), 1)
+        self.checkBatches(batches2)
+
+        # Test 10 batches
+        batches3 = topology.partition_tiles(10)
+        self.assertEquals(len(batches3), 9)
+        self.checkBatches(batches3)
+
+        # Test 10 batches
+        batches4 = topology.partition_tiles(9)
+        self.assertEquals(len(batches4), 9)
+        self.checkBatches(batches4)
+
+    def checkBatches(self, batches):
+        identifier = 1
+        for i, batch in enumerate(batches):
+            for tile in batch:
+                self.assertEquals(tile.identifier, identifier, msg="Expect tile {} in batch {}, got tile {}".format(identifier, i, tile.identifier))
+                identifier += 1

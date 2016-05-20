@@ -9,12 +9,12 @@ class TestMergerNoPolygon(TestCase):
     def test_merge(self):
         fake_image = FakeImage(11, 8, 3)
         fake_builder = FakeTileBuilder()
-        topology = fake_image.tile_topology(5, 5, 1)
+        topology = fake_image.tile_topology(fake_builder, 5, 5, 1)
 
-        tile1 = topology.tile(1, fake_builder)
-        tile2 = topology.tile(2, fake_builder)
-        tile3 = topology.tile(3, fake_builder)
-        tile4 = topology.tile(4, fake_builder)
+        tile1 = topology.tile(1)
+        tile2 = topology.tile(2)
+        tile3 = topology.tile(3)
+        tile4 = topology.tile(4)
 
         #    0    5    10 (col)
         #  0 +---------+
@@ -40,9 +40,9 @@ class TestMergerSingleTile(TestCase):
     def test_merge(self):
         fake_image = FakeImage(11, 8, 3)
         fake_builder = FakeTileBuilder()
-        topology = fake_image.tile_topology(11, 8, 1)
+        topology = fake_image.tile_topology(fake_builder, 11, 8, 1)
 
-        tile1 = topology.tile(1, fake_builder)
+        tile1 = topology.tile(1)
 
         #    0    5    10 (col)
         #  0 +---------+
@@ -81,14 +81,14 @@ class TestMergerRectangle(TestCase):
     def test_merge(self):
         fake_image = FakeImage(30, 11, 3)
         fake_builder = FakeTileBuilder()
-        topology = fake_image.tile_topology(12, 9, 2)
+        topology = fake_image.tile_topology(fake_builder, 12, 9, 2)
 
-        tile1 = topology.tile(1, fake_builder)
-        tile2 = topology.tile(2, fake_builder)
-        tile3 = topology.tile(3, fake_builder)
-        tile4 = topology.tile(4, fake_builder)
-        tile5 = topology.tile(5, fake_builder)
-        tile6 = topology.tile(6, fake_builder)
+        tile1 = topology.tile(1)
+        tile2 = topology.tile(2)
+        tile3 = topology.tile(3)
+        tile4 = topology.tile(4)
+        tile5 = topology.tile(5)
+        tile6 = topology.tile(6)
 
         #    0    5    10   15   20        30  (col)
         #  0 +---------+---------+---------+
@@ -169,14 +169,14 @@ class TestMergerBigCircle(TestCase):
         # create topology
         fake_image = FakeImage(1024, 768, 3)
         fake_builder = FakeTileBuilder()
-        topology = fake_image.tile_topology(512, 256)
+        topology = fake_image.tile_topology(fake_builder, 512, 256)
 
-        tile1 = topology.tile(1, fake_builder)
-        tile2 = topology.tile(2, fake_builder)
-        tile3 = topology.tile(3, fake_builder)
-        tile4 = topology.tile(4, fake_builder)
-        tile5 = topology.tile(5, fake_builder)
-        tile6 = topology.tile(6, fake_builder)
+        tile1 = topology.tile(1)
+        tile2 = topology.tile(2)
+        tile3 = topology.tile(3)
+        tile4 = topology.tile(4)
+        tile5 = topology.tile(5)
+        tile6 = topology.tile(6)
 
         polygons_tiles = [(tile1, [circle_part1]),
                           (tile2, [circle_part2]),
