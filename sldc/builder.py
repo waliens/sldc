@@ -53,6 +53,11 @@ class WorkflowBuilder(object):
         self._parallel = self._pool.n_jobs > 1
         self._logger = SilentLogger()
 
+    @property
+    def pool(self):
+        """Return the builder's parallel pool"""
+        return self._pool
+
     def set_parallel(self, in_parallel=True):
         """Enable/Disable parallelism parallel processing for the workflow
         By default, parallelism is enabled if the number of jobs passed in the constructor is more than 0.
