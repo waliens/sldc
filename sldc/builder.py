@@ -48,8 +48,8 @@ class WorkflowBuilder(object):
         self._dispatching_labels = []
         self._tile_max_width = 1024
         self._tile_max_height = 1024
-        self._overlap = 5
-        self._distance_tolerance = 7
+        self._overlap = 7
+        self._distance_tolerance = 1
         self._parallel = self._pool.n_jobs > 1
         self._logger = SilentLogger()
 
