@@ -3,6 +3,7 @@ import os
 import multiprocessing
 import threading
 from abc import abstractmethod, ABCMeta
+from copy import copy
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -201,6 +202,17 @@ class SilentLogger(Logger):
 
     def _print(self, formatted_msg):
         pass
+
+    def __setstate_(self):
+        """Make the silent logger serializable"""
+        d = copy(self.__dict__)
+        d._lock = None
+        return d
+
+    def __setstate__(self, state):
+        """Make the silent logger serializable"""
+        self.__dict__ = state
+        self._lock = multiprocessing.Lock()
 
 
 class Loggable(object):
