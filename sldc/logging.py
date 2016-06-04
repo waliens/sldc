@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
 import multiprocessing
+import os
 import threading
 from abc import abstractmethod, ABCMeta
 from copy import copy
@@ -159,7 +159,7 @@ class StandardOutputLogger(Logger):
     """A logger printing the messages on the standard output
     """
     def _print(self, formatted_msg):
-        print formatted_msg
+        print (formatted_msg)
 
 
 class FileLogger(Logger):

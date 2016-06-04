@@ -1,8 +1,7 @@
-import numpy as np
 from unittest import TestCase
 
-from shapely.geometry import Polygon
 from shapely.affinity import translate
+from shapely.geometry import Polygon
 
 from sldc import Locator
 from util import mk_gray_img, draw_circle, draw_poly

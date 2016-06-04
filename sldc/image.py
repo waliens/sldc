@@ -2,8 +2,9 @@
 
 import math
 from abc import ABCMeta, abstractmethod, abstractproperty
-from util import batch_split
-from errors import TileExtractionException
+
+from .errors import TileExtractionException
+from .util import batch_split
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -560,7 +561,7 @@ class TileTopologyIterator(object):
         for tile_identifier in range(1, self._topology.tile_count + 1):
             try:
                 yield self._topology.tile(tile_identifier)
-            except TileExtractionException, e:
+            except TileExtractionException as e:
                 if not self._silent_fail:
                     raise e
 

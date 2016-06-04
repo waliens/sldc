@@ -1,6 +1,6 @@
 import numpy as np
-from PIL.ImageDraw import ImageDraw
 from PIL.Image import fromarray
+from PIL.ImageDraw import ImageDraw
 
 
 def mk_gray_img(w,h,level=0):

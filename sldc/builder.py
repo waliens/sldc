@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from joblib import Parallel
 
-from chaining import WorkflowChain
-from dispatcher import DispatcherClassifier, CatchAllRule
-from workflow import SLDCWorkflow
-from logging import SilentLogger
-from errors import MissingComponentException
-from image import DefaultTileBuilder
+from .chaining import WorkflowChain
+from .dispatcher import DispatcherClassifier, CatchAllRule
+from .errors import MissingComponentException
+from .image import DefaultTileBuilder
+from .logging import SilentLogger
+from .workflow import SLDCWorkflow
 
 __author__ = "Mormont Romain <romainmormont@hotmail.com>"
 __version__ = "0.1"

@@ -6,7 +6,7 @@ from PIL.Image import fromarray
 from PIL.ImageDraw import ImageDraw
 from shapely.geometry import Point
 
-from sldc import Segmenter, WorkflowBuilder, DefaultTileBuilder, PolygonClassifier, Image
+from sldc import Segmenter, WorkflowBuilder, PolygonClassifier, Image
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"

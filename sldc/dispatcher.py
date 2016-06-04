@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 from abc import ABCMeta, abstractmethod
-from util import emplace, take
 
-from logging import Loggable, SilentLogger
+import numpy as np
+
+from .logging import Loggable, SilentLogger
+from .util import emplace, take
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"

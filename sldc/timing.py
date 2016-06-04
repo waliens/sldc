@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import timeit
+
 import numpy as np
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"

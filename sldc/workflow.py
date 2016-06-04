@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from joblib import delayed
 
-from image import Image, TileBuilder, TileTopologyIterator
-from merger import Merger
-from locator import Locator
-from information import WorkflowInformation
-from logging import Loggable, SilentLogger
-from timing import WorkflowTiming
-from errors import TileExtractionException
+from .errors import TileExtractionException
+from .image import Image, TileBuilder
+from .information import WorkflowInformation
+from .locator import Locator
+from .logging import Loggable, SilentLogger
+from .merger import Merger
+from .timing import WorkflowTiming
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version = "0.1"

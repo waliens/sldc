@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from timing import WorkflowTiming
+from .timing import WorkflowTiming
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"

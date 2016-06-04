@@ -4,9 +4,9 @@ from abc import ABCMeta, abstractmethod
 
 from shapely.affinity import translate
 
-from image import ImageWindow
-from logging import Loggable, SilentLogger, Logger
-from information import ChainInformation, WorkflowInformationCollection, WorkflowInformation
+from .image import ImageWindow
+from .information import ChainInformation, WorkflowInformationCollection, WorkflowInformation
+from .logging import Loggable, SilentLogger, Logger
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"

@@ -13,9 +13,8 @@ from .logging import Logger, StandardOutputLogger, FileLogger, SilentLogger, Log
 from .merger import Merger
 from .segmenter import Segmenter
 from .timing import WorkflowTiming
-from .workflow import SLDCWorkflow
 from .util import batch_split
-
+from .workflow import SLDCWorkflow
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
