@@ -2,7 +2,7 @@
 
 from .builder import WorkflowBuilder, WorkflowChainBuilder
 from .chaining import ImageProvider, WorkflowExecutor, PolygonTranslatorWorkflowExecutor, WorkflowChain, PostProcessor,\
-                      FullImageWorkflowExecutor
+                      FullImageWorkflowExecutor, DefaultImageProvider
 from .classifier import PolygonClassifier
 from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule
 from .errors import ImageExtractionException, TileExtractionException, MissingComponentException

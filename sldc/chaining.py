@@ -52,6 +52,17 @@ class ImageProvider(Loggable):
         pass
 
 
+class DefaultImageProvider(ImageProvider):
+    """A provider which returns the images it is passed at construction
+    """
+    def __init__(self, images, silent_fail=False, logger=SilentLogger()):
+        ImageProvider.__init__(self, silent_fail=silent_fail, logger=logger)
+        self._images = images
+
+    def get_images(self):
+        return self._images
+
+
 class WorkflowExecutor(Loggable):
     """A class for encapsulating the execution of a workflow. It provides two abstract methods to implement for
     generating the images to process and to post-process the generated data after each run of the workflow.
