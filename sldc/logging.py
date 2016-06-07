@@ -19,15 +19,20 @@ class Logger(object):
     INFO = 3
     DEBUG = 4
 
-    def __init__(self, level, prefix=True):
+    def __init__(self, level, prefix=True, pid=True):
         """Build a logger object with the given level of verbosity
         Parameters
         ----------
         level: int
             Verbosity level
+        prefix: boolean:
+            True for displaying the prefix, false otherwise
+        pid: boolean
+            True for displaying the pid in the prefix, false for the tid
         """
         self._level = level
         self._prefix = prefix
+        self._pid = pid
         self._lock = multiprocessing.Lock()
 
     @property
@@ -129,12 +134,16 @@ class Logger(object):
     def _print(self, formatted_msg):
         pass
 
-    @classmethod
-    def prefix(cls, level):
+    def prefix(self, level):
         from datetime import datetime
         now = datetime.now().isoformat()
-        tid = "{}".format(threading.current_thread().ident).zfill(6)
-        return "[tid:{}][{}][{}]".format(tid, now, cls.level2str(level))
+        if self._pid:
+            pid = "{}".format(os.getpid()).zfill(6)
+            fid = "pid:{}".format(pid)
+        else:
+            tid = "{}".format(threading.current_thread().ident).zfill(6)
+            fid = "tid:{}".format(tid)
+        return "[{}][{}][{}]".format(fid, now, self.level2str(level))
 
     @classmethod
     def level2str(cls, level):
