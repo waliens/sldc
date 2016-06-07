@@ -784,6 +784,21 @@ class TileTopology(object):
         """
         return batch_split(n_batches, self)
 
+    def partition_identifiers(self, n_batches):
+        """Partition the tile identifiers into a given number of batches of similar sizes
+
+        Parameters
+        ----------
+        n_batches: int
+            The number of batches
+
+        Returns
+        -------
+        batches: iterable (subtype: iterable (subtype: int), size: min(n_batches, N))
+            The batches of tiles
+        """
+        return batch_split(n_batches, range(1, self.tile_count + 1))
+
     def iterator(self, silent_fail=True):
         """Return a tile topology iterator for running through the tile topology
         Parameters
