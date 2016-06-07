@@ -2,38 +2,11 @@
 from unittest import TestCase
 
 import numpy as np
-from PIL.Image import fromarray
-from PIL.ImageDraw import ImageDraw
-from shapely.geometry import Point
-
-from sldc import Segmenter, WorkflowBuilder, PolygonClassifier, Image
-from test.util import draw_circle
+from sldc import Segmenter, WorkflowBuilder, PolygonClassifier
+from test.util import draw_circle, NumpyImage
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
-
-
-class NumpyImage(Image):
-    def __init__(self, np_image):
-        """An image represented as a numpy ndarray"""
-        self._np_image = np_image
-
-    @property
-    def np_image(self):
-        return self._np_image
-
-    @property
-    def channels(self):
-        shape = self._np_image.shape
-        return shape[2] if len(shape) == 3 else 1
-
-    @property
-    def width(self):
-        return self._np_image.shape[1]
-
-    @property
-    def height(self):
-        return self._np_image.shape[0]
 
 
 class CircleSegmenter(Segmenter):

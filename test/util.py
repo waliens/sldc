@@ -1,9 +1,8 @@
 import numpy as np
 from PIL.Image import fromarray
 from PIL.ImageDraw import ImageDraw
-from PIL.Image import fromarray
-from PIL.ImageDraw import ImageDraw
 from shapely.geometry import Point, Polygon
+from sldc import Image
 
 
 def mk_gray_img(w, h, level=0):
@@ -45,3 +44,25 @@ def draw_poly(image, polygon, color=255):
     draw.polygon(polygon.boundary.coords, fill=validated_color, outline=validated_color)
     return np.asarray(pil_image)
 
+
+class NumpyImage(Image):
+    def __init__(self, np_image):
+        """An image represented as a numpy ndarray"""
+        self._np_image = np_image
+
+    @property
+    def np_image(self):
+        return self._np_image
+
+    @property
+    def channels(self):
+        shape = self._np_image.shape
+        return shape[2] if len(shape) == 3 else 1
+
+    @property
+    def width(self):
+        return self._np_image.shape[1]
+
+    @property
+    def height(self):
+        return self._np_image.shape[0]

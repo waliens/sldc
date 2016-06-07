@@ -3,34 +3,11 @@ from unittest import TestCase
 
 import cv2
 import numpy as np
-from sldc import DispatchingRule, PolygonClassifier, Image, WorkflowBuilder, Segmenter
-from test.util import circularity, draw_circle, draw_square, draw_poly
+from sldc import DispatchingRule, PolygonClassifier, WorkflowBuilder, Segmenter
+from test.util import circularity, draw_circle, draw_square, draw_poly, NumpyImage
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
-
-
-class NumpyImage(Image):
-    def __init__(self, np_image):
-        """An image represented as a numpy ndarray"""
-        self._np_image = np_image
-
-    @property
-    def np_image(self):
-        return self._np_image
-
-    @property
-    def channels(self):
-        shape = self._np_image.shape
-        return shape[2] if len(shape) == 3 else 1
-
-    @property
-    def width(self):
-        return self._np_image.shape[1]
-
-    @property
-    def height(self):
-        return self._np_image.shape[0]
 
 
 class CircleRule(DispatchingRule):
@@ -106,7 +83,7 @@ class TestFullWorkflow(TestCase):
         for p in results.polygons:
             image = draw_poly(image, p, color)
             color += 35
-        cv2.imwrite("image.png", image)
+        # cv2.imwrite("image.png", image)
         self.assertEquals(len(results.polygons), 5)
 
         # first square
