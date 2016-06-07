@@ -28,10 +28,10 @@ class TestMergerNoPolygon(TestCase):
         #    |    |    |
         #  7 +----G----H
         # (row)
-        polygons_tiles = [(tile1, []),
-                          (tile2, []),
-                          (tile3, []),
-                          (tile4, [])]
+        polygons_tiles = [(tile1.identifier, []),
+                          (tile2.identifier, []),
+                          (tile3.identifier, []),
+                          (tile4.identifier, [])]
 
         merger = Merger(1)
         polygons = merger.merge(polygons_tiles, topology)
@@ -70,7 +70,7 @@ class TestMergerSingleTile(TestCase):
         ABCD = Polygon([A, B, D, C, A])
         EFGH = Polygon([E, F, H, G, E])
 
-        polygons_tiles = [(tile1, [ABCD, EFGH])]
+        polygons_tiles = [(tile1.identifier, [ABCD, EFGH])]
 
         merger = Merger(1)
         polygons = merger.merge(polygons_tiles, topology)
@@ -140,12 +140,12 @@ class TestMergerRectangle(TestCase):
         ABCD = Polygon([A, B, D, C, A])
         IJLK = Polygon([I, J, L, K, I])
 
-        polygons_tiles = [(tile1, [Aztu]),
-                          (tile2, [EFHG, zBst]),
-                          (tile3, [IJqp]),
-                          (tile4, [utwC]),
-                          (tile5, [tsDw]),
-                          (tile6, [pqLK])]
+        polygons_tiles = [(tile1.identifier, [Aztu]),
+                          (tile2.identifier, [EFHG, zBst]),
+                          (tile3.identifier, [IJqp]),
+                          (tile4.identifier, [utwC]),
+                          (tile5.identifier, [tsDw]),
+                          (tile6.identifier, [pqLK])]
 
         polygons = Merger(1).merge(polygons_tiles, topology)
         self.assertEqual(len(polygons), 3, "Number of found polygon")
@@ -180,12 +180,12 @@ class TestMergerBigCircle(TestCase):
         tile5 = topology.tile(5)
         tile6 = topology.tile(6)
 
-        polygons_tiles = [(tile1, [circle_part1]),
-                          (tile2, [circle_part2]),
-                          (tile3, [circle_part3]),
-                          (tile4, [circle_part4]),
-                          (tile5, [circle_part5]),
-                          (tile6, [circle_part6])]
+        polygons_tiles = [(tile1.identifier, [circle_part1]),
+                          (tile2.identifier, [circle_part2]),
+                          (tile3.identifier, [circle_part3]),
+                          (tile4.identifier, [circle_part4]),
+                          (tile5.identifier, [circle_part5]),
+                          (tile6.identifier, [circle_part6])]
 
         polygons = Merger(5).merge(polygons_tiles, topology)
         self.assertEqual(len(polygons), 1, "Number of found polygon")
