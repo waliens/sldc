@@ -3,7 +3,7 @@ from unittest import TestCase
 from shapely.affinity import translate
 from shapely.geometry import Polygon, box, Point
 
-from fake import FakeTileBuilder, FakeImage
+from fake_image import FakeTileBuilder, FakeImage
 from sldc.merger import Merger
 
 

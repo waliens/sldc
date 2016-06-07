@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from fake import FakeImage, FakeTileBuilder
+from fake_image import FakeImage, FakeTileBuilder
 
 
 class TestTileFromImage(TestCase):

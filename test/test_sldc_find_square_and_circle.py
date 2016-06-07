@@ -3,46 +3,11 @@ from unittest import TestCase
 
 import cv2
 import numpy as np
-from PIL.Image import fromarray
-from PIL.ImageDraw import ImageDraw
-from shapely.geometry import Point, Polygon
-
 from sldc import DispatchingRule, PolygonClassifier, Image, WorkflowBuilder, Segmenter
+from test.util import circularity, draw_circle, draw_square, draw_poly
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
-
-
-def circularity(polygon):
-    return 4 * np.pi * polygon.area / (polygon.length * polygon.length)
-
-
-def draw_square(image, side, center, color):
-    """Draw a square centered in 'center' and of which the side has 'side'"""
-    top_left = (center[1] - side / 2, center[0] - side / 2)
-    top_right = (center[1] + side / 2, center[0] - side / 2)
-    bottom_left = (center[1] - side / 2, center[0] + side / 2)
-    bottom_right = (center[1] + side / 2, center[0] + side / 2)
-    p = Polygon([top_left, top_right, bottom_right, bottom_left, top_left])
-    return draw(image, p, color)
-
-
-def draw_circle(image, radius, center, color):
-    """Draw a circle of radius 'radius' and centered in 'centered'"""
-    circle_center = Point(*center)
-    circle_polygon = circle_center.buffer(radius)
-    return draw(image, circle_polygon, color)
-
-
-def draw(image, polygon, color):
-    """Draw a polygon in the given color at the given location"""
-    pil_image = fromarray(image)
-    validated_color = color
-    draw = ImageDraw(pil_image)
-    if len(image.shape) > 2 and image.shape[2] > 1:
-        validated_color = tuple(color)
-    draw.polygon(polygon.boundary.coords, fill=validated_color, outline=validated_color)
-    return np.asarray(pil_image)
 
 
 class NumpyImage(Image):
@@ -139,7 +104,7 @@ class TestFullWorkflow(TestCase):
         image = np.zeros((h, w), dtype="uint8")
         color = 50
         for p in results.polygons:
-            image = draw(image, p, color)
+            image = draw_poly(image, p, color)
             color += 35
         cv2.imwrite("image.png", image)
         self.assertEquals(len(results.polygons), 5)

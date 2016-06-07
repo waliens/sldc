@@ -7,6 +7,7 @@ from PIL.ImageDraw import ImageDraw
 from shapely.geometry import Point
 
 from sldc import Segmenter, WorkflowBuilder, PolygonClassifier, Image
+from test.util import draw_circle
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
@@ -48,24 +49,6 @@ class CircleClassifier(PolygonClassifier):
         return [1] * len(polygons), [1.0] * len(polygons)
 
 
-def draw_circle(image, radius, center, color):
-    """Draw a circle of radius 'radius' and centered in 'centered'"""
-    circle_center = Point(*center)
-    circle_polygon = circle_center.buffer(radius)
-    return draw(image, circle_polygon, color)
-
-
-def draw(image, polygon, color):
-    """Draw a polygon in the given color at the given location"""
-    pil_image = fromarray(image)
-    validated_color = color
-    draw = ImageDraw(pil_image)
-    if len(image.shape) > 2 and image.shape[2] > 1:
-        validated_color = tuple(color)
-    draw.polygon(polygon.boundary.coords, fill=validated_color, outline=validated_color)
-    return np.asarray(pil_image)
-
-
 class TestFullWorkflow(TestCase):
     def testDetectCircle(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image
@@ -73,7 +56,7 @@ class TestFullWorkflow(TestCase):
         # generate circle image
         w, h = 2000, 2000
         image = np.zeros((w, h, 3), dtype="uint8")
-        image = draw_circle(image, 750, (1000, 1000), [129, 129, 129])
+        image = draw_circle(image, 750, (1000, 1000), color=[129, 129, 129])
 
         # build workflow
         builder = WorkflowBuilder()

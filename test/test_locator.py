@@ -52,7 +52,7 @@ class TestLocatorCircleAndRectangle(TestCase):
         D = (1250, 1500)
         ABCD = Polygon([A, B, D, C, A])
         image = draw_poly(image, ABCD)
-        image, circle = draw_circle(image, (2500, 1500), 400)
+        image, circle = draw_circle(image, 400, (2500, 1500), return_circle=True)
 
         # test locator
         locator = Locator()
