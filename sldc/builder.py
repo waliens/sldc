@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from joblib import Parallel
 
-from .chaining import WorkflowChain
+from .chaining import WorkflowChain, FullImageWorkflowExecutor, DefaultImageProvider
 from .dispatcher import DispatcherClassifier, CatchAllRule
 from .errors import MissingComponentException
 from .image import DefaultTileBuilder
@@ -265,7 +265,8 @@ class WorkflowChainBuilder(object):
 
     def add_executor(self, workflow_executor):
         """Adds a workflow executor to be executed by the workflow chain.
-        The executors added through this method are submitted to the built WorkflowChain in the same order.
+        Executors submitted through this method and 'add_full_image_executor' are submitted to the built WorkflowChain
+        in the same order.
 
         Parameters
         ----------
@@ -278,6 +279,24 @@ class WorkflowChainBuilder(object):
             The builder
         """
         self._executors.append(workflow_executor)
+        return self
+
+    def add_full_image_executor(self, workflow):
+        """Adds a full image workflow executor.
+        Executors submitted through this method and 'add_executor' are submitted to the built WorkflowChain
+        in the same order.
+
+        Parameters
+        ----------
+        workflow: SLDCWorkflow
+            The workflow to encapsulate into the full image workflow executor
+
+        Returns
+        -------
+        builder: WorkflowChainBuilder
+            The builder
+        """
+        self._executors.append(FullImageWorkflowExecutor(workflow))
         return self
 
     def set_post_processor(self, post_processor):
@@ -309,6 +328,22 @@ class WorkflowChainBuilder(object):
             The builder
         """
         self._provider = image_provider
+        return self
+
+    def set_default_provider(self, images):
+        """Set the image provider of the workflow chain
+
+        Parameters
+        ----------
+        images: iterable (subtype: Image)
+            The images to be processed
+
+        Returns
+        -------
+        builder: WorkflowChainBuilder
+            The builder
+        """
+        self._provider = DefaultImageProvider(images)
         return self
 
     def set_logger(self, logger):
