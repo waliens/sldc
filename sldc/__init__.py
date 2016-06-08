@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .builder import WorkflowBuilder, WorkflowChainBuilder
-from .chaining import ImageProvider, WorkflowExecutor, PolygonTranslatorWorkflowExecutor, WorkflowChain, PostProcessor,\
-                      FullImageWorkflowExecutor, DefaultImageProvider
+from .chaining import ImageProvider, WorkflowExecutor, WorkflowChain, PolygonFilter, DefaultFilter
 from .classifier import PolygonClassifier
 from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule
 from .errors import ImageExtractionException, TileExtractionException, MissingComponentException
@@ -20,8 +19,7 @@ __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 __all__ = ["Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SLDCWorkflow", "Image", "Tile",
            "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionException",
-           "TileExtractionException", "ImageWindow", "ImageProvider", "WorkflowExecutor", "WorkflowChain",
-           "PostProcessor", "WorkflowInformation", "ChainInformation", "WorkflowInformationCollection",
-           "FullImageWorkflowExecutor", "PolygonTranslatorWorkflowExecutor", "Logger", "StandardOutputLogger",
-           "FileLogger", "SilentLogger", "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder",
-           "Merger", "WorkflowChainBuilder", "batch_split"]
+           "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain", "WorkflowInformation",
+           "ChainInformation", "WorkflowInformationCollection", "Logger", "StandardOutputLogger", "FileLogger",
+           "SilentLogger", "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger",
+           "WorkflowChainBuilder", "batch_split", "PolygonFilter", "DefaultFilter"]

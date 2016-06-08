@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from joblib import Parallel
 
-from .chaining import WorkflowChain, FullImageWorkflowExecutor, DefaultImageProvider
+from .chaining import WorkflowChain, WorkflowExecutor, DefaultFilter
 from .dispatcher import DispatcherClassifier, CatchAllRule
 from .errors import MissingComponentException
 from .image import DefaultTileBuilder
@@ -249,101 +249,60 @@ class WorkflowChainBuilder(object):
     """A class for building workflow chains objects
     """
     def __init__(self):
+        self._first_workflow = None
         self._executors = None
-        self._provider = None
-        self._post_processor = None
+        self._filters = None
+        self._labels = None
         self._logger = None
         self._reset()
 
     def _reset(self):
         """Resets the builder so that it can build a new workflow chain
         """
+        self._first_workflow = None
         self._executors = []
-        self._provider = None
-        self._post_processor = None
+        self._filters = []
+        self._labels = []
         self._logger = SilentLogger()
 
-    def add_executor(self, workflow_executor):
-        """Adds a workflow executor to be executed by the workflow chain.
-        Executors submitted through this method and 'add_full_image_executor' are submitted to the built WorkflowChain
-        in the same order.
-
+    def set_first_workflow(self, workflow):
+        """Set the workflow that will process the full image
         Parameters
         ----------
-        workflow_executor: WorkflowExecutor
-            The workflow executor
+        workflow: SLDCWorkflow
+            The workflow
 
         Returns
         -------
         builder: WorkflowChainBuilder
             The builder
         """
-        self._executors.append(workflow_executor)
+        self._first_workflow = workflow
         return self
 
-    def add_full_image_executor(self, workflow):
-        """Adds a full image workflow executor.
-        Executors submitted through this method and 'add_executor' are submitted to the built WorkflowChain
-        in the same order.
+    def add_executor(self, workflow, filter=DefaultFilter(), label=None, logger=SilentLogger()):
+        """Adds a workflow executor to be executed by the workflow chain.
 
         Parameters
         ----------
         workflow: SLDCWorkflow
-            The workflow to encapsulate into the full image workflow executor
+            The workflow object
+        filter: PolygonFilter (optional, default: DefaultFilter)
+            The polygon filter implementing the filtering of polygons of which the windows will be processed to
+            the workflow.
+        label: string (optional)
+            The label identifying the executor. If not set, the number of the executor is used instead (starting at 1)
+        logger: Logger (optional, default: SilentLogger)
+            The logger to be used by the executor object
 
         Returns
         -------
         builder: WorkflowChainBuilder
             The builder
         """
-        self._executors.append(FullImageWorkflowExecutor(workflow))
-        return self
-
-    def set_post_processor(self, post_processor):
-        """Set the post processor of the workflow chain
-
-        Parameters
-        ----------
-        post_processor: PostProcessor
-            The post processor
-
-        Returns
-        -------
-        builder: WorkflowChainBuilder
-            The builder
-        """
-        self._post_processor = post_processor
-        return self
-
-    def set_image_provider(self, image_provider):
-        """Set the image provider of the workflow chain
-
-        Parameters
-        ----------
-        image_provider: ImageProvider
-
-        Returns
-        -------
-        builder: WorkflowChainBuilder
-            The builder
-        """
-        self._provider = image_provider
-        return self
-
-    def set_default_provider(self, images):
-        """Set the image provider of the workflow chain
-
-        Parameters
-        ----------
-        images: iterable (subtype: Image)
-            The images to be processed
-
-        Returns
-        -------
-        builder: WorkflowChainBuilder
-            The builder
-        """
-        self._provider = DefaultImageProvider(images)
+        self._executors.append(WorkflowExecutor(workflow, logger=logger))
+        self._filters.append(filter)
+        self._labels.append(label)
         return self
 
     def set_logger(self, logger):
@@ -374,13 +333,15 @@ class WorkflowChainBuilder(object):
         MissingComponentException:
             If some mandatory elements were not provided to the builder
         """
-        if self._provider is None:
-            raise MissingComponentException("Missing image provider.")
-        if self._post_processor is None:
-            raise MissingComponentException("Missing post processor")
-        if len(self._executors) <= 0:
-            raise MissingComponentException("At least one workflow executor should be provided.")
+        if self._first_workflow is None:
+            raise MissingComponentException("Missing first workflow.")
+        if len(self._labels) != len(self._executors):
+            raise MissingComponentException("The number of labels ({}) should be the".format(len(self._labels)) +
+                                            " same as the number of executors ({}).".format(len(self._executors)))
+        if len(self._filters) != len(self._executors):
+            raise MissingComponentException("The number of filters ({}) should be the".format(len(self._filters)) +
+                                            " same as the number of executors ({}).".format(len(self._executors)))
 
-        chain = WorkflowChain(self._provider, self._executors, self._post_processor, logger=self._logger)
+        chain = WorkflowChain(self._first_workflow, self._executors, self._filters, self._labels, logger=self._logger)
         self._reset()
         return chain
