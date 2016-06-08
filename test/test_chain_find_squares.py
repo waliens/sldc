@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from shapely.geometry import box
 
-from sldc import WorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder, PolygonTranslatorWorkflowExecutor, PostProcessor
+from sldc import WorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder
 from test.util import draw_poly, NumpyImage
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
@@ -51,42 +51,6 @@ class DumbClassifier(PolygonClassifier):
         return [1] * len(polygons), [1.0] * len(polygons)
 
 
-class SecondExecutor(PolygonTranslatorWorkflowExecutor):
-    """A workflow executor which processes all polygons"""
-    def get_windows(self, image, workflow_info_collection):
-        return [image.window_from_polygon(polygon) for polygon, _, _, _ in workflow_info_collection.polygons()]
-
-
-class TestPostProcessor(PostProcessor):
-    """A post processor which performs unit tests on the results"""
-    def __init__(self, testcase, big_area, small_area):
-        PostProcessor.__init__(self)
-        self._testcase = testcase
-        self._barea = big_area
-        self._sarea = small_area
-
-    def post_process(self, image, workflow_info_collection):
-        info1 = workflow_info_collection[0]
-        self._testcase.assertEqual(9, len(info1))
-        for polygon, disp, cls, proba in info1:
-            self._testcase.assertTrue(self.relative_error(polygon.area, self._barea) < 0.005)
-            self._testcase.assertEqual("catchall", disp)
-            self._testcase.assertEqual(1, cls)
-            self._testcase.assertAlmostEqual(1.0, proba)
-
-        info2 = workflow_info_collection[1]
-        self._testcase.assertEqual(36, len(info2))
-        for polygon, disp, cls, proba in info2:
-            self._testcase.assertTrue(self.relative_error(polygon.area, self._sarea) < 0.005)
-            self._testcase.assertEqual("catchall", disp)
-            self._testcase.assertEqual(1, cls)
-            self._testcase.assertAlmostEqual(1.0, proba)
-
-    @staticmethod
-    def relative_error(val, ref):
-        return np.abs(val - ref) / ref
-
-
 class TestChaining(TestCase):
     """A test case for testing the chaining"""
     def testSquareIncluded(self):
@@ -126,14 +90,33 @@ class TestChaining(TestCase):
 
         # Build chaining
         chain_builder = WorkflowChainBuilder()
-        chain_builder.add_full_image_executor(workflow1)
-        chain_builder.add_executor(SecondExecutor(workflow2))
-        chain_builder.set_default_provider([NumpyImage(image)])
-        chain_builder.set_post_processor(TestPostProcessor(self, (w / 7) ** 2, (w / 35) ** 2))
+        chain_builder.set_first_workflow(workflow1)
+        chain_builder.add_executor(workflow2)
         chain = chain_builder.get()
 
         # Launch
-        chain.execute()
+        collection = chain.process(NumpyImage(image))
 
+        # check results
+        big_area = (w / 7) ** 2
+        small_area = (w / 35) ** 2
 
+        info1 = collection[0]
+        self.assertEqual(9, len(info1))
+        for polygon, disp, cls, proba in info1:
+            self.assertTrue(self.relative_error(polygon.area, big_area) < 0.005)
+            self.assertEqual("catchall", disp)
+            self.assertEqual(1, cls)
+            self.assertAlmostEqual(1.0, proba)
 
+        info2 = collection[1]
+        self.assertEqual(36, len(info2))
+        for polygon, disp, cls, proba in info2:
+            self.assertTrue(self.relative_error(polygon.area, small_area) < 0.005)
+            self.assertEqual("catchall", disp)
+            self.assertEqual(1, cls)
+            self.assertAlmostEqual(1.0, proba)
+
+    @staticmethod
+    def relative_error(val, ref):
+        return np.abs(val - ref) / ref
