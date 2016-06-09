@@ -2,6 +2,7 @@
 from joblib import delayed
 from sklearn.externals.joblib import Parallel
 
+from .util import batch_split
 from .errors import TileExtractionException
 from .image import Image, TileBuilder
 from .information import WorkflowInformation
@@ -78,6 +79,29 @@ def _sl_with_timing(tile_ids, tile_topology, segmenter, locator):
     return timing, tiles_polygons
 
 
+def _dc_with_timing(dispatcher_classifier, image, polygons):
+    """
+
+    dispatcher_classifier:
+    image:
+    polygons:
+
+    Returns
+    -------
+    timing: WorkflowTiming
+        The timing object containing the execution times of the dispatching and classification steps
+    pred: iterable (subtype: int, size: N)
+        The classes predicted for the passed polygons
+    proba: iterable (subtype: float, size: N)
+        The probability estimates for the predicted classes
+    dispatch: iterable (subtype: hashable, size: N)
+        The label of the dispatching rules which dispatched the polygons
+    """
+    timing = WorkflowTiming()
+    pred, proba, dispatch = dispatcher_classifier.dispatch_classify_batch(image, polygons, timing)
+    return timing, pred, proba, dispatch
+
+
 class SLDCWorkflow(Loggable):
     """A class that coordinates various components of the SLDC workflow in order to detect objects and return
     their information.
@@ -139,7 +163,7 @@ class SLDCWorkflow(Loggable):
         Notes
         -----
         This method doesn't modify the image passed as parameter.
-        This method doesn't modify the object's attributes.
+        This method doesn't modify the object's attributes (except for the pool).
         """
         self._set_pool()  # create the pool if it doesn't exist yet
         timing = WorkflowTiming()
@@ -169,7 +193,12 @@ class SLDCWorkflow(Loggable):
 
         # dispatch classify
         self.logger.info("SLDCWorkflow : start dispatch/classify.")
-        pred, proba, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, timing)
+        if self._parallel_dc:
+            timing.start_dc()
+            pred, proba, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, timing)
+            timing.end_dc()
+        else:
+            pred, proba, dispatch_indexes = self._dc_parallel(image, polygons, timing)
         self.logger.info("SLDCWorkflow : end dispatch/classify.\n" +
                          "SLDCWorkflow : executed in {} s.".format(timing.dc_total_duration()))
 
@@ -260,6 +289,47 @@ class SLDCWorkflow(Loggable):
 
         # return tiles polygons
         return merged_tiles_polygons
+
+    def _dc_parallel(self, image, polygons, timing):
+        """Execute dispatching and classification on several processes
+
+        Parameters
+        ----------
+        image: Image
+            The image to process
+        polygons: iterable (subtype: shapely.geometry.Polygon, size: N)
+            The polygons to process
+        timing: WorkflowTiming
+            The workflow timing object to which must be appended the execution times
+
+        Returns
+        -------
+        predictions: iterable (subtype: int|None, size: N)
+            A list of integer codes indicating the predicted classes.
+            If none of the dispatching rules matched the polygon, the prediction associated with it is the one produced
+            by the fail callback for the given polygon. Especially, if no fail callback was registered, None is
+            returned.
+        probabilities: iterable (subtype: float, range: [0,1], size: N)
+            The probabilities associated with each predicted classes (0.0 for polygons that were not dispatched)
+        dispatches: iterable (size: N)
+            An iterable containing the identifiers of the rule that matched the polygons. If dispatching labels were
+            provided at construction, those are used to identify the rules. Otherwise, the integer indexes of the rules
+            in the list provided at construction are used. Polygons that weren't matched by any rule are returned -1 as
+            dispatch index.
+        """
+        batches = batch_split(self._n_jobs, polygons)
+
+        timing.start_dc()
+        results = self._pool(delayed(_dc_with_timing)(self._dispatch_classifier, image, batch) for batch in batches)
+        timing.end_dc()
+
+        pred, proba, dispatch = [], [], []
+        for dc_timing, dc_pred, dc_proba, dc_dispatch in results:
+            timing.merge(dc_timing)
+            pred.extend(dc_pred)
+            proba.extend(dc_proba)
+            dispatch.extend(dc_dispatch)
+        return pred, proba, dispatch
 
     @property
     def n_jobs(self):

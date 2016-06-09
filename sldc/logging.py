@@ -33,7 +33,6 @@ class Logger(object):
         self._level = level
         self._prefix = prefix
         self._pid = pid
-        self._lock = multiprocessing.Lock()
 
     @property
     def level(self):
@@ -126,9 +125,7 @@ class Logger(object):
         """
         if self._level >= level:
             formatted = self._format_msg(level, msg)
-            self._lock.acquire()
             self._print(formatted)
-            self._lock.release()
 
     @abstractmethod
     def _print(self, formatted_msg):
@@ -211,17 +208,6 @@ class SilentLogger(Logger):
 
     def _print(self, formatted_msg):
         pass
-
-    def __setstate_(self):
-        """Make the silent logger serializable"""
-        d = copy(self.__dict__)
-        d._lock = None
-        return d
-
-    def __setstate__(self, state):
-        """Make the silent logger serializable"""
-        self.__dict__ = state
-        self._lock = multiprocessing.Lock()
 
 
 class Loggable(object):
