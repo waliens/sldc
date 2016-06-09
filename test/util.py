@@ -1,7 +1,8 @@
 import numpy as np
 from PIL.Image import fromarray
 from PIL.ImageDraw import ImageDraw
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, box
+
 from sldc import Image
 
 
@@ -66,3 +67,28 @@ class NumpyImage(Image):
     @property
     def height(self):
         return self._np_image.shape[0]
+
+
+def relative_error(val, ref):
+    return np.abs(val - ref) / ref
+
+
+def draw_multisquare(image, position, size, color_out=255, color_in=255):
+    """Draw a square with color 'color_out' and given size at a given position (x, y)
+        Then draw four square of size (size/5) with color 'color_in' at:
+            1) coord: (y + (size / 5), x + (size / 5))
+            2) coord: (y + (size / 5), x + (3 * size / 5))
+            3) coord: (y + (3 * size / 5), x + (size / 5))
+            4) coord: (y + (3 * size / 5), x + (3 * size / 5))
+    """
+    x, y = position
+    small_size = size / 5
+    image = draw_poly(image, box(x, y, x + size, y + size), color=color_out)
+    square1 = box(x + small_size, y + small_size, x + 2 * small_size, y + 2 * small_size)
+    square2 = box(x + 3 * small_size, y + small_size, x + 4 * small_size, y + 2 * small_size)
+    square3 = box(x + small_size, y + 3 * small_size, x + 2 * small_size, y + 4 * small_size)
+    square4 = box(x + 3 * small_size, y + 3 * small_size, x + 4 * small_size, y + 4 * small_size)
+    squares = [square1, square2, square3, square4]
+    for square in squares:
+        image = draw_poly(image, square, color=color_in)
+    return image
