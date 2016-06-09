@@ -272,7 +272,7 @@ class WorkflowChainBuilder(object):
         workflow: SLDCWorkflow
             The workflow
         label: hashable (optional)
-            The label identifying the workflow. If not set, this label is set to 1.
+            The label identifying the workflow. If not set, this label is set to 0.
 
         Returns
         -------
@@ -309,7 +309,7 @@ class WorkflowChainBuilder(object):
         """
         self._executors.append(WorkflowExecutor(workflow, logger=logger))
         self._filters.append(filter)
-        actual_label = len(self._executors) + 1 if label is None else label
+        actual_label = len(self._executors) if label is None else label
         self._labels.append(actual_label)
         return self
 

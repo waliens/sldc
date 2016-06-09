@@ -46,7 +46,7 @@ def _segment_locate(tile, segmenter, locator, timing):
 
 def _sl_with_timing(tile_ids, tile_topology, segmenter, locator):
     """Helper function for parallel execution. Error occurring in this method is notified by returning None in place of
-    the timing object.
+    the found polygons list.
 
     Parameters
     ----------

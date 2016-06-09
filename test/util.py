@@ -92,3 +92,25 @@ def draw_multisquare(image, position, size, color_out=255, color_in=255):
     for square in squares:
         image = draw_poly(image, square, color=color_in)
     return image
+
+
+def draw_multicircle(image, position, diameter, color_out=255, color_in=255):
+    """Draw a circle with color 'color_out' and given diameter at the given position (center of the circle will be at
+    coordinates (c_x, c_y) = (position[0] + diameter / 2, position[1] + diameter / 2).
+    Then, draw four circles with color 'color_in' of diameter diameter / 5. Those four circles are located at:
+        1) coord: (c_x - a, c_y - a)
+        2) coord: (c_x - a, c_y + a)
+        3) coord: (c_x + a, c_y - a)
+        4) coord: (c_x + a, c_y + a)
+    where a = diameter * cos (45 deg) / 5
+    """
+    x, y = position
+    radius = diameter / 2
+    c_x, c_y = x + radius, y + radius
+    center = (c_x, c_y)
+    image = draw_circle(image, diameter / 2, center, color=color_out)
+    center_offset = diameter * np.sqrt(2) / 10
+    image = draw_circle(image, diameter / 10, (c_x - center_offset, c_y - center_offset), color=color_in)
+    image = draw_circle(image, diameter / 10, (c_x - center_offset, c_y + center_offset), color=color_in)
+    image = draw_circle(image, diameter / 10, (c_x + center_offset, c_y - center_offset), color=color_in)
+    return draw_circle(image, diameter / 10, (c_x + center_offset, c_y + center_offset), color=color_in)
