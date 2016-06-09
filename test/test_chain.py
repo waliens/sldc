@@ -84,7 +84,7 @@ class TestChaining(TestCase):
             image = draw_multisquare(image, position, w / 7, color_in=127)
 
         # Build workflow
-        builder = WorkflowBuilder(n_jobs=1)
+        builder = WorkflowBuilder()
 
         # Build workflow 1
         builder.set_segmenter(BigShapeSegmenter())
@@ -152,7 +152,7 @@ class TestChaining(TestCase):
         # 1st: find big shapes and dispatch them as circle or square
         # 2nd: find small circles in found circle shapes
         # 3rd: find small squares in found square shape
-        builder = WorkflowBuilder(n_jobs=1)
+        builder = WorkflowBuilder()
 
         builder.set_segmenter(BigShapeSegmenter())
         builder.add_classifier(CircleDispatch(), DumbClassifier(), dispatching_label="circle")

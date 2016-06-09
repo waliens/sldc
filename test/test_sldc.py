@@ -82,7 +82,7 @@ class TestFullWorkflow(TestCase):
         image = draw_square(image, 300, (2000, 2000), 255)
 
         # Build the workflow
-        builder = WorkflowBuilder(n_jobs=1)
+        builder = WorkflowBuilder()
         builder.set_segmenter(CustomSegementer())
         builder.add_classifier(CircleRule(), ColorClassifier(), dispatching_label="circle")
         builder.add_classifier(SquareRule(), ColorClassifier())
@@ -183,7 +183,8 @@ class TestFullWorkflow(TestCase):
         image = draw_circle(image, 750, (1000, 1000), [129, 129, 129])
 
         # build workflow
-        builder = WorkflowBuilder(n_jobs=2)
+        builder = WorkflowBuilder()
+        builder.set_n_jobs(2)
         builder.set_segmenter(CircleSegmenter())
         builder.add_catchall_classifier(CircleClassifier())
         workflow = builder.get()

@@ -16,15 +16,13 @@ class WorkflowBuilder(object):
     """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
     be with the same Builder object, especially if the workflows should work in parallel.
     """
-    def __init__(self, n_jobs=1):
+    def __init__(self):
         """Constructor for WorkflowBuilderObjects
         Parameters
         ----------
         n_jobs: int
             Number of jobs to use for executing the workflow
         """
-        # Pool is preserved for building several instances of the workflow
-        self._pool = Parallel(n_jobs=n_jobs)
         # Fields below are reset after each get()
         self._segmenter = None
         self._rules = None
@@ -36,7 +34,8 @@ class WorkflowBuilder(object):
         self._distance_tolerance = None
         self._logger = None
         self._tile_builder = None
-        self._parallel = None
+        self._parallel_dc = None
+        self._n_jobs = None
         self._reset()
 
     def _reset(self):
@@ -50,29 +49,38 @@ class WorkflowBuilder(object):
         self._tile_max_height = 1024
         self._overlap = 7
         self._distance_tolerance = 1
-        self._parallel = self._pool.n_jobs > 1
+        self._parallel_dc = False
+        self._n_jobs = 1
         self._logger = SilentLogger()
 
-    @property
-    def pool(self):
-        """Return the builder's parallel pool"""
-        return self._pool
-
-    def set_parallel(self, in_parallel=True):
-        """Enable/Disable parallelism parallel processing for the workflow
-        By default, parallelism is enabled if the number of jobs passed in the constructor is more than 0.
-
+    def set_n_jobs(self, n_jobs):
+        """Set the number of available jobs (optional)
         Parameters
         ----------
-        in_parallel: bool (optional, default: True)
-            True for executing the workflow in parallel, False to execute it sequentially
+        n_jobs: int
+            The number of jobs available to execute the workflow
 
         Returns
         -------
         builder: WorkflowBuilder
             The builder
         """
-        self._parallel = in_parallel
+        self._n_jobs = n_jobs
+        return self
+
+    def set_parallel_dc(self, parallel_dc):
+        """Specify whether the dispatching and classification will be parallelized at the workflow level (optional)
+        Parameters
+        ----------
+        parallel_dc: boolean
+            True for enabling parallelization of dispatching and classification at the workflow level
+
+        Returns
+        -------
+        builder: WorkflowBuilder
+            The builder
+        """
+        self._parallel_dc = parallel_dc
         return self
 
     def set_segmenter(self, segmenter):
@@ -239,8 +247,8 @@ class WorkflowBuilder(object):
         workflow = SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
                                 dist_tolerance=self._distance_tolerance,
                                 tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
-                                tile_overlap=self._overlap, logger=self._logger,
-                                worker_pool=self._pool if self._parallel else None)
+                                tile_overlap=self._overlap, logger=self._logger, n_jobs=self._n_jobs,
+                                parallel_dc=self._parallel_dc)
         self._reset()
         return workflow
 

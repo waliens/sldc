@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from joblib import delayed
+from sklearn.externals.joblib import Parallel
 
 from .errors import TileExtractionException
 from .image import Image, TileBuilder
@@ -84,7 +85,7 @@ class SLDCWorkflow(Loggable):
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=7,
-                 dist_tolerance=1, logger=SilentLogger(), worker_pool=None):
+                 dist_tolerance=1, logger=SilentLogger(), n_jobs=None, parallel_dc=False):
         """Constructor for SLDCWorkflow objects
 
         Parameters
@@ -105,8 +106,10 @@ class SLDCWorkflow(Loggable):
             Maximal distance between two polygons so that they are considered from the same object
         logger: Logger (optional, default: SilentLogger)
             A logger object
-        worker_pool: Parallel (optional, default: null)
-            The number of jobs for segmenting and locating the tiles
+        n_jobs: int (optional, default: 1)
+            The number of job available for executing the workflow.
+        parallel_dc: boolean (optional, default: False)
+            True for executing dispatching and classification in parallel, False for sequential.
         """
         Loggable.__init__(self, logger)
         self._tile_max_width = tile_max_width
@@ -117,8 +120,9 @@ class SLDCWorkflow(Loggable):
         self._locator = Locator()
         self._merger = Merger(dist_tolerance)
         self._dispatch_classifier = dispatcher_classifier
-        self._pool = worker_pool
-        self._n_jobs = worker_pool.n_jobs if self._pool is not None else 1
+        self._n_jobs = n_jobs
+        self._parallel_dc = parallel_dc
+        self._pool = None  # To cache a pool across executions
 
     def process(self, image):
         """Process the given image using the workflow
@@ -137,6 +141,7 @@ class SLDCWorkflow(Loggable):
         This method doesn't modify the image passed as parameter.
         This method doesn't modify the object's attributes.
         """
+        self._set_pool()  # create the pool if it doesn't exist yet
         timing = WorkflowTiming()
         tile_topology = image.tile_topology(self._tile_builder, max_width=self._tile_max_width,
                                             max_height=self._tile_max_height, overlap=self._tile_overlap)
@@ -234,7 +239,7 @@ class SLDCWorkflow(Loggable):
             another iterable containing the polygons found on the tile
         """
         # partition the tiles into batches for submitting them to processes
-        batches = tile_topology.partition_identifiers(self._pool.n_jobs)
+        batches = tile_topology.partition_identifiers(self._n_jobs)
 
         # execute in parallel
         timing.start_lsl()
@@ -248,10 +253,31 @@ class SLDCWorkflow(Loggable):
             timing.merge(sub_timing)
             for i, (tile_id, polygons) in enumerate(tiles_polygons):
                 if polygons is None:
-                    self._logger.warning("SLDCWorkflow : Tile {} couldn't be fetched during parallel computations.".format(tile))
+                    self._logger.w("SLDCWorkflow : Tile {} couldn't be fetched during parallel computations.".format(tile_id))
                     merged_tiles_polygons.append((tile_id, []))
                 else:
                     merged_tiles_polygons.append((tile_id, polygons))
 
         # return tiles polygons
         return merged_tiles_polygons
+
+    @property
+    def n_jobs(self):
+        return self._n_jobs
+
+    @n_jobs.setter
+    def n_jobs(self, value):
+        if value != self._n_jobs:
+            self._pool = None
+            self._n_jobs = value
+
+    def _set_pool(self):
+        """Create a pool with self._n_jobs jobs in the self._pool variable.
+        If the pool already exists, this method does nothing.
+        """
+        if self._pool is None:
+            self._pool = Parallel(n_jobs=self._n_jobs)
+
+    def __getstate__(self):
+        self._pool = None  # so that the workflow is serializable
+        return self.__dict__
