@@ -5,7 +5,7 @@ import numpy as np
 from shapely.geometry import box
 
 from sldc import WorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder
-from test.util import draw_poly, NumpyImage, relative_error
+from test.util import draw_poly, NumpyImage, relative_error, draw_multisquare
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
