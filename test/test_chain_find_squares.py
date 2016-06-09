@@ -90,18 +90,18 @@ class TestChaining(TestCase):
 
         # Build chaining
         chain_builder = WorkflowChainBuilder()
-        chain_builder.set_first_workflow(workflow1)
-        chain_builder.add_executor(workflow2)
+        chain_builder.set_first_workflow(workflow1, label="big_squares")
+        chain_builder.add_executor(workflow2, label="small_squares")
         chain = chain_builder.get()
 
         # Launch
-        collection = chain.process(NumpyImage(image))
+        chain_info = chain.process(NumpyImage(image))
 
         # check results
         big_area = (w / 7) ** 2
         small_area = (w / 35) ** 2
 
-        info1 = collection[0]
+        info1 = chain_info["big_squares"]
         self.assertEqual(9, len(info1))
         for polygon, disp, cls, proba in info1:
             self.assertTrue(self.relative_error(polygon.area, big_area) < 0.005)
@@ -109,7 +109,7 @@ class TestChaining(TestCase):
             self.assertEqual(1, cls)
             self.assertAlmostEqual(1.0, proba)
 
-        info2 = collection[1]
+        info2 = chain_info["small_squares"]
         self.assertEqual(36, len(info2))
         for polygon, disp, cls, proba in info2:
             self.assertTrue(self.relative_error(polygon.area, small_area) < 0.005)

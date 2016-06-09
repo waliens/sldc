@@ -265,18 +265,25 @@ class WorkflowChainBuilder(object):
         self._labels = []
         self._logger = SilentLogger()
 
-    def set_first_workflow(self, workflow):
+    def set_first_workflow(self, workflow, label=None):
         """Set the workflow that will process the full image
         Parameters
         ----------
         workflow: SLDCWorkflow
             The workflow
+        label: hashable (optional)
+            The label identifying the workflow. If not set, this label is set to 1.
 
         Returns
         -------
         builder: WorkflowChainBuilder
             The builder
         """
+        actual_label = 0 if label is None else label
+        if self._first_workflow is None:
+            self._labels.insert(0, actual_label)
+        else:
+            self._labels[0] = actual_label
         self._first_workflow = workflow
         return self
 
@@ -290,7 +297,7 @@ class WorkflowChainBuilder(object):
         filter: PolygonFilter (optional, default: DefaultFilter)
             The polygon filter implementing the filtering of polygons of which the windows will be processed to
             the workflow.
-        label: string (optional)
+        label: hashable (optional)
             The label identifying the executor. If not set, the number of the executor is used instead (starting at 1)
         logger: Logger (optional, default: SilentLogger)
             The logger to be used by the executor object
@@ -302,7 +309,8 @@ class WorkflowChainBuilder(object):
         """
         self._executors.append(WorkflowExecutor(workflow, logger=logger))
         self._filters.append(filter)
-        self._labels.append(label)
+        actual_label = len(self._executors) + 1 if label is None else label
+        self._labels.append(actual_label)
         return self
 
     def set_logger(self, logger):
@@ -335,9 +343,9 @@ class WorkflowChainBuilder(object):
         """
         if self._first_workflow is None:
             raise MissingComponentException("Missing first workflow.")
-        if len(self._labels) != len(self._executors):
+        if len(self._labels) != len(self._executors) + 1:
             raise MissingComponentException("The number of labels ({}) should be the".format(len(self._labels)) +
-                                            " same as the number of executors ({}).".format(len(self._executors)))
+                                            " same as the number of workflows ({}).".format(len(self._executors) + 1))
         if len(self._filters) != len(self._executors):
             raise MissingComponentException("The number of filters ({}) should be the".format(len(self._filters)) +
                                             " same as the number of executors ({}).".format(len(self._executors)))

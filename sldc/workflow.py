@@ -168,7 +168,7 @@ class SLDCWorkflow(Loggable):
         self.logger.info("SLDCWorkflow : end dispatch/classify.\n" +
                          "SLDCWorkflow : executed in {} s.".format(timing.dc_total_duration()))
 
-        return WorkflowInformation(polygons, dispatch_indexes, pred, proba, timing, metadata=self.get_metadata())
+        return WorkflowInformation(polygons, dispatch_indexes, pred, proba, timing)
 
     def _segment_locate(self, tile, timing):
         """Fetch a tile and applies it segmentation and location
@@ -191,16 +191,6 @@ class SLDCWorkflow(Loggable):
             self.logger.warning("SLDCWorkflow : skip tile {} because it couldn't be extracted.\n".format(tile.identifier) +
                                 "SLDCWorkflow : fetch error : {}".format(e.message))
             return []
-
-    def get_metadata(self):
-        """Return the metadata associated with this workflow
-        The metadata should be a way for the implementor to document the results of the workflow execution.
-        Returns
-        -------
-        metadata: string
-            The workflow metadata
-        """
-        return "Workflow class: {}\n".format(self.__class__.__name__)
 
     def _sl_sequential(self, tile_topology, timing):
         """Execute the segment locate phase in a sequential order

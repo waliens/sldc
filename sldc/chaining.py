@@ -4,9 +4,8 @@ from abc import ABCMeta, abstractmethod
 
 from shapely.affinity import translate
 
-from .image import ImageWindow
-from .information import ChainInformation, WorkflowInformationCollection, WorkflowInformation
-from .logging import Loggable, SilentLogger, Logger
+from .information import ChainInformation, WorkflowInformation
+from .logging import Loggable, SilentLogger
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -120,13 +119,13 @@ class PolygonFilter(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def filter(self, workflow_information_collection):
+    def filter(self, chain_information):
         """Filter the polygons from in the workflow information collection according to some rules.
 
         Parameters
         ----------
-        workflow_information_collection: WorkflowInformationCollection
-            The collection of workflow information objects containing the polygons to filter
+        chain_information: ChainInformation
+            The chain information object containing the previously generated polygons
 
         Returns
         -------
@@ -135,40 +134,36 @@ class PolygonFilter(object):
         """
         pass
 
-    def windows(self, image, workflow_information_collection):
+    def windows(self, image, chain_information):
         """Return the windows boxing the polygons filtered by self.filter()
 
         Parameters
         ----------
         image: Image
             The image from which the windows can be extracted
-        workflow_information_collection: WorkflowInformationCollection
-            The collection of workflow information objects from which must be extracted the windows
+        chain_information: ChainInformation
+            The chain information object containing the previously generated polygons
 
         Returns
         -------
         windows: iterable (subtype: ImageWindow)
             The generated windows
         """
-        polygons = self.filter(workflow_information_collection)
+        polygons = self.filter(chain_information)
         return [image.window_from_polygon(polygon) for polygon in polygons]
 
 
 class DefaultFilter(PolygonFilter):
     """A polygon filter which filters no polygon"""
-    def filter(self, workflow_information_collection):
-        return [polygon for polygon, _, _, _ in workflow_information_collection.polygons()]
+    def filter(self, chain_information):
+        return [polygon for _, polygon, _, _, _ in chain_information.polygons()]
 
 
 class WorkflowChain(Loggable):
-    """This class encapsulates the sequential execution of several instances of the sldc workflow on the same image.
-    A processing chain might look like this :
-
-    {ImageProvider} --images--> {WorkflowExecutor1} -- workflow information
-            --> {WorkflowExecutor2} - ... -> {PostProcessor}
+    """A class for chaining the execution of several workflows on images
     """
 
-    def __init__(self, workflow, executors, filters, executors_labels, logger=SilentLogger()):
+    def __init__(self, workflow, executors, filters, workflow_labels=None, logger=SilentLogger()):
         """Constructor for WorkflowChain objects
 
         Parameters
@@ -180,6 +175,8 @@ class WorkflowChain(Loggable):
         filters: iterable (subtype: PolygonFilter, size: N)
             The filters to use for filtering polygons before passing their windows to a workflow executor.
             Especially, the ith filter corresponds to the ith executor in 'executors'
+        workflow_labels: iterable (subtype: hashable, size: N+1, optional, default: range(1, N+2))
+            The labels identifying the various recorded workflows. The first one corresponds to the first workflow.
         logger: Logger (optional, default: a SilentLogger instance)
             A logger object
         """
@@ -187,7 +184,7 @@ class WorkflowChain(Loggable):
         self._first_workflow = workflow
         self._executors = executors
         self._filters = filters
-        self._labels = executors_labels
+        self._labels = workflow_labels if workflow_labels is not None else range(1, len(filters)+2)
         self._chain_information = ChainInformation()
 
     def process(self, image):
@@ -200,23 +197,24 @@ class WorkflowChain(Loggable):
 
         Returns
         -------
-        collection: WorkflowInformationCollection
-            Collection of workflow information objects
+        chain_information: ChainInformation
+            A chain information object containing the generated objects
         """
         # Run 1st workflow and save its results in the collection
-        self.logger.info("WorkflowChain : start chain on image ({} x {} x {}).".format(image.height, image.width, image.channels))
+        self.logger.info("WorkflowChain : start chain on image ({} x {} x {}).".format(image.height, image.width,
+                                                                                       image.channels))
         workflow_information = self._first_workflow.process(image)
-        collection = WorkflowInformationCollection()
-        collection.append(workflow_information)
+        chain_info = ChainInformation()
+        chain_info.append(self._labels[0], workflow_information)
 
         # Run subsequent workflows
         for i, executor in enumerate(self._executors):
             self.logger.info("WorkflowChain : run workflow executor {}.".format(i + 1))
-            filtered = self._filters[i].windows(image, collection)
+            filtered = self._filters[i].windows(image, chain_info)
             workflow_information = executor.execute(filtered)
-            collection.append(workflow_information)
+            chain_info.append(self._labels[i+1], workflow_information)
 
-        return collection
+        return chain_info
 
     def process_batch(self, images):
         """Apply the processing chain to a bunch of images
@@ -228,7 +226,7 @@ class WorkflowChain(Loggable):
 
         Returns
         -------
-        collections: iterable (subtype: WorkflowInformationCollection, size: N)
-            The collections containing the data about the processing of each image
+        chain_infos: iterable (subtype: ChainInformation, size: N)
+            The chain information objects generated by processing the given images
         """
         return [self.process(image) for image in images]
