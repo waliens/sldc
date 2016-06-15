@@ -295,7 +295,7 @@ class WorkflowChainBuilder(object):
         self._first_workflow = workflow
         return self
 
-    def add_executor(self, workflow, filter=DefaultFilter(), label=None, logger=SilentLogger()):
+    def add_executor(self, workflow, filter=DefaultFilter(), label=None, logger=SilentLogger(), n_jobs=1):
         """Adds a workflow executor to be executed by the workflow chain.
 
         Parameters
@@ -309,13 +309,15 @@ class WorkflowChainBuilder(object):
             The label identifying the executor. If not set, the number of the executor is used instead (starting at 1)
         logger: Logger (optional, default: SilentLogger)
             The logger to be used by the executor object
+        n_jobs: int (optional, default: 1)
+            The number of jobs for executing the workflow on the images
 
         Returns
         -------
         builder: WorkflowChainBuilder
             The builder
         """
-        self._executors.append(WorkflowExecutor(workflow, logger=logger))
+        self._executors.append(WorkflowExecutor(workflow, logger=logger, n_jobs=n_jobs))
         self._filters.append(filter)
         actual_label = len(self._executors) if label is None else label
         self._labels.append(actual_label)

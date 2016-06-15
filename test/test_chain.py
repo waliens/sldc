@@ -172,7 +172,7 @@ class TestChaining(TestCase):
         chain_builder = WorkflowChainBuilder()
         chain_builder.set_first_workflow(workflow1)
         chain_builder.add_executor(workflow2, filter=CircleShapeFilter())
-        chain_builder.add_executor(workflow3, filter=SquareShapeFilter())
+        chain_builder.add_executor(workflow3, filter=SquareShapeFilter(), n_jobs=2)
         chain = chain_builder.get()
 
         chain_info = chain.process(NumpyImage(image))
