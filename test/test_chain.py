@@ -9,22 +9,29 @@ from test.util import NumpyImage, relative_error, draw_multisquare, draw_multici
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
 
+from sldc.util import has_alpha_channel
 
 class BigShapeSegmenter(Segmenter):
     """A segmenter which matches pixels greater than 0"""
     def segment(self, image):
+        if has_alpha_channel(image):
+            image = np.squeeze(image[:, :, 0:-1])
         return (image > 0).astype(np.uint8)
 
 
 class SmallSquareSegmenter(Segmenter):
     """A segmenter which matches pixels in the range ]100, 200["""
     def segment(self, image):
+        if has_alpha_channel(image):
+            image = np.squeeze(image[:, :, 0:-1])
         return np.logical_and(image < 200, image > 100).astype(np.uint8)
 
 
 class SmallCircleSegmenter(Segmenter):
     """A segementer which matches pixels in the range ]50, 100["""
     def segment(self, image):
+        if has_alpha_channel(image):
+            image = np.squeeze(image[:, :, 0:-1])
         return np.logical_and(image < 100, image > 50).astype(np.uint8)
 
 
