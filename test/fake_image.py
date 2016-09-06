@@ -27,16 +27,16 @@ class FakeImage(Image):
 
     @property
     def np_image(self):
-        return np.zeros((self._w,self._h,self._c), "uint8")
+        return np.zeros((self._w,self._h,self._c), dtype=np.uint8)
 
-    def window(self, offset, max_width, max_height):
+    def window(self, offset, max_width, max_height, polygon_mask=None):
         offset_x = offset[0]
         offset_y = offset[1]
         final_offset = (offset_x, offset_y)
         # width are bound to the current window size, not the parent one
         width = min(max_width, self.width - offset[0])
         height = min(max_height, self.height - offset[1])
-        return ImageWindow(self, final_offset, width, height)
+        return ImageWindow(self, final_offset, width, height, polygon_mask=polygon_mask)
 
 
 class FakeTile(Tile):
@@ -54,5 +54,6 @@ class FakeTileBuilder(TileBuilder):
     """
     Fake tile builder for testing
     """
-    def build(self, image, offset, width, height):
+    def build(self, image, offset, width, height, polygon_mask=None):
         return FakeTile(image, offset, width, height)
+
