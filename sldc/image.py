@@ -3,6 +3,9 @@
 import math
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+from shapely.affinity import translate
+from shapely.geometry import box
+
 from .errors import TileExtractionException
 from .util import batch_split, alpha_rasterize
 
@@ -85,7 +88,8 @@ class Image(object):
         max_height: int
             The maximum height of the window
         polygon_mask: Polygon (optional, default: None)
-            The polygon representing the alpha mask to apply to the image window
+            The polygon representing the alpha mask to apply to the image window. The polygon must be referenced
+            to the full image top-left pixel.
 
         Returns
         -------
@@ -95,7 +99,8 @@ class Image(object):
         # width are bound to the current window size, not the parent one
         width = min(max_width, self.width - offset[0])
         height = min(max_height, self.height - offset[1])
-        return ImageWindow(self, offset, width, height, polygon_mask=polygon_mask)
+        translated_polygon = translate(polygon_mask, -offset[0], -offset[1]) if polygon_mask is not None else None
+        return ImageWindow(self, offset, width, height, polygon_mask=translated_polygon)
 
     def window_from_polygon(self, polygon, mask=False):
         """Build and return a window being the minimum bounding box around the passed polygon.
@@ -136,7 +141,8 @@ class Image(object):
         max_height: int
             The maximum height of the tile
         polygon_mask: Polygon (optional, default: None)
-            The polygon representing the alpha mask to apply to the image window
+            The polygon representing the alpha mask to apply to the image window. The polygon must be referenced
+            to the full image top-left pixel.
 
         Returns
         -------
@@ -152,7 +158,8 @@ class Image(object):
             raise IndexError("Offset {} is out of the image.".format(offset))
         width = min(max_width, self.width - offset[0])
         height = min(max_height, self.height - offset[1])
-        return tile_builder.build(self, offset, width, height, polygon_mask=polygon_mask)
+        translated_polygon = translate(polygon_mask, -offset[0], -offset[1]) if polygon_mask is not None else None
+        return tile_builder.build(self, offset, width, height, polygon_mask=translated_polygon)
 
     def tile_from_polygon(self, tile_builder, polygon, mask=False):
         """Build a tile being the minimum bounding box around the passed polygon
@@ -264,6 +271,12 @@ class Image(object):
         height = cmaxy - fminy
         return offset, width, height
 
+    @property
+    def base_image(self):
+        """Added for convenience. The base image of an image is the image itself by default.
+        """
+        return self
+
 
 class ImageWindow(Image):
     """An image window represents a window in another image
@@ -284,7 +297,7 @@ class ImageWindow(Image):
             The height of the image
         polygon_mask: Polygon (optional, default: None)
             A polygon referenced to the top-left corner of the image representing a mask to be applied.
-            If defined, this mask replaces any mask already existing on the image.
+            If defined, this mask replaces any mask already existing on the image. Cannot be changed after being set.
 
         Notes
         -----
@@ -294,7 +307,36 @@ class ImageWindow(Image):
         self._offset = offset
         self._width = width
         self._height = height
-        self._polygon_mask = polygon_mask
+        self._polygon_mask = None  # set in _init_polygon_mask
+        self._init_polygon_mask(polygon_mask)
+
+    def _init_polygon_mask(self, polygon_mask):
+        """Sets the polygon mask taking into account parent and passed mask"""
+        parent_pmask = self._parent_polygon_mask(do_translate=True)
+
+        if polygon_mask is not None and parent_pmask is not None:
+            self._polygon_mask = polygon_mask.intersection(parent_pmask)
+        elif polygon_mask is not None:
+            self._polygon_mask = polygon_mask
+        elif parent_pmask is not None:
+            self._polygon_mask = box(0, 0, self.width, self.height).intersection(parent_pmask)
+        else:
+            self._polygon_mask = None
+
+    def _parent_polygon_mask(self, do_translate=False):
+        """Return the polygon mask of the parent image if there is one
+
+        Parameters
+        ----------
+        do_translate: boolean (optional, default: False)
+            True for translating the polygon into """
+        if isinstance(self._parent, ImageWindow) and self._parent.polygon_mask is not None:
+            if do_translate:
+                return translate(self._parent.polygon_mask, -self.offset_x, -self.offset_y)
+            else:
+                return self._parent.polygon_mask
+        else:
+            return None
 
     @property
     def polygon_mask(self):
@@ -363,11 +405,16 @@ class ImageWindow(Image):
 
     @property
     def channels(self):
-        chan = self._parent.channels
+        chan = self._underlying_image_channels
         if self.polygon_mask is not None and (chan == 1 or chan == 3):
             return chan + 1  # add alpha mask
         else:
             return chan
+
+    @property
+    def _underlying_image_channels(self):
+        parent = self.parent
+        return parent._underlying_image_channels if isinstance(parent, ImageWindow) else parent.channels
 
     @property
     def height(self):
@@ -386,7 +433,7 @@ class ImageWindow(Image):
         base_image: Image
             The base image
         """
-        return self._parent.base_image if isinstance(self._parent, ImageWindow) else self._parent
+        return self._parent.base_image
 
     @property
     def parent(self):
