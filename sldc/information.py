@@ -53,7 +53,7 @@ class ChainInformation(object):
         information: WorkflowInformation
             A workflow information
         """
-        for key in self._infos:
+        for key in self._order:
             yield key, self._infos[key]
 
     def information(self, label):
@@ -109,9 +109,9 @@ class ChainInformation(object):
             yield k, p, d, c, r
 
     def report(self, logger):
-        for name, info in self.all_information():
-            logger.i("{}Workflow '{}': ".format(os.linesep, name))
-            info.report(logger)
+        for name in self._order:
+            logger.i("{}{}Workflow '{}': ".format(os.linesep, os.linesep, name))
+            self._infos[name].report(logger)
 
 
 class WorkflowInformation(object):
