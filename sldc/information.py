@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import numpy as np
 
 from .timing import WorkflowTiming
 
@@ -106,6 +108,11 @@ class ChainInformation(object):
         for k, p, d, c, r in self.polygons():
             yield k, p, d, c, r
 
+    def report(self, logger):
+        for name, info in self.all_information():
+            logger.i("{}Workflow '{}': ".format(os.linesep, name))
+            info.report(logger)
+
 
 class WorkflowInformation(object):
     """Workflow information : execution about a workflow run. A run is a complete execution
@@ -206,3 +213,40 @@ class WorkflowInformation(object):
         self._classes += other.classes
         self._probas += other.probas
         self._timing = WorkflowTiming.merge_timings(self._timing, other.timing)
+
+    def report(self, logger, indent_count=2):
+        """Compute and print a bunch of stats about the execution of this workflow"""
+        # pre compute some metrics
+        indent = " " * indent_count
+        space = "  "
+        total = len(self._polygons)
+        dispatched = len([d for d in self._dispatch if d is not None])
+
+        # summary
+        report = "{}Total objects found      : {}".format(indent, total)
+        report += "{}{}Total objects dispatched : {}".format(os.linesep, indent, dispatched)
+        report += "{}{}Total objects discarded  : {}".format(os.linesep, indent, total - dispatched)
+        report += os.linesep
+
+        # break down objects stats per dispatching label
+        classes = np.array(self._classes)
+        dispatch = np.array(self._dispatch)
+        labels, counts = np.unique(dispatch, return_counts=True)
+        report += "{}{}Per dispatching rule :".format(os.linesep, indent)
+        for l, c in zip(labels, counts):
+            if l is None:
+                report += "{}{}{}discarded: {}".format(os.linesep, indent, space, c)
+            else:
+                ind = np.where(dispatch == l)
+                report += "{}{}{}'{}': {} ".format(os.linesep, indent, space, l, c)
+
+                # report classes distrib
+                unique_classes, classes_count = np.unique(classes[ind], return_counts=True)
+                cls_rep = ", ".join(["class '{}': {}".format(cls, count) for cls, count in zip(unique_classes, classes_count)])
+                report += "({})".format(cls_rep)
+
+        logger.i(report)
+
+        # display times
+        logger.i("{}{}Execution times:".format(os.linesep, indent))
+        self._timing.report(logger, indent_count=indent_count)

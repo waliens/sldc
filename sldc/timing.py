@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import timeit
 
 import numpy as np
@@ -287,16 +288,18 @@ class WorkflowTiming(object):
         for key in self._durations.keys():
             self._durations[key] += other._durations.get(key, [])
 
-    def report(self, logger):
+    def report(self, logger, indent_count=2):
         """Report the execution times of the workflow phases using the given logger
         Parameters
         ----------
         logger: Logger
             The logger to which the times must be notified
         """
-        to_report = "Execution times of the workflow phases."
+        indent = " " * indent_count
+        space = "  "
+        to_report = list()
         stats = self.statistics()
         for key in stats.keys():
             curr_stat = stats[key]
-            to_report += "\n  {} : {} s (avg: {} s, std: {} s)".format(key, curr_stat[0], curr_stat[2], curr_stat[4])
-        logger.info(to_report)
+            to_report.append("{}{}{} : {} s (avg: {} s, std: {} s)".format(indent, space, key, curr_stat[0], curr_stat[2], curr_stat[4]))
+        logger.info(os.linesep.join(to_report))
