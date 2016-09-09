@@ -109,8 +109,22 @@ class ChainInformation(object):
             yield k, p, d, c, r
 
     def report(self, logger):
+        # count objects
+        object_count = 0
+        discarded_count = 0
+        for _, _, dispatch, _, _ in self:
+            if dispatch != -1:
+                object_count += 1
+            else:
+                discarded_count += 1
+
+        logger.i("{}Workflow chain report: ".format(os.linesep))
+        logger.i("  Objects found      : {}".format(discarded_count + object_count))
+        logger.i("  Objects dispatched : {}".format(object_count))
+        logger.i("  Objects discarded  : {}".format(discarded_count))
+
         for name in self._order:
-            logger.i("{}{}Workflow '{}': ".format(os.linesep, os.linesep, name))
+            logger.i("{}Workflow '{}': ".format(os.linesep, name))
             self._infos[name].report(logger)
 
 
@@ -220,7 +234,7 @@ class WorkflowInformation(object):
         indent = " " * indent_count
         space = "  "
         total = len(self._polygons)
-        dispatched = len([d for d in self._dispatch if d is not None])
+        dispatched = len([d for d in self._dispatch if d != -1])
 
         # summary
         report = "{}Total objects found      : {}".format(indent, total)
@@ -234,7 +248,7 @@ class WorkflowInformation(object):
         labels, counts = np.unique(dispatch, return_counts=True)
         report += "{}{}Per dispatching rule :".format(os.linesep, indent)
         for l, c in zip(labels, counts):
-            if l is None:
+            if l == -1:
                 report += "{}{}{}discarded: {}".format(os.linesep, indent, space, c)
             else:
                 ind = np.where(dispatch == l)
