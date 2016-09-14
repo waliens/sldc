@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from joblib import Parallel
 
 from .chaining import WorkflowChain, WorkflowExecutor, DefaultFilter
 from .dispatcher import DispatcherClassifier, CatchAllRule

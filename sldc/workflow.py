@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from joblib import delayed, Parallel
 
-from .util import batch_split
 from .errors import TileExtractionException
 from .image import Image, TileBuilder
 from .information import WorkflowInformation
@@ -9,6 +8,7 @@ from .locator import Locator
 from .logging import Loggable, SilentLogger
 from .merger import Merger
 from .timing import WorkflowTiming
+from .util import batch_split
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version = "0.1"

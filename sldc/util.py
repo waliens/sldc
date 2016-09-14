@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from PIL import Image, ImageDraw
 import numpy as np
-from shapely.geometry import GeometryCollection
+from PIL import Image, ImageDraw
 from shapely.geometry.base import BaseMultipartGeometry
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"

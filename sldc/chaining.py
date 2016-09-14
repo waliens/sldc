@@ -7,9 +7,9 @@ from joblib import Parallel, delayed
 from shapely.affinity import translate
 
 from .image import Image
-from .util import batch_split
 from .information import ChainInformation, WorkflowInformation
 from .logging import Loggable, SilentLogger
+from .util import batch_split
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"

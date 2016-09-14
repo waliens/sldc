@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import multiprocessing
 import os
 import threading
 from abc import abstractmethod, ABCMeta
-from copy import copy
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
