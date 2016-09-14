@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 
 from sldc import WorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder, DispatchingRule, PolygonFilter
-from test.util import NumpyImage, relative_error, draw_multisquare, draw_multicircle, circularity
+from .util import NumpyImage, relative_error, draw_multisquare, draw_multicircle, circularity
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"

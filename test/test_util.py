@@ -71,11 +71,11 @@ class TestUtil(TestCase):
         fake_image3 = np.zeros((25, 25, 3), dtype=np.int)
         masked_image3 = alpha_rasterize(fake_image3, polygon)
         self.assertTupleEqual((25, 25, 4), masked_image3.shape)
-        self.assertEqual(255, masked_image3[12, 12, 4])
+        self.assertEqual(255, masked_image3[12, 12, 3])
         self.assertEqual(0, masked_image3[0, 0, 1])
 
         fake_image4 = np.zeros((25, 25, 4), dtype=np.int)
         masked_image4 = alpha_rasterize(fake_image4, polygon)
         self.assertTupleEqual((25, 25, 4), masked_image4.shape)
-        self.assertEqual(255, masked_image4[12, 12, 4])
+        self.assertEqual(255, masked_image4[12, 12, 3])
         self.assertEqual(0, masked_image4[0, 0, 1])

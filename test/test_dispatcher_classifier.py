@@ -44,16 +44,16 @@ class TestDispatcherClassifier(TestCase):
         dispatcher_classifier = DispatcherClassifier([CatchAllRule()], [AreaClassifier(500)])
         # simple dispatch test
         cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
-        self.assertEquals(1, cls)
-        self.assertEquals(1.0, probability)
-        self.assertEquals(0, dispatch)
+        self.assertEqual(1, cls)
+        self.assertEqual(1.0, probability)
+        self.assertEqual(0, dispatch)
         classes, probas, dispatches = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2], WorkflowTiming())
-        self.assertEquals(1, classes[0])
-        self.assertEquals(0, classes[1])
-        self.assertEquals(1.0, probas[0])
-        self.assertEquals(1.0, probas[1])
-        self.assertEquals(0, dispatches[0])
-        self.assertEquals(0, dispatches[1])
+        self.assertEqual(1, classes[0])
+        self.assertEqual(0, classes[1])
+        self.assertEqual(1.0, probas[0])
+        self.assertEqual(1.0, probas[1])
+        self.assertEqual(0, dispatches[0])
+        self.assertEqual(0, dispatches[1])
 
     def testDispatcherClassifierThreeRule(self):
         # create polygons to test
@@ -66,19 +66,19 @@ class TestDispatcherClassifier(TestCase):
 
         # simple dispatch test
         cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
-        self.assertEquals(1, cls)
-        self.assertEquals(1.0, probability)
-        self.assertEquals(0, dispatch)
+        self.assertEqual(1, cls)
+        self.assertEqual(1.0, probability)
+        self.assertEqual(0, dispatch)
 
         # batch dispatch test
         classes, probas, dispatches = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2, poly],
                                                                                     WorkflowTiming())
-        self.assertEquals(1, classes[0])
-        self.assertEquals(0, classes[1])
-        self.assertEquals(1, classes[2])
-        self.assertEquals(1.0, probas[0])
-        self.assertEquals(1.0, probas[1])
-        self.assertEquals(1.0, probas[2])
-        self.assertEquals(0, dispatches[0])
-        self.assertEquals(0, dispatches[1])
-        self.assertEquals(1, dispatches[2])
+        self.assertEqual(1, classes[0])
+        self.assertEqual(0, classes[1])
+        self.assertEqual(1, classes[2])
+        self.assertEqual(1.0, probas[0])
+        self.assertEqual(1.0, probas[1])
+        self.assertEqual(1.0, probas[2])
+        self.assertEqual(0, dispatches[0])
+        self.assertEqual(0, dispatches[1])
+        self.assertEqual(1, dispatches[2])
