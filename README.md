@@ -21,3 +21,7 @@ The required dependencies are the following :
 * Pillow (>= 3.1.1)
 * joblib (>= 0.9.4)
 * Shapely (>= 1.5.13)
+
+## References
+
+The framework was developed in the context of this master thesis: http://hdl.handle.net/2268.2/1314.
