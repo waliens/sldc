@@ -91,6 +91,9 @@ def process_mask(mask):
     structures.append((np.array([[0, 0, 0], [1, 1, 0], [0, 0, 0]]), np.array([[0, 1, 0], [0, 0, 0], [0, 1, 0]])))
 
     for struct1, struct2 in structures:
+        # TODO remove scipy.ndimage.binary_hit_or_miss dependency
+        # Tried with opencv hit or miss implementation but resulting transformation is not the same
+        # yielding plenty of self-intersections.. need to be investigated
         pattern_mask = binary_hit_or_miss(mask, structure1=struct1, structure2=struct2).astype(np.uint8)
         pattern_mask[pattern_mask == 1] = 255
         pattern_mask[pattern_mask == 0] = 0
@@ -124,9 +127,9 @@ class Locator(object):
         segmented = process_mask(segmented)
 
         # CV_RETR_EXTERNAL to only get external contours.
-        contours, hierarchy = cv2.findContours(segmented.copy(),
-                                               cv2.RETR_CCOMP,
-                                               cv2.CHAIN_APPROX_SIMPLE)
+        _, contours, hierarchy = cv2.findContours(segmented.copy(),
+                                                  cv2.RETR_CCOMP,
+                                                  cv2.CHAIN_APPROX_SIMPLE)
 
         # Note: points are represented as (col, row)-tuples apparently
         transform = identity
