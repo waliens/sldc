@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from joblib import delayed
-from sklearn.externals.joblib import Parallel
+from joblib import delayed, Parallel
 
 from .util import batch_split
 from .errors import TileExtractionException
