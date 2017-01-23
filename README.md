@@ -28,9 +28,9 @@ The required dependencies are the following :
 
 Install Anaconda/Miniconda: https://docs.continuum.io/anaconda/install
 
-1. Setting up the environment
+1) Setting up the environment
 
- * For UNIX-based systems:
+ + For UNIX-based systems:
 ```bash
 # Create envrionment and install packages
 conda create -n sldc python=2.7 pillow numpy joblib shapely
@@ -40,7 +40,7 @@ source activate sldc
 conda install -c menpo opencv3=3.1.0
 ```
 
- * For windows:
+ + For windows:
 ```bash
 # Create environment and install packages
 conda create -n sldc python=2.7 pillow numpy joblib
@@ -51,13 +51,13 @@ pip install -i https://pypi.anaconda.org/pypi/simple shapely
 conda install -c menpo opencv3=3.1.0
 ```
 
-2. Installing sldc
+2) Installing sldc
 
- * Download the sources
- * Move to the sources root folder of your machine
- * Install sldc: `python setup.py install`
+ + Download the sources
+ + Move to the sources root folder of your machine
+ + Install sldc: `python setup.py install`
 
-3. Then check your install by running ```import sldc```in a python shell
+3) Then check your install by running ```import sldc```in a python shell
 
 
 
