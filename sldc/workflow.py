@@ -192,7 +192,7 @@ class SLDCWorkflow(Loggable):
 
         # dispatch classify
         self.logger.info("SLDCWorkflow : start dispatch/classify.")
-        if self._parallel_dc:
+        if not self._parallel_dc:
             timing.start_dc()
             pred, proba, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, timing)
             timing.end_dc()
