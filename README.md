@@ -54,7 +54,7 @@ conda install -c menpo opencv3=3.1.0
 3) Install sldc
 
  + Download the sources
- + Move to the sources root folder of your machine
+ + Move to the _SLDC_ sources root folder
  + Install sldc: `python setup.py install`
 
 4) Check your install by running `python -c "import sldc"`
