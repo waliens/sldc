@@ -22,6 +22,45 @@ The required dependencies are the following :
 * joblib (>= 0.9.4)
 * Shapely (>= 1.5.13)
 
+## Install
+
+### With anaconda environment
+
+Install Anaconda/Miniconda: https://docs.continuum.io/anaconda/install
+
+1. Setting up the environment
+
+ * For UNIX-based systems:
+```bash
+# Create envrionment and install packages
+conda create -n sldc python=2.7 pillow numpy joblib shapely
+# Activate environment
+source activate sldc
+# Install opencv 3
+conda install -c menpo opencv3=3.1.0
+```
+
+ * For windows:
+```bash
+# Create environment and install packages
+conda create -n sldc python=2.7 pillow numpy joblib
+# Activate environment
+activate sldc
+# Install shapely and opencv3
+pip install -i https://pypi.anaconda.org/pypi/simple shapely
+conda install -c menpo opencv3=3.1.0
+```
+
+2. Installing sldc
+
+ * Download the sources
+ * Move to the sources root folder of your machine
+ * Install sldc: `python setup.py install`
+
+3. Then check your install by running ```import sldc```in a python shell
+
+
+
 ## References
 
 The framework was developed in the context of this master thesis: http://hdl.handle.net/2268.2/1314.
