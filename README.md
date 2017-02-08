@@ -33,11 +33,9 @@ The required dependencies are the following :
  + For UNIX-based systems:
 ```bash
 # Create envrionment and install packages
-conda create -n sldc python=2.7 pillow numpy joblib shapely
+conda create -n sldc python=2.7 pillow numpy joblib shapely opencv
 # Activate environment
 source activate sldc
-# Install opencv 3
-conda install -c menpo opencv3=3.1.0
 ```
 
  + For windows:
