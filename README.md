@@ -52,6 +52,8 @@ conda install -c menpo opencv3=3.1.0
 3) Install sldc
 
  + Download the sources
+  + Either by cloning the repository: `git clone https://github.com/waliens/sldc.git`
+  + Or by downloading an archive: `https://github.com/waliens/sldc/archive/master.zip`
  + Move to the _SLDC_ sources root folder
  + Install sldc: `python setup.py install`
 
@@ -60,4 +62,6 @@ conda install -c menpo opencv3=3.1.0
 
 ## References
 
-The framework was developed in the context of this master thesis: http://hdl.handle.net/2268.2/1314.
+If you use _SLDC_ in a scientific publication, we would appreciate citations: [Mormont & al., Benelearn, 2016](http://orbi.ulg.ac.be/handle/2268/202624).
+
+The framework was initially developed in the context of [this master thesis](http://hdl.handle.net/2268.2/1314).
