@@ -10,19 +10,10 @@ __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
 
 
-class DispatchingRule(Loggable):
+class DispatchingRule(object):
     """An interface to be implemented by any class that defined a dispatching rule for polygons
     """
     __metaclass__ = ABCMeta
-
-    def __init__(self, logger=SilentLogger()):
-        """Constructor for DispatchingRule objects
-        Parameters
-        ----------
-        logger: Logger
-            A logger
-        """
-        Loggable.__init__(self, logger)
 
     def evaluate(self, image, polygon):
         """Evaluate a polygon
