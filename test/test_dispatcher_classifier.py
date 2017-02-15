@@ -6,7 +6,7 @@ from numpy.testing import assert_array_equal
 from shapely.geometry import box, Polygon
 
 from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming, CatchAllRule
-from sldc import RuleBasedDispatcher
+from sldc import RuleBasedDispatcher, Dispatcher
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
@@ -36,6 +36,16 @@ class NotQuadrilaterRule(QuadrilaterRule):
         return not super(NotQuadrilaterRule, self).evaluate(image, polygon)
 
 
+class CustomDispatcher(Dispatcher):
+    """Dispatch 'BIG' if area is larger 1000, otherwise 'SMALL'"""
+
+    def __init__(self):
+        super(CustomDispatcher, self).__init__(["SMALL", "BIG"])
+
+    def dispatch(self, image, polygon):
+        return "BIG" if polygon.area > 1000 else "SMALL"
+
+
 class TestDispatcher(TestCase):
     def testRuleBasedDispatcherNoLabels(self):
         # prepare data for test
@@ -47,8 +57,35 @@ class TestDispatcher(TestCase):
         dispatch_batch = dispatcher.dispatch_batch(None, [box1, box2])
         assert_array_equal(dispatch_batch, [0, 0])
         labels, dispatch_map = dispatcher.dispatch_map(None, [box1, box2])
-        assert_array_equal(labels, [0, 0])
+        assert_array_equal(labels, dispatch_batch)
         assert_array_equal(dispatch_batch, dispatch_map)
+
+    def testRuleBasedDispatcher(self):
+        # prepare data for test
+        box1 = box(0, 0, 100, 100)
+        box2 = box(0, 0, 10, 10)
+
+        dispatcher = RuleBasedDispatcher([CatchAllRule()], ["catchall"])
+        self.assertEqual(dispatcher.dispatch(None, box1), "catchall")
+        dispatch_batch = dispatcher.dispatch_batch(None, [box1, box2])
+        assert_array_equal(dispatch_batch, ["catchall", "catchall"])
+        labels, dispatch_map = dispatcher.dispatch_map(None, [box1, box2])
+        assert_array_equal(labels, dispatch_batch)
+        assert_array_equal(dispatch_map, [0, 0])
+
+    def testCustomDispatcher(self):
+        # prepare data for test
+        box1 = box(0, 0, 500, 500)
+        box2 = box(0, 0, 10, 10)
+        box3 = box(0, 0, 1000, 1000)
+
+        dispatcher = CustomDispatcher()
+        self.assertEqual(dispatcher.dispatch(None, box1), "BIG")
+        dispatch_batch = dispatcher.dispatch_batch(None, [box1, box2, box3])
+        assert_array_equal(dispatch_batch, ["BIG", "SMALL", "BIG"])
+        labels, dispatch_map = dispatcher.dispatch_map(None, [box1, box2, box3])
+        assert_array_equal(labels, dispatch_batch)
+        assert_array_equal(dispatch_map, [1, 0, 1])
 
 
 class TestDispatcherClassifier(TestCase):
