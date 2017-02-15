@@ -57,7 +57,8 @@ class TestDispatcherClassifier(TestCase):
         box1 = box(0, 0, 100, 100)
         box2 = box(0, 0, 10, 10)
 
-        dispatcher_classifier = DispatcherClassifier([CatchAllRule()], [AreaClassifier(500)])
+        dispatcher = RuleBasedDispatcher([CatchAllRule()])
+        dispatcher_classifier = DispatcherClassifier(dispatcher, [AreaClassifier(500)])
         # simple dispatch test
         cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
         self.assertEqual(1, cls)
@@ -77,8 +78,8 @@ class TestDispatcherClassifier(TestCase):
         box2 = box(0, 0, 10, 10)
         poly = Polygon([(0, 0), (0, 1000), (50, 1250), (1000, 1000), (1000, 0), (0, 0)])
 
-        dispatcher_classifier = DispatcherClassifier([QuadrilaterRule(), NotQuadrilaterRule()],
-                                                     [AreaClassifier(500), AreaClassifier(500)])
+        dispatcher = RuleBasedDispatcher([QuadrilaterRule(), NotQuadrilaterRule()])
+        dispatcher_classifier = DispatcherClassifier(dispatcher, [AreaClassifier(500), AreaClassifier(500)])
 
         # simple dispatch test
         cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
