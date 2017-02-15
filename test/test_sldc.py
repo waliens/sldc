@@ -24,14 +24,14 @@ class CircleClassifier(PolygonClassifier):
 
 class CircleRule(DispatchingRule):
     """A rule which matches circle polygons"""
-    def evaluate_batch(self, image, polygons):
-        return [circularity(p) > 0.85 for p in polygons]
+    def evaluate(self, image, polygon):
+        return circularity(polygon) > 0.85
 
 
 class SquareRule(DispatchingRule):
     """A rule that matches square polygons"""
-    def evaluate_batch(self, image, polygons):
-        return [circularity(p) <= 0.85 for p in polygons]
+    def evaluate(self, image, polygon):
+        return circularity(polygon) <= 0.8
 
 
 class ColorClassifier(PolygonClassifier):

@@ -15,6 +15,7 @@ class DispatchingRule(object):
     """
     __metaclass__ = ABCMeta
 
+    @abstractmethod
     def evaluate(self, image, polygon):
         """Evaluate a polygon
 
@@ -30,9 +31,8 @@ class DispatchingRule(object):
         result: bool
             True if the dispatching rule matched the polygon, False otherwise.
         """
-        return self.evaluate_batch(image, [polygon])[0]
+        pass
 
-    @abstractmethod
     def evaluate_batch(self, image, polygons):
         """Evaluate the polygons
 
@@ -48,13 +48,13 @@ class DispatchingRule(object):
         result: iterable (subtype: bool)
             Iterable of which the ith element is True if the ith polygon is evaluated to True, False otherwise
         """
-        pass
+        return [self.evaluate(image, polygon) for polygon in polygons]
 
 
 class CatchAllRule(DispatchingRule):
     """A rule which evaluates all the polygons to True"""
-    def evaluate_batch(self, image, polygons):
-        return [True] * len(polygons)
+    def evaluate(self, image, polygon):
+        return True
 
 
 def default_fail_callback(polygon):

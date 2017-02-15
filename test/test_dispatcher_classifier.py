@@ -23,16 +23,15 @@ class AreaClassifier(PolygonClassifier):
 class QuadrilaterRule(DispatchingRule):
     """A rule that matches polygons that are quadrilaters
     """
-    def evaluate_batch(self, image, polygons):
-        return [len(polygon.boundary.coords) == 5 for polygon in polygons]
+    def evaluate(self, image, polygon):
+        return len(polygon.boundary.coords) == 5
 
 
 class NotQuadrilaterRule(QuadrilaterRule):
     """A rule that matches polygons which are not quadrilaters
     """
-    def evaluate_batch(self, image, polygons):
-        booleans = super(NotQuadrilaterRule, self).evaluate_batch(image, polygons)
-        return [not b for b in booleans]
+    def evaluate(self, image, polygon):
+        return not super(NotQuadrilaterRule, self).evaluate(image, polygon)
 
 
 class TestDispatcherClassifier(TestCase):

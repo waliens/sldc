@@ -43,14 +43,14 @@ class DumbClassifier(PolygonClassifier):
 
 class CircleDispatch(DispatchingRule):
     """A rule that dispatches circles"""
-    def evaluate_batch(self, image, polygons):
-        return [circularity(polygon) > 0.85 for polygon in polygons]
+    def evaluate(self, image, polygon):
+        return circularity(polygon) > 0.85
 
 
 class SquareDispatch(DispatchingRule):
     """A rule that dispatches squares"""
-    def evaluate_batch(self, image, polygons):
-        return [circularity(polygon) < 0.85 for polygon in polygons]
+    def evaluate(self, image, polygon):
+        return circularity(polygon) < 0.85
 
 
 class CircleShapeFilter(PolygonFilter):
