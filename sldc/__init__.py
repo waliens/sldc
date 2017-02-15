@@ -3,7 +3,7 @@
 from .builder import WorkflowBuilder, WorkflowChainBuilder
 from .chaining import ImageProvider, WorkflowExecutor, WorkflowChain, PolygonFilter, DefaultFilter
 from .classifier import PolygonClassifier
-from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule
+from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
 from .errors import ImageExtractionException, TileExtractionException, MissingComponentException
 from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow, DefaultTileBuilder
 from .information import WorkflowInformation, ChainInformation
@@ -17,9 +17,11 @@ from .workflow import SLDCWorkflow
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
-__all__ = ["Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SLDCWorkflow", "Image", "Tile",
-           "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionException",
-           "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain", "WorkflowInformation",
-           "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger", "WorkflowTiming",
-           "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger", "WorkflowChainBuilder", "batch_split",
-           "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel"]
+__all__ = [
+    "Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SLDCWorkflow", "Image", "Tile",
+    "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionException",
+    "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain", "WorkflowInformation",
+    "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger", "WorkflowTiming",
+    "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger", "WorkflowChainBuilder", "batch_split",
+    "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher"
+]

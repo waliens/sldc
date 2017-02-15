@@ -15,6 +15,8 @@ class Dispatcher(Loggable):
     """A dispatcher is an object that for a given set of polygons and an image returns a dispatch index
     computed using some user defined logic.
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self, mapping, timing=None, logger=SilentLogger()):
         """
         Parameters
@@ -38,6 +40,14 @@ class Dispatcher(Loggable):
     def __len__(self):
         """Return the number of possible dispatch indexes/labels"""
         return self.label_count
+
+    @property
+    def timing(self):
+        return self._timing
+
+    @timing.setter
+    def timing(self, timing):
+        self._timing = timing
 
     @abstractmethod
     def dispatch(self, image, polygon):
@@ -115,7 +125,7 @@ class Dispatcher(Loggable):
             self.logger.i("Dispatcher: {}/{} polygons dispatched to '{}'.".format(count, all_count, label))
         self.logger.w("Dispatcher: {}/{} polygons not dispatched.".format(np.count_nonzero(not_dispatched), all_count))
 
-        return dispatch_labels, [self._mapping[k] if k in self._mapping else -1 for k in dispatch_labels]
+        return dispatch_labels, np.array([self._mapping[k] if k in self._mapping else -1 for k in dispatch_labels])
 
 
 class DispatchingRule(object):
@@ -167,7 +177,7 @@ class CatchAllRule(DispatchingRule):
 
 class RuleBasedDispatcher(Dispatcher):
     """A dispatcher which dispatches polygon evaluating them with dispatching rules"""
-    def __init__(self, rules, labels, timing=None, logger=SilentLogger()):
+    def __init__(self, rules, labels=None, timing=None, logger=SilentLogger()):
         """
         Parameters
         ----------
@@ -176,6 +186,7 @@ class RuleBasedDispatcher(Dispatcher):
         timing:
         logger:
         """
+        labels = labels if labels is not None else list(range(len(rules)))
         super(RuleBasedDispatcher, self).__init__(labels, timing=timing, logger=logger)
         self._rules = rules
         self._labels = labels
@@ -240,7 +251,7 @@ class DispatcherClassifier(Loggable):
     Especially, the polygons are classified by the classifier they were dispatched to.
     """
 
-    def __init__(self, dispatcher, classifiers, fail_callback=None, logger=SilentLogger()):
+    def __init__(self, dispatcher, classifiers, timing=None, logger=SilentLogger()):
         """Constructor for ClassifierDispatcher object
 
         Parameters
@@ -254,6 +265,16 @@ class DispatcherClassifier(Loggable):
         Loggable.__init__(self, logger)
         self._dispatcher = dispatcher
         self._classifiers = classifiers
+        self._timing = timing
+
+    @property
+    def timing(self):
+        return self._timing
+
+    @timing.setter
+    def timing(self, timing):
+        self._timing = timing
+        self._dispatcher.timing = timing
 
     def dispatch_classify(self, image, polygon, timing):
         """Dispatch a single polygon to its corresponding classifier according to the dispatching rules,
@@ -335,4 +356,4 @@ class DispatcherClassifier(Loggable):
             predictions[curr_disp_idx] = pred
             probabilities[curr_disp_idx] = proba
         self.logger.info("DispatcherClassifier: end classification.")
-        return predictions, probabilities, disp_labels
+        return list(predictions), list(probabilities), list(disp_labels)

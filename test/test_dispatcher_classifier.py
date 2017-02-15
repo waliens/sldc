@@ -2,9 +2,11 @@
 from unittest import TestCase
 
 import numpy as np
+from numpy.testing import assert_array_equal
 from shapely.geometry import box, Polygon
 
 from sldc import DispatcherClassifier, PolygonClassifier, DispatchingRule, WorkflowTiming, CatchAllRule
+from sldc import RuleBasedDispatcher
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
@@ -32,6 +34,21 @@ class NotQuadrilaterRule(QuadrilaterRule):
     """
     def evaluate(self, image, polygon):
         return not super(NotQuadrilaterRule, self).evaluate(image, polygon)
+
+
+class TestDispatcher(TestCase):
+    def testRuleBasedDispatcherNoLabels(self):
+        # prepare data for test
+        box1 = box(0, 0, 100, 100)
+        box2 = box(0, 0, 10, 10)
+
+        dispatcher = RuleBasedDispatcher([CatchAllRule()])
+        self.assertEqual(dispatcher.dispatch(None, box1), 0)
+        dispatch_batch = dispatcher.dispatch_batch(None, [box1, box2])
+        assert_array_equal(dispatch_batch, [0, 0])
+        labels, dispatch_map = dispatcher.dispatch_map(None, [box1, box2])
+        assert_array_equal(labels, [0, 0])
+        assert_array_equal(dispatch_batch, dispatch_map)
 
 
 class TestDispatcherClassifier(TestCase):

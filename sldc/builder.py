@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .chaining import WorkflowChain, WorkflowExecutor, DefaultFilter
-from .dispatcher import DispatcherClassifier, CatchAllRule
+from .dispatcher import DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
 from .errors import MissingComponentException
 from .image import DefaultTileBuilder
 from .logging import SilentLogger
@@ -241,13 +241,33 @@ class WorkflowBuilder(object):
         if len(self._rules) == 0 or len(self._classifiers) == 0:
             raise MissingComponentException("Missing classifiers.")
 
-        dispatcher_classifier = DispatcherClassifier(self._rules, self._classifiers,
-                                                     dispatching_labels=self._dispatching_labels, logger=self._logger)
-        workflow = SLDCWorkflow(self._segmenter, dispatcher_classifier, self._tile_builder,
-                                dist_tolerance=self._distance_tolerance,
-                                tile_max_height=self._tile_max_height, tile_max_width=self._tile_max_width,
-                                tile_overlap=self._overlap, logger=self._logger, n_jobs=self._n_jobs,
-                                parallel_dc=self._parallel_dc)
+        # define the dispatcher and classifier
+        dispatcher = RuleBasedDispatcher(
+            self._rules,
+            labels=self._dispatching_labels,
+            logger=self._logger
+        )
+
+        dispatcher_classifier = DispatcherClassifier(
+            dispatcher,
+            self._classifiers,
+            logger=self._logger
+        )
+
+        # define the workflow
+        workflow = SLDCWorkflow(
+            self._segmenter,
+            dispatcher_classifier,
+            self._tile_builder,
+            dist_tolerance=self._distance_tolerance,
+            tile_max_height=self._tile_max_height,
+            tile_max_width=self._tile_max_width,
+            tile_overlap=self._overlap,
+            logger=self._logger,
+            n_jobs=self._n_jobs,
+            parallel_dc=self._parallel_dc
+        )
+
         self._reset()
         return workflow
 
