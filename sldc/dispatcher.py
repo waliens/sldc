@@ -3,11 +3,119 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
+from .timing import WorkflowTiming
 from .logging import Loggable, SilentLogger
 from .util import emplace, take
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
+
+
+class Dispatcher(Loggable):
+    """A dispatcher is an object that for a given set of polygons and an image returns a dispatch index
+    computed using some user defined logic.
+    """
+    def __init__(self, mapping, timing=None, logger=SilentLogger()):
+        """
+        Parameters
+        ----------
+        mapping: iterable (subtype: hashable)
+            List containing the dispatch labels/indexes returned by the user defined procedure.
+            This list is used by the dispatch_map to produce the dispatch indexes returned by
+            the dispatcher (see dispatch_map documentation).
+        timing: WorkflowTiming
+            An optional workflow timing for computing dispatching time
+        """
+        super(Dispatcher, self).__init__(logger=logger)
+        self._mapping = {v: i for i, v in enumerate(mapping)}
+        self._timing = WorkflowTiming() if timing is None else timing
+
+    @property
+    def label_count(self):
+        """Return the number of possible dispatch indexes/labels"""
+        return len(self._mapping)
+
+    def __len__(self):
+        """Return the number of possible dispatch indexes/labels"""
+        return self.label_count
+
+    @abstractmethod
+    def dispatch(self, image, polygon):
+        """Return the dispatch index/label for the given polygon and image
+
+        Parameters
+        ----------
+        image: Image
+            The image from which is extracted the polygon
+        polygon: shapely.geometry.Polygon
+            The polygon to dispatch
+
+        Returns
+        -------
+        index: hashable
+            The dispatch index/label. None if the polygon cannot be dispatched
+        """
+        pass
+
+    def dispatch_batch(self, image, polygons):
+        """Return the dispatch index/label for the all the given polygons from the image
+
+        Parameters
+        ----------
+        image: Image
+            The image from which is extracted the polygon
+        polygons: iterable (subtype: shapely.geometry.Polygon)
+            The polygons to dispatch
+
+        Returns
+        -------
+        index: iterable (subtype: hashable)
+            The dispatch index/label
+        """
+        return [self.dispatch(image, polygon) for polygon in polygons]
+
+    def dispatch_map(self, image, polygons):
+        """Transforms the dispatch indexes/labels returned by dispatch_batch to actual integer indexes defined by the
+        mapping. Especially, let there be a mapping array M of size N containing mapped values M[i] (i in [0, N[), a
+        polygon P dispatched to index k, then the corresponding index c returned by dispatch_map will be:
+            - if k in M, then c will be i where M[i] = k
+            - if k not in M, then c will be -1
+
+        Parameters
+        ----------
+        image: Image
+            The image from which is extracted the polygon
+        polygons: iterable (subtype: shapely.geometry.Polygon)
+            The polygons to dispatch
+
+        Returns
+        -------
+        labels: iterable (subtype: hashable)
+            The dispatch indexes/labels
+        index: iterable (subtype: int)
+            The mapped dispatch indexes/labels
+
+        Notes
+        -----
+        If a timing object was provided at construction, it is used to compute the dispatching time
+        """
+        self.logger.i("Dispatcher: start dispatching.")
+        self._timing.start_dispatch()
+        dispatch_labels = self.dispatch_batch(image, polygons)
+        self._timing.end_dispatch()
+        self.logger.i("Dispatcher: end dispatching.")
+
+        # report dispatching
+        not_dispatched = np.equal(dispatch_labels, None)
+        dispatched = np.logical_not(not_dispatched)
+        labels, counts = np.unique(dispatch_labels[dispatched], return_counts=True)
+        all_count = len(polygons)
+
+        for label, count in zip(labels, counts):
+            self.logger.i("Dispatcher: {}/{} polygons dispatched to '{}'.".format(count, all_count, label))
+        self.logger.w("Dispatcher: {}/{} polygons not dispatched.".format(np.count_nonzero(not_dispatched), all_count))
+
+        return dispatch_labels, [self._mapping[k] if k in self._mapping else -1 for k in dispatch_labels]
 
 
 class DispatchingRule(object):
@@ -57,39 +165,95 @@ class CatchAllRule(DispatchingRule):
         return True
 
 
+class RuleBasedDispatcher(Dispatcher):
+    """A dispatcher which dispatches polygon evaluating them with dispatching rules"""
+    def __init__(self, rules, labels, timing=None, logger=SilentLogger()):
+        """
+        Parameters
+        ----------
+        rules: iterable (subtype: DispatchingRule)
+        labels:
+        timing:
+        logger:
+        """
+        super(RuleBasedDispatcher, self).__init__(labels, timing=timing, logger=logger)
+        self._rules = rules
+        self._labels = labels
+
+    def dispatch(self, image, polygon):
+        return self.dispatch_batch(image, [polygon])[0]
+
+    def dispatch_batch(self, image, polygons):
+        poly_count = len(polygons)
+        dispatch_labels = np.full((poly_count,), None, dtype=np.object)  # dispatch indexes
+        remaining = np.arange(poly_count)  # remaining indexes to process
+        # check which rule matched the polygons
+        for i, (rule, label) in enumerate(zip(self._rules, self._labels)):
+            if remaining.shape[0] == 0:  # if there are no more elements to evaluate
+                break
+            match, no_match = self._split_by_rule(image, rule, polygons, remaining)
+            if len(match) > 0:  # skip if there are no match
+                dispatch_labels[match] = label
+                remaining = np.setdiff1d(remaining, match, assume_unique=True)
+        return dispatch_labels
+
+    @staticmethod
+    def _split_by_rule(image, rule, polygons, poly_indexes):
+        """Given a rule, splits all the poly_indexes list into two lists. The first list contains
+        the indexes corresponding to the polygons that were evaluated True by the rule, the indexes that
+        were evaluated False by the rule.
+
+        Parameters
+        ----------
+        image: Image
+            The image from which were extracted the polygons
+        rule: DispatchingRule
+            The rule with which the polygons must be evaluated
+        polygons: iterable
+            The list of polygons
+        poly_indexes: iterable
+            The indexes of the polygons from the list polygons to process
+        timing: WorkflowTiming
+            The timing object for computing the dispatching time
+
+        Returns
+        -------
+        true_list: iterable (subtype: int)
+            The indexes that were evaluated true
+        false_list: iterable (subtype: int)
+            The indexes that were evaluated false
+        """
+        polygons_to_evaluate = take(polygons, poly_indexes)
+        eval_results = rule.evaluate_batch(image, polygons_to_evaluate)
+        np_indexes = np.array(poly_indexes)
+        return np_indexes[np.where(eval_results)], np_indexes[np.where(np.logical_not(eval_results))]
+
+
 def default_fail_callback(polygon):
     """The default fail callback which associates None to assessed polygon"""
     return None
 
 
 class DispatcherClassifier(Loggable):
-    """A dispatcher classifier is an object that evaluates a set of dispatching rules on polygons extracted from an
-    image and that passes these polygons to their associated polygon classifiers according to rule that matched
-    them.
+    """A dispatcher classifier is an object that evaluates a set of polygons extracted from an
+    image. It first dispatches the polygons using a Dispatcher and then classifies the polygons using some classifiers.
+    Especially, the polygons are classified by the classifier they were dispatched to.
     """
 
-    def __init__(self, rules, classifiers, dispatching_labels=None, fail_callback=None, logger=SilentLogger()):
+    def __init__(self, dispatcher, classifiers, fail_callback=None, logger=SilentLogger()):
         """Constructor for ClassifierDispatcher object
 
         Parameters
         ----------
-        rules: iterable (subtype: DispatchingRule, size: N)
-            An iterable containing DispatchingRule objects implementing the polygon dispatching logic.
+        dispatcher: Dispatcher
+            An dispatcher object to dispatch polygons to their most appropriate classifiers. Should produce as many
+            dispatch indexes/labels as there are classifiers (i.e. N).
         classifiers: iterable (subtype: PolygonClassifiers, size: N)
             An iterable of polygon classifiers associated with the rules.
-        dispatching_labels: iterable (optional, default: integer indexes, size: N)
-            The labels identifying the dispatchers and classifiers. If the user doesn't provide labels,
-            integer indexes of the dispatchers in the rules list are used.
-        fail_callback: callable (optional, default: None)
-            A callback to which is passed the polygon if none of the predicates returned True.
-            This callback should return the value expected for a polygon which doesn't match any rule.
-            If the default value is passed, a custom callable which always returns None is crafted.
         """
         Loggable.__init__(self, logger)
-        self._rules = rules
+        self._dispatcher = dispatcher
         self._classifiers = classifiers
-        self._dispatching_labels = list(range(len(rules))) if dispatching_labels is None else dispatching_labels
-        self._fail_callback = fail_callback if fail_callback is not None else default_fail_callback
 
     def dispatch_classify(self, image, polygon, timing):
         """Dispatch a single polygon to its corresponding classifier according to the dispatching rules,
@@ -146,90 +310,29 @@ class DispatcherClassifier(Loggable):
             in the list provided at construction are used. Polygons that weren't matched by any rule are returned -1 as
             dispatch index.
         """
-        match_dict = dict()  # maps rule indexes with matching polygons
-        poly_ind_dict = dict()  # maps rule indexes with index of the polygons in the passed array
+        # dispatch
+        disp_labels, disp_indexes = self._dispatcher.dispatch_map(image, polygons)
+
+        # filter not dispatched
+        unique_disp_indexes, first_occurs = np.unique(disp_indexes, return_index=True)
+
+        # classify
         poly_count = len(polygons)
-        indexes = np.arange(poly_count)
-        # check which rule matched the polygons
-        for i, (rule, label) in enumerate(zip(self._rules, self._dispatching_labels)):
-            if indexes.shape[0] == 0:  # if there are no more elements to evaluate
+        predictions = np.full((poly_count,), None, dtype=np.object)
+        probabilities = np.full((poly_count,), 0.0, dtype=np.float32)
+        np_polygons = np.array(polygons)
+
+        self.logger.info("DispatcherClassifier: start classification.")
+        for index, first in zip(unique_disp_indexes, first_occurs):
+            if index == -1:  # not dispatched
                 break
-            match, no_match = self._split_by_rule(image, rule, polygons, indexes, timing)
-            self.logger.i("DispatcherClassifier: {}/{} polygons dispatched by rule '{}'.".format(len(match), poly_count,
-                                                                                                 label))
-            if len(match) > 0:  # skip if there are no match
-                match_dict[i] = match_dict.get(i, []) + take(polygons, match)
-                poly_ind_dict[i] = poly_ind_dict.get(i, []) + list(match)
-                indexes = np.setdiff1d(indexes, match, True)
-
-        # log the end of dispatching
-        nb_polygons = len(polygons)
-        nb_dispatched = nb_polygons - indexes.shape[0]
-        self.logger.info("DispatcherClassifier : end dispatching ({}/{} polygons dispatched).".format(nb_dispatched,
-                                                                                                      nb_polygons))
-
-        # add all polygons that didn't match any rule
-        match_dict[-1] = take(polygons, indexes)
-        poly_ind_dict[-1] = indexes
-
-        # compute the prediction
-        predict_list = [None] * len(polygons)
-        probabilities_list = [0.0] * len(polygons)
-        dispatch_list = [-1] * len(polygons)
-        for index in match_dict.keys():
-            if index == -1:
-                # set a 0 probability for each poly as they were not dispatched
-                probabilities = np.zeros((len(match_dict[index]),))
-                predictions = [self._fail_callback(polygon) for polygon in match_dict[index]]
-            else:
-                timing.start_classify()
-                predictions, probabilities = self._classifiers[index].predict_batch(image, match_dict[index])
-                timing.end_classify()
-                # Emplace dispatch id
-                emplace([self._dispatching_labels[index]] * len(predictions), dispatch_list, poly_ind_dict[index])
-            # Emplace prediction in prediction list, probabilities in probabilities list
-            emplace(predictions, predict_list, poly_ind_dict[index])
-            emplace(probabilities, probabilities_list, poly_ind_dict[index])
-
-        self.logger.info("DispatcherClassifier : end classification.")
-        return predict_list, probabilities_list, dispatch_list
-
-    @staticmethod
-    def _split_by_rule(image, rule, polygons, poly_indexes, timing):
-        """Given a rule, splits all the poly_indexes list into two lists. The first list contains
-        the indexes corresponding to the polygons that were evaluated True by the rule, the indexes that
-        were evaluated False by the rule.
-
-        Parameters
-        ----------
-        image: Image
-            The image from which were extracted the polygons
-        rule: DispatchingRule
-            The rule with which the polygons must be evaluated
-        polygons: iterable
-            The list of polygons
-        poly_indexes: iterable
-            The indexes of the polygons from the list polygons to process
-        timing: WorkflowTiming
-            The timing object for computing the dispatching time
-        Returns
-        -------
-        true_list: iterable (subtype: int)
-            The indexes that were evaluated true
-        false_list: iterable (subtype: int)
-            The indexes that were evaluated false
-        """
-        polygons_to_evaluate = take(polygons, poly_indexes)
-        timing.start_dispatch()
-        eval_results = rule.evaluate_batch(image, polygons_to_evaluate)
-        timing.end_dispatch()
-        np_indexes = np.array(poly_indexes)
-        return np_indexes[np.where(eval_results)], np_indexes[np.where(np.logical_not(eval_results))]
-
-    def _dispatch_index(self, image, polygon):
-        """Return the index of the first rule that matched the polygon. Return -1 if none of the rules matched.
-        """
-        for i, rule in enumerate(self._rules):
-            if rule.evaluate(image, polygon):
-                return i
-        return -1
+            curr_disp_idx = (disp_indexes == index)  # indexes of the currently processed polygons
+            # predicts classes
+            timing.start_classify()
+            pred, proba = self._classifiers[index].predict_batch(image, np_polygons[curr_disp_idx])
+            timing.end_classify()
+            # save results
+            predictions[curr_disp_idx] = pred
+            probabilities[curr_disp_idx] = proba
+        self.logger.info("DispatcherClassifier: end classification.")
+        return predictions, probabilities, disp_labels
