@@ -2,7 +2,7 @@
 
 from .chaining import WorkflowChain, WorkflowExecutor, DefaultFilter
 from .dispatcher import DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
-from .errors import MissingComponentException
+from .errors import MissingComponentException, InvalidBuildingException
 from .image import DefaultTileBuilder
 from .logging import SilentLogger
 from .workflow import SLDCWorkflow
@@ -25,8 +25,9 @@ class WorkflowBuilder(object):
         # Fields below are reset after each get()
         self._segmenter = None
         self._rules = None
-        self._classifiers = None
         self._dispatching_labels = None
+        self._one_shot_dispatcher = None
+        self._classifiers = None
         self._tile_max_width = None
         self._tile_max_height = None
         self._overlap = None
@@ -42,8 +43,9 @@ class WorkflowBuilder(object):
         self._segmenter = None
         self._tile_builder = DefaultTileBuilder()
         self._rules = []
-        self._classifiers = []
         self._dispatching_labels = []
+        self._one_shot_dispatcher = None
+        self._classifiers = []
         self._tile_max_width = 1024
         self._tile_max_height = 1024
         self._overlap = 7
@@ -204,6 +206,8 @@ class WorkflowBuilder(object):
         builder: WorkflowBuilder
             The builder
         """
+        if self._one_shot_dispatcher is not None:
+            raise InvalidBuildingException("Cannot use a rule based dispatcher alongside a one shot dispatcher.")
         self._dispatching_labels.append(dispatching_label if dispatching_label is not None else len(self._rules))
         self._rules.append(rule)
         self._classifiers.append(classifier)
@@ -220,7 +224,30 @@ class WorkflowBuilder(object):
         dispatching_label: key (optional, default: "catchall")
             The dispatching label
         """
+        if self._one_shot_dispatcher is not None:
+            raise InvalidBuildingException("Cannot use a rule based dispatcher alongside a one shot dispatcher.")
         return self.add_classifier(CatchAllRule(), classifier, dispatching_label=dispatching_label)
+
+    def set_one_shot_dispatcher(self, dispatcher, classifiers):
+        """Use the one shot user dispatching strategy and sets the dispatcher and classifiers.
+
+        Parameters
+        ----------
+        dispatcher: Dispatcher
+            A dispatcher
+        classifiers: iterable (subtype: PolygonClassifier)
+            The classifiers to which the dispatcher should dispatch the polygons
+        """
+        if len(self._rules) > 0:
+            raise InvalidBuildingException("Cannot use a one shot dispatcher alongside "
+                                           "a rule based one (already defined {} rules).".format(len(self._rules)))
+
+        if dispatcher.label_count != len(classifiers):
+            raise InvalidBuildingException("The number of possible dispatching ({}) must match the number of "
+                                           "classifiers ({}).".format(dispatcher.label_count, len(classifiers)))
+
+        self._one_shot_dispatcher = dispatcher
+        self._classifiers = classifiers
 
     def get(self):
         """Build the workflow with the set parameters

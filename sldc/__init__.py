@@ -4,7 +4,7 @@ from .builder import WorkflowBuilder, WorkflowChainBuilder
 from .chaining import ImageProvider, WorkflowExecutor, WorkflowChain, PolygonFilter, DefaultFilter
 from .classifier import PolygonClassifier
 from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
-from .errors import ImageExtractionException, TileExtractionException, MissingComponentException
+from .errors import ImageExtractionException, TileExtractionException, MissingComponentException, InvalidBuildingException
 from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow, DefaultTileBuilder
 from .information import WorkflowInformation, ChainInformation
 from .locator import Locator
@@ -23,5 +23,6 @@ __all__ = [
     "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain", "WorkflowInformation",
     "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger", "WorkflowTiming",
     "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger", "WorkflowChainBuilder", "batch_split",
-    "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher"
+    "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
+    "InvalidBuildingException"
 ]
