@@ -2,6 +2,8 @@
 from unittest import TestCase
 
 import numpy as np
+
+from sldc import Dispatcher
 from sldc import DispatchingRule, PolygonClassifier, WorkflowBuilder, Segmenter
 from .util import circularity, draw_circle, draw_square, draw_poly, NumpyImage, relative_error
 
@@ -51,10 +53,20 @@ class ColorClassifier(PolygonClassifier):
             return None, 1.0
 
 
-class CustomSegementer(Segmenter):
+class CustomSegmenter(Segmenter):
     """Every non black pixel are in object of interests"""
     def segment(self, image):
         return (image > 0).astype("uint8")
+
+
+class CustomDispatcher(Dispatcher):
+    """Dispatch polygons as big or small"""
+    def __init__(self, thresh_area):
+        super(CustomDispatcher, self).__init__()
+        self._thresh_area = thresh_area
+
+    def dispatch(self, image, polygon):
+        return "BIG" if polygon.area > self._thresh_area else "SMALL"
 
 
 class TestFullWorkflow(TestCase):
@@ -79,7 +91,7 @@ class TestFullWorkflow(TestCase):
 
         # Build the workflow
         builder = WorkflowBuilder()
-        builder.set_segmenter(CustomSegementer())
+        builder.set_segmenter(CustomSegmenter())
         builder.add_classifier(CircleRule(), ColorClassifier(), dispatching_label="circle")
         builder.add_classifier(SquareRule(), ColorClassifier())
         workflow = builder.get()
@@ -200,3 +212,60 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(workflow_info.probas, [1.0])
         self.assertEqual(workflow_info.dispatch, ["catchall"])
 
+    def testWorkflowWithCustomDispatcher(self):
+        # generate circle image
+        w, h = 1000, 1000
+        image = np.zeros((w, h,), dtype="uint8")
+        image = draw_circle(image, 10, (125, 125), 255)  # pi * 10 * 10 -> ~ 314
+        image = draw_circle(image, 25, (250, 750), 255)  # pi * 25 * 25 -> ~ 1963
+        image = draw_square(image, 25, (250, 250), 255)  # 25 * 25 -> 625
+        image = draw_square(image, 50, (750, 750), 127)  # 50 * 50 -> 2500
+
+        # build the workflow
+        builder = WorkflowBuilder()
+        builder.set_segmenter(CustomSegmenter())
+        builder.set_overlap(7)
+        builder.set_one_shot_dispatcher(CustomDispatcher(1000), {
+            "BIG": ColorClassifier(),
+            "SMALL": ColorClassifier()
+        })
+        workflow = builder.get()
+
+        # execute
+        results = workflow.process(NumpyImage(image))
+
+        # first square
+        square1 = results.polygons[0]
+        #self.assertTrue(relative_error(square1.area, np.pi * 25 * 25) < 0.005)
+        self.assertTrue(relative_error(square1.centroid.x, 250) < 0.005)
+        self.assertTrue(relative_error(square1.centroid.y, 250) < 0.005)
+        self.assertEqual(results.dispatch[0], "BIG")
+        self.assertEqual(results.classes[0], ColorClassifier.WHITE)
+        self.assertAlmostEquals(results.probas[0], 1.0)
+
+        # first circle
+        circle = results.polygons[1]
+        self.assertTrue(relative_error(circle.area, np.pi * 10 * 10) < 0.005)
+        self.assertTrue(relative_error(circle.centroid.x, 125) < 0.005)
+        self.assertTrue(relative_error(circle.centroid.y, 125) < 0.005)
+        self.assertEqual(results.dispatch[1], "SMALL")
+        self.assertEqual(results.classes[1], ColorClassifier.WHITE)
+        self.assertAlmostEquals(results.probas[1], 1.0)
+
+        # second circle
+        circle2 = results.polygons[2]
+        self.assertTrue(relative_error(circle2.area, 25 * 25) < 0.005)
+        self.assertTrue(relative_error(circle2.centroid.x, 250) < 0.005)
+        self.assertTrue(relative_error(circle2.centroid.y, 750) < 0.005)
+        self.assertEqual(results.dispatch[2], "SMALL")
+        self.assertEqual(results.classes[2], ColorClassifier.WHITE)
+        self.assertAlmostEquals(results.probas[2], 1.0)
+
+        # second square
+        square2 = results.polygons[3]
+        self.assertTrue(relative_error(square2.area, np.pi * 50 * 50) < 0.005)
+        self.assertTrue(relative_error(square2.centroid.x, 750) < 0.005)
+        self.assertTrue(relative_error(square2.centroid.y, 750) < 0.005)
+        self.assertEqual(results.dispatch[3], "BIG")
+        self.assertEqual(results.classes[3], ColorClassifier.GREY)
+        self.assertAlmostEquals(results.probas[3], 1.0)
