@@ -17,9 +17,9 @@ class CircleSegmenter(Segmenter):
 
 
 class CircleClassifier(PolygonClassifier):
-    def predict_batch(self, image, polygons):
+    def predict(self, image, polygon):
         """A polygon classifier which always predict 1 with a probablility 1.0"""
-        return [1] * len(polygons), [1.0] * len(polygons)
+        return 1, 1.0
 
 
 class CircleRule(DispatchingRule):
@@ -39,19 +39,16 @@ class ColorClassifier(PolygonClassifier):
     GREY = 0
     WHITE = 1
 
-    def predict_batch(self, image, polygons):
-        classes = []
-        for polygon in polygons:
-            window = image.window_from_polygon(polygon)
-            sub_image = window.np_image
-            pxl = sub_image[int(polygon.centroid.y) - window.offset_y][int(polygon.centroid.x) - window.offset_x]
-            if pxl == 255:
-                classes.append(ColorClassifier.WHITE)
-            elif 0 < pxl < 255:
-                classes.append(ColorClassifier.GREY)
-            else:
-                classes.append(None)
-        return classes, [1.0] * len(polygons)
+    def predict(self, image, polygon):
+        window = image.window_from_polygon(polygon)
+        sub_image = window.np_image
+        pxl = sub_image[int(polygon.centroid.y) - window.offset_y][int(polygon.centroid.x) - window.offset_x]
+        if pxl == 255:
+            return ColorClassifier.WHITE, 1.0
+        elif 0 < pxl < 255:
+            return ColorClassifier.GREY, 1.0
+        else:
+            return None, 1.0
 
 
 class CustomSegementer(Segmenter):

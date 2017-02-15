@@ -11,6 +11,7 @@ class PolygonClassifier(object):
     """
     __metaclass__ = ABCMeta
 
+    @abstractmethod
     def predict(self, image, polygon):
         """Predict the class associated with the given polygon
 
@@ -28,10 +29,8 @@ class PolygonClassifier(object):
         probability: float (in [0,1])
             The prediction probability
         """
-        pred, proba = self.predict_batch(image, [polygon])
-        return pred[0], proba[0]
+        pass
 
-    @abstractmethod
     def predict_batch(self, image, polygons):
         """Predict the classes associated with the given polygons
 
@@ -49,4 +48,4 @@ class PolygonClassifier(object):
         probabilities: iterable (subtype: int, range: [0,1], size: N)
             The probabilities associated with the classes predicted for each polygon
         """
-        pass
+        return zip(*[self.predict(image, polygon) for polygon in polygons])

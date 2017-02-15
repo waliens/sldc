@@ -37,8 +37,8 @@ class SmallCircleSegmenter(Segmenter):
 
 class DumbClassifier(PolygonClassifier):
     """A classifier which always return class 1 and probability 1.0"""
-    def predict_batch(self, image, polygons):
-        return [1] * len(polygons), [1.0] * len(polygons)
+    def predict(self, image, polygon):
+        return 1, 1.0
 
 
 class CircleDispatch(DispatchingRule):

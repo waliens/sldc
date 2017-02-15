@@ -16,8 +16,8 @@ class AreaClassifier(PolygonClassifier):
     def __init__(self, value):
         self._value = value
 
-    def predict_batch(self, image, polygons):
-        return [1 if p.area > self._value else 0 for p in polygons], np.full((len(polygons),), 1.0)
+    def predict(self, image, polygon):
+        return 1 if polygon.area > self._value else 0, 1.0
 
 
 class QuadrilaterRule(DispatchingRule):
