@@ -228,26 +228,25 @@ class WorkflowBuilder(object):
             raise InvalidBuildingException("Cannot use a rule based dispatcher alongside a one shot dispatcher.")
         return self.add_classifier(CatchAllRule(), classifier, dispatching_label=dispatching_label)
 
-    def set_one_shot_dispatcher(self, dispatcher, classifiers):
+    def set_one_shot_dispatcher(self, dispatcher, classifier_mapping):
         """Use the one shot user dispatching strategy and sets the dispatcher and classifiers.
 
         Parameters
         ----------
         dispatcher: Dispatcher
             A dispatcher
-        classifiers: iterable (subtype: PolygonClassifier)
-            The classifiers to which the dispatcher should dispatch the polygons
+        classifier_mapping: dict (key: hashable, subtype: PolygonClassifier)
+            Maps labels returned by the dispatcher with their corresponding classifiers.
         """
         if len(self._rules) > 0:
             raise InvalidBuildingException("Cannot use a one shot dispatcher alongside "
                                            "a rule based one (already defined {} rules).".format(len(self._rules)))
 
-        if dispatcher.label_count != len(classifiers):
-            raise InvalidBuildingException("The number of possible dispatching ({}) must match the number of "
-                                           "classifiers ({}).".format(dispatcher.label_count, len(classifiers)))
-
+        # extract mapping and classifiers
         self._one_shot_dispatcher = dispatcher
-        self._classifiers = classifiers
+        dispatcher.mapping, self._classifiers = zip(*[
+            (label, classifier) for label, classifier in classifier_mapping.items()
+        ])
 
     def get(self):
         """Build the workflow with the set parameters
@@ -265,7 +264,10 @@ class WorkflowBuilder(object):
             raise MissingComponentException("Missing segmenter.")
         if self._tile_builder is None:
             raise MissingComponentException("Missing tile builder.")
-        if len(self._rules) == 0 or len(self._classifiers) == 0:
+        if self._one_shot_dispatcher is None and len(self._rules) == 0:
+            raise MissingComponentException("Missing dispatching strategy. Either one shot or rule based "
+                                            "dispatching must be used.")
+        if len(self._classifiers) == 0:
             raise MissingComponentException("Missing classifiers.")
 
         # define the dispatcher and classifier

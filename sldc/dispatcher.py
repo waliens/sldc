@@ -17,19 +17,19 @@ class Dispatcher(Loggable):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, mapping, timing=None, logger=SilentLogger()):
+    def __init__(self, mapping=None, timing=None, logger=SilentLogger()):
         """
         Parameters
         ----------
         mapping: iterable (subtype: hashable)
             List containing the dispatch labels/indexes returned by the user defined procedure.
             This list is used by the dispatch_map to produce the dispatch indexes returned by
-            the dispatcher (see dispatch_map documentation).
+            the dispatcher (see dispatch_map documentation). By default assumes no mapping.
         timing: WorkflowTiming
             An optional workflow timing for computing dispatching time
         """
         super(Dispatcher, self).__init__(logger=logger)
-        self._mapping = {v: i for i, v in enumerate(mapping)}
+        self._mapping = self._transform_mapping(mapping)
         self._timing = WorkflowTiming() if timing is None else timing
 
     @property
@@ -48,6 +48,18 @@ class Dispatcher(Loggable):
     @timing.setter
     def timing(self, timing):
         self._timing = timing
+
+    @property
+    def mapping(self):
+        return self._mapping.keys()
+
+    @mapping.setter
+    def mapping(self, mapping):
+        self._mapping = self._transform_mapping(mapping)
+
+    @staticmethod
+    def _transform_mapping(mapping):
+        return None if mapping is None else {v: i for i, v in enumerate(mapping)}
 
     @abstractmethod
     def dispatch(self, image, polygon):
@@ -79,10 +91,10 @@ class Dispatcher(Loggable):
 
         Returns
         -------
-        index: iterable (subtype: hashable)
+        index: ndarray (subtype: hashable)
             The dispatch index/label
         """
-        return [self.dispatch(image, polygon) for polygon in polygons]
+        return np.array([self.dispatch(image, polygon) for polygon in polygons])
 
     def dispatch_map(self, image, polygons):
         """Transforms the dispatch indexes/labels returned by dispatch_batch to actual integer indexes defined by the
@@ -90,6 +102,8 @@ class Dispatcher(Loggable):
         polygon P dispatched to index k, then the corresponding index c returned by dispatch_map will be:
             - if k in M, then c will be i where M[i] = k
             - if k not in M, then c will be -1
+
+        If no mapping is defined, then dispatch_map simply forwards the result of dispatch_batch.
 
         Parameters
         ----------
@@ -100,9 +114,9 @@ class Dispatcher(Loggable):
 
         Returns
         -------
-        labels: iterable (subtype: hashable)
+        labels: ndarray (subtype: hashable)
             The dispatch indexes/labels
-        index: iterable (subtype: int)
+        index: ndarray (subtype: int)
             The mapped dispatch indexes/labels
 
         Notes
@@ -114,6 +128,9 @@ class Dispatcher(Loggable):
         dispatch_labels = self.dispatch_batch(image, polygons)
         self._timing.end_dispatch()
         self.logger.i("Dispatcher: end dispatching.")
+
+        if self._mapping is None:  # no mapping defined
+            return dispatch_labels, dispatch_labels
 
         # report dispatching
         not_dispatched = np.equal(dispatch_labels, None)
