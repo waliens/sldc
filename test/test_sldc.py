@@ -194,6 +194,7 @@ class TestFullWorkflow(TestCase):
         builder.set_n_jobs(2)
         builder.set_segmenter(CircleSegmenter())
         builder.add_catchall_classifier(CircleClassifier())
+        builder.set_parallel_dc(True)
         workflow = builder.get()
 
         # process image
