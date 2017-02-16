@@ -45,7 +45,7 @@ conda create -n sldc python=2.7 pillow numpy joblib
 # Activate environment
 activate sldc
 # Install shapely and opencv3
-pip install -i https://pypi.anaconda.org/pypi/simple shapely
+conda install -c conda-forge shapely
 conda install -c menpo opencv3=3.1.0
 ```
 
