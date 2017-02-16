@@ -271,11 +271,14 @@ class WorkflowBuilder(object):
             raise MissingComponentException("Missing classifiers.")
 
         # define the dispatcher and classifier
-        dispatcher = RuleBasedDispatcher(
-            self._rules,
-            labels=self._dispatching_labels,
-            logger=self._logger
-        )
+        if self._one_shot_dispatcher is None:
+            dispatcher = RuleBasedDispatcher(
+                self._rules,
+                labels=self._dispatching_labels,
+                logger=self._logger
+            )
+        else:
+            dispatcher = self._one_shot_dispatcher
 
         dispatcher_classifier = DispatcherClassifier(
             dispatcher,

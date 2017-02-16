@@ -218,13 +218,12 @@ class TestFullWorkflow(TestCase):
         image = np.zeros((w, h,), dtype="uint8")
         image = draw_circle(image, 10, (125, 125), 255)  # pi * 10 * 10 -> ~ 314
         image = draw_circle(image, 25, (250, 750), 255)  # pi * 25 * 25 -> ~ 1963
-        image = draw_square(image, 25, (250, 250), 255)  # 25 * 25 -> 625
+        image = draw_square(image, 26, (250, 250), 255)  # 26 * 26 -> 676
         image = draw_square(image, 50, (750, 750), 127)  # 50 * 50 -> 2500
 
         # build the workflow
         builder = WorkflowBuilder()
         builder.set_segmenter(CustomSegmenter())
-        builder.set_overlap(7)
         builder.set_one_shot_dispatcher(CustomDispatcher(1000), {
             "BIG": ColorClassifier(),
             "SMALL": ColorClassifier()
@@ -234,38 +233,45 @@ class TestFullWorkflow(TestCase):
         # execute
         results = workflow.process(NumpyImage(image))
 
-        # first square
-        square1 = results.polygons[0]
-        #self.assertTrue(relative_error(square1.area, np.pi * 25 * 25) < 0.005)
-        self.assertTrue(relative_error(square1.centroid.x, 250) < 0.005)
-        self.assertTrue(relative_error(square1.centroid.y, 250) < 0.005)
-        self.assertEqual(results.dispatch[0], "BIG")
-        self.assertEqual(results.classes[0], ColorClassifier.WHITE)
-        self.assertAlmostEquals(results.probas[0], 1.0)
+        # validate number of results
+        count = len(results)
+        self.assertEqual(count, 4)
+
+        # sort polygons
+        sorted_idx = sorted(range(count), key=lambda i: (results.polygons[i].centroid.y, results.polygons[i].centroid.x))
 
         # first circle
-        circle = results.polygons[1]
-        self.assertTrue(relative_error(circle.area, np.pi * 10 * 10) < 0.005)
-        self.assertTrue(relative_error(circle.centroid.x, 125) < 0.005)
-        self.assertTrue(relative_error(circle.centroid.y, 125) < 0.005)
-        self.assertEqual(results.dispatch[1], "SMALL")
-        self.assertEqual(results.classes[1], ColorClassifier.WHITE)
-        self.assertAlmostEquals(results.probas[1], 1.0)
+        circle1 = results.polygons[sorted_idx[0]]
+        self.assertTrue(relative_error(circle1.area, np.pi * 10 * 10) < 0.025)
+        self.assertTrue(relative_error(circle1.centroid.x, 125) < 0.025)
+        self.assertTrue(relative_error(circle1.centroid.y, 125) < 0.025)
+        self.assertEqual(results.dispatch[sorted_idx[0]], "SMALL")
+        self.assertEqual(results.classes[sorted_idx[0]], ColorClassifier.WHITE)
+        self.assertAlmostEquals(results.probas[sorted_idx[0]], 1.0)
+
+        # first square
+        square1 = results.polygons[sorted_idx[1]]
+        self.assertTrue(relative_error(square1.area, 26 * 26) < 0.025)
+        self.assertTrue(relative_error(square1.centroid.x, 250) < 0.025)
+        self.assertTrue(relative_error(square1.centroid.y, 250) < 0.025)
+        self.assertEqual(results.dispatch[sorted_idx[1]], "SMALL")
+        self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.WHITE)
+        self.assertAlmostEquals(results.probas[sorted_idx[1]], 1.0)
 
         # second circle
-        circle2 = results.polygons[2]
-        self.assertTrue(relative_error(circle2.area, 25 * 25) < 0.005)
-        self.assertTrue(relative_error(circle2.centroid.x, 250) < 0.005)
-        self.assertTrue(relative_error(circle2.centroid.y, 750) < 0.005)
-        self.assertEqual(results.dispatch[2], "SMALL")
-        self.assertEqual(results.classes[2], ColorClassifier.WHITE)
-        self.assertAlmostEquals(results.probas[2], 1.0)
+        circle2 = results.polygons[sorted_idx[2]]
+        self.assertTrue(relative_error(circle2.area, np.pi * 25 * 25) < 0.025)
+        self.assertTrue(relative_error(circle2.centroid.x, 250) < 0.025)
+        self.assertTrue(relative_error(circle2.centroid.y, 750) < 0.025)
+        self.assertEqual(results.dispatch[sorted_idx[2]], "BIG")
+        self.assertEqual(results.classes[sorted_idx[2]], ColorClassifier.WHITE)
+        self.assertAlmostEquals(results.probas[sorted_idx[2]], 1.0)
 
         # second square
-        square2 = results.polygons[3]
-        self.assertTrue(relative_error(square2.area, np.pi * 50 * 50) < 0.005)
-        self.assertTrue(relative_error(square2.centroid.x, 750) < 0.005)
-        self.assertTrue(relative_error(square2.centroid.y, 750) < 0.005)
-        self.assertEqual(results.dispatch[3], "BIG")
-        self.assertEqual(results.classes[3], ColorClassifier.GREY)
-        self.assertAlmostEquals(results.probas[3], 1.0)
+        square2 = results.polygons[sorted_idx[3]]
+        self.assertTrue(relative_error(square2.area, 50 * 50) < 0.025)
+        self.assertTrue(relative_error(square2.centroid.x, 750) < 0.025)
+        self.assertTrue(relative_error(square2.centroid.y, 750) < 0.025)
+        self.assertEqual(results.dispatch[sorted_idx[3]], "BIG")
+        self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.GREY)
+        self.assertAlmostEquals(results.probas[sorted_idx[3]], 1.0)
