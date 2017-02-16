@@ -81,13 +81,13 @@ class TestFullWorkflow(TestCase):
         Another white square of side 300 centered in (2000,2000)
         """
         # square
-        w, h = 4000, 4000
+        w, h = 2000, 2000
         image = np.zeros((w, h,), dtype="uint8")
-        image = draw_circle(image, 100, (1000, 3000), 255)
-        image = draw_circle(image, 100, (3000, 1000), 127)
-        image = draw_square(image, 200, (1000, 1000), 255)
-        image = draw_square(image, 200, (3000, 3000), 127)
-        image = draw_square(image, 300, (2000, 2000), 255)
+        image = draw_circle(image, 100, (500, 1500), 255)
+        image = draw_circle(image, 100, (1500, 600), 127)
+        image = draw_square(image, 200, (500, 500), 255)
+        image = draw_square(image, 200, (1500, 1500), 127)
+        image = draw_square(image, 300, (1000, 1000), 255)
 
         # Build the workflow
         builder = WorkflowBuilder()
@@ -104,53 +104,60 @@ class TestFullWorkflow(TestCase):
         for p in results.polygons:
             image = draw_poly(image, p, color)
             color += 35
-        # cv2.imwrite("image.png", image)
-        self.assertEqual(len(results.polygons), 5)
+        import cv2
+        cv2.imwrite("image.png", image)
+
+        # count check
+        count = len(results)
+        self.assertEqual(count, 5)
+
+        # sort polygons
+        sorted_idx = sorted(range(count), key=lambda i: (results.polygons[i].centroid.y, results.polygons[i].centroid.x))
 
         # first square
-        square1 = results.polygons[0]
+        square1 = results.polygons[sorted_idx[0]]
         self.assertEqual(relative_error(square1.area, 200 * 200) < 0.005, True)
-        self.assertEqual(relative_error(square1.centroid.x, 1000) < 0.005, True)
-        self.assertEqual(relative_error(square1.centroid.y, 1000) < 0.005, True)
-        self.assertEqual(results.dispatch[0], 1)  # square
-        self.assertEqual(results.classes[0], ColorClassifier.WHITE)  # white
-        self.assertAlmostEquals(results.probas[0], 1.0)
+        self.assertEqual(relative_error(square1.centroid.x, 500) < 0.005, True)
+        self.assertEqual(relative_error(square1.centroid.y, 500) < 0.005, True)
+        self.assertEqual(results.dispatch[sorted_idx[0]], 1)  # square
+        self.assertEqual(results.classes[sorted_idx[0]], ColorClassifier.WHITE)  # white
+        self.assertAlmostEquals(results.probas[sorted_idx[0]], 1.0)
 
         # first circle
-        circle1 = results.polygons[1]
+        circle1 = results.polygons[sorted_idx[1]]
         self.assertEqual(relative_error(circle1.area, np.pi * 100 * 100) < 0.005, True)
-        self.assertEqual(relative_error(circle1.centroid.x, 3000) < 0.005, True)
-        self.assertEqual(relative_error(circle1.centroid.y, 1000) < 0.005, True)
-        self.assertEqual(results.dispatch[1], "circle")  # circle
-        self.assertEqual(results.classes[1], ColorClassifier.GREY)  # grey
-        self.assertAlmostEquals(results.probas[1], 1.0)
+        self.assertEqual(relative_error(circle1.centroid.x, 1500) < 0.005, True)
+        self.assertEqual(relative_error(circle1.centroid.y, 600) < 0.005, True)
+        self.assertEqual(results.dispatch[sorted_idx[1]], "circle")  # circle
+        self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.GREY)  # grey
+        self.assertAlmostEquals(results.probas[sorted_idx[1]], 1.0)
 
         # second square (centered)
-        square2 = results.polygons[2]
+        square2 = results.polygons[sorted_idx[2]]
         self.assertEqual(relative_error(square2.area, 300 * 300) < 0.005, True)
-        self.assertEqual(relative_error(square2.centroid.x, 2000) < 0.005, True)
-        self.assertEqual(relative_error(square2.centroid.y, 2000) < 0.005, True)
-        self.assertEqual(results.dispatch[2], 1)  # square
-        self.assertEqual(results.classes[2], ColorClassifier.WHITE)  # white
-        self.assertAlmostEquals(results.probas[2], 1.0)
+        self.assertEqual(relative_error(square2.centroid.x, 1000) < 0.005, True)
+        self.assertEqual(relative_error(square2.centroid.y, 1000) < 0.005, True)
+        self.assertEqual(results.dispatch[sorted_idx[2]], 1)  # square
+        self.assertEqual(results.classes[sorted_idx[2]], ColorClassifier.WHITE)  # white
+        self.assertAlmostEquals(results.probas[sorted_idx[2]], 1.0)
 
         # second circle
-        circle2 = results.polygons[3]
+        circle2 = results.polygons[sorted_idx[3]]
         self.assertEqual(relative_error(circle2.area, np.pi * 100 * 100) < 0.005, True)
-        self.assertEqual(relative_error(circle2.centroid.x, 1000) < 0.005, True)
-        self.assertEqual(relative_error(circle2.centroid.y, 3000) < 0.005, True)
-        self.assertEqual(results.dispatch[3], "circle")  # circle
-        self.assertEqual(results.classes[3], ColorClassifier.WHITE)  # grey
-        self.assertAlmostEquals(results.probas[3], 1.0)
+        self.assertEqual(relative_error(circle2.centroid.x, 500) < 0.005, True)
+        self.assertEqual(relative_error(circle2.centroid.y, 1500) < 0.005, True)
+        self.assertEqual(results.dispatch[sorted_idx[3]], "circle")  # circle
+        self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.WHITE)  # grey
+        self.assertAlmostEquals(results.probas[sorted_idx[3]], 1.0)
 
         # third square
-        square3 = results.polygons[4]
+        square3 = results.polygons[sorted_idx[4]]
         self.assertEqual(relative_error(square3.area, 200 * 200) < 0.005, True)
-        self.assertEqual(relative_error(square3.centroid.x, 3000) < 0.005, True)
-        self.assertEqual(relative_error(square3.centroid.y, 3000) < 0.005, True)
-        self.assertEqual(results.dispatch[4], 1)  # square
-        self.assertEqual(results.classes[4], ColorClassifier.GREY)  # white
-        self.assertAlmostEquals(results.probas[4], 1.0)
+        self.assertEqual(relative_error(square3.centroid.x, 1500) < 0.005, True)
+        self.assertEqual(relative_error(square3.centroid.y, 1500) < 0.005, True)
+        self.assertEqual(results.dispatch[sorted_idx[4]], 1)  # square
+        self.assertEqual(results.classes[sorted_idx[4]], ColorClassifier.GREY)  # white
+        self.assertAlmostEquals(results.probas[sorted_idx[4]], 1.0)
 
     def testDetectCircle(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image

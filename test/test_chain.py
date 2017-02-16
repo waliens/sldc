@@ -71,7 +71,7 @@ class TestChaining(TestCase):
     """A test case for testing the chaining"""
     def testSquareIncluded(self):
         # generate the image to be processed
-        w, h = 4000, 4000
+        w, h = 2000, 2000
         image = np.zeros((h, w), dtype=np.uint8)
 
         # locations of the 9 multi-squares
@@ -134,7 +134,7 @@ class TestChaining(TestCase):
             self.assertAlmostEqual(1.0, proba)
 
     def testSquareAndCircleIncluded(self):
-        w, h = 4000, 4000
+        w, h = 2000, 2000
         image = np.zeros((h, w), dtype=np.uint8)
         # locations of the 9 multi-squares
         shapes = [
