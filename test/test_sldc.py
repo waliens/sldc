@@ -99,14 +99,6 @@ class TestFullWorkflow(TestCase):
         # Execute
         results = workflow.process(NumpyImage(image))
 
-        image = np.zeros((h, w), dtype="uint8")
-        color = 50
-        for p in results.polygons:
-            image = draw_poly(image, p, color)
-            color += 35
-        import cv2
-        cv2.imwrite("image.png", image)
-
         # count check
         count = len(results)
         self.assertEqual(count, 5)
