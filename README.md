@@ -59,6 +59,12 @@ conda install -c menpo opencv3=3.1.0
 
 4) Check your install by running `python -c "import sldc"`
 
+## Bindings
+
+The library is image format agnostic and therefore allows you to integrate it with any existing image format by implementing some interfaces. However, some bindings were implemented for integrating SLDC with: 
+
++ [Cytomine](http://www.cytomine.be/): [`cytomine-sldc` repository](https://github.com/cytomine/Cytomine-python-datamining/tree/master/cytomine-datamining/algorithms/sldc) 
++ [OpenSlide](http://openslide.org/): [`sldc-openslide` repository](https://github.com/waliens/sldc-openslide)
 
 ## References
 
