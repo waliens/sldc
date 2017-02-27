@@ -21,6 +21,7 @@ The required dependencies are the following :
 * Pillow (>= 3.1.1)
 * joblib (>= 0.9.4)
 * Shapely (>= 1.5.13)
+* Scipy (>= 0.18.1)
 
 ## Install
 
@@ -33,7 +34,7 @@ The required dependencies are the following :
  + For UNIX-based systems:
 ```bash
 # Create envrionment and install packages
-conda create -n sldc python=2.7 pillow numpy joblib shapely opencv
+conda create -n sldc python=2.7 pillow numpy joblib shapely opencv scipy
 # Activate environment
 source activate sldc
 ```
@@ -41,7 +42,7 @@ source activate sldc
  + For windows:
 ```bash
 # Create environment and install packages
-conda create -n sldc python=2.7 pillow numpy joblib
+conda create -n sldc python=2.7 pillow numpy joblib scipy
 # Activate environment
 activate sldc
 # Install shapely and opencv3
