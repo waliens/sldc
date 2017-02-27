@@ -7,6 +7,7 @@ The framework encapsulates problem-independent logic such as parallelism, memory
 while providing a concise way of declaring problem-dependent components of the implementer's workflows.
 
 [![Build status](https://travis-ci.org/waliens/sldc.svg?branch=master)](https://travis-ci.org/waliens/sldc)
+[![codecov](https://codecov.io/gh/waliens/sldc/branch/master/graph/badge.svg)](https://codecov.io/gh/waliens/sldc)
 
 ## Documentation
 
