@@ -24,6 +24,10 @@ install:
   # Install sldc environment
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pillow numpy joblib shapely opencv scipy
   - source activate test-environment
+  - pip install codecov
 
 script:
-  python -m unittest test
+  - coverage run -m unittest discover .
+
+after_success:
+  - codecov 
