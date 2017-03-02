@@ -63,8 +63,8 @@ def batch_split(n_batches, items):
     batches = [[] for _ in range(0, n_batches)]
     current_batch = 0
     bigger_batch_count = item_count % n_batches
-    smaller_batch_size = (item_count / n_batches)
-    bigger_batch_size = (item_count / n_batches) + 1
+    smaller_batch_size = (item_count // n_batches)
+    bigger_batch_size = (item_count // n_batches) + 1
     for item in items:
         batches[current_batch].append(item)
         if (current_batch < bigger_batch_count and len(batches[current_batch]) >= bigger_batch_size) \
