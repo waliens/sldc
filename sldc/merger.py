@@ -67,7 +67,7 @@ class Graph(object):
                     continue
                 visited[curr_idx] = True
                 current_comp.append(current_node)
-                map(stack.append, self.edges.get(current_node, []))
+                stack.extend(self.edges.get(current_node, []))
             if len(current_comp) > 0:
                 components.append(current_comp)
         return components
