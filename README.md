@@ -15,7 +15,7 @@ The algorithm used by the framework as well as some toy examples are presented i
 
 ## Dependencies
 
-The framework currently works under Python 2.7 only, but we're working on extending the portability to Python 3.x.
+The framework currently works under Python 2.7 and 3.5.
 
 The required dependencies are the following :
 
@@ -32,12 +32,12 @@ The required dependencies are the following :
 
 1) Install Anaconda/Miniconda: https://docs.continuum.io/anaconda/install
 
-2) Set up the environment
+2) Set up the environment (replace `__PY_VERSION__` by either `2.7` or `3.5` according to the python version you want to use)
 
  + For UNIX-based systems:
 ```bash
 # Create envrionment and install packages
-conda create -n sldc python=2.7 pillow numpy joblib shapely opencv scipy
+conda create -n sldc python=__PY_VERSION__ pillow numpy joblib shapely opencv scipy
 # Activate environment
 source activate sldc
 ```
@@ -45,7 +45,7 @@ source activate sldc
  + For windows:
 ```bash
 # Create environment and install packages
-conda create -n sldc python=2.7 pillow numpy joblib scipy
+conda create -n sldc python=__PY_VERSION__ pillow numpy joblib scipy
 # Activate environment
 activate sldc
 # Install shapely and opencv3
