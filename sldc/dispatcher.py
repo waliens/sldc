@@ -29,7 +29,8 @@ class Dispatcher(Loggable):
             An optional workflow timing for computing dispatching time
         """
         super(Dispatcher, self).__init__(logger=logger)
-        self._mapping = self._transform_mapping(mapping)
+        self._mapping, self._inverse_mapping = None, None  # to avoid duplicate initialization
+        self.mapping = mapping
         self._timing = WorkflowTiming() if timing is None else timing
 
     @property
@@ -56,6 +57,7 @@ class Dispatcher(Loggable):
     @mapping.setter
     def mapping(self, mapping):
         self._mapping = self._transform_mapping(mapping)
+        self._inverse_mapping = mapping
 
     @staticmethod
     def _transform_mapping(mapping):
@@ -132,17 +134,23 @@ class Dispatcher(Loggable):
         if self._mapping is None:  # no mapping defined
             return dispatch_labels, dispatch_labels
 
-        # report dispatching
-        not_dispatched = np.equal(dispatch_labels, None)
+        # compute mapping indexes
+        indexes = np.full(dispatch_labels.shape, -1, dtype=np.int)
+        for label, index in self._mapping.items():
+            indexes[dispatch_labels == label] = index
+
+        # report dispatching (is it relevant not to report when the implementer hasn't defined any labels ?)
+        not_dispatched = np.equal(indexes, -1)
         dispatched = np.logical_not(not_dispatched)
-        labels, counts = np.unique(dispatch_labels[dispatched], return_counts=True)
+        dispatched_indexes, counts = np.unique(indexes[dispatched], return_counts=True)
         all_count = len(polygons)
 
-        for label, count in zip(labels, counts):
+        for index, count in zip(dispatched_indexes, counts):
+            label = self._inverse_mapping[index]
             self.logger.i("Dispatcher: {}/{} polygons dispatched to '{}'.".format(count, all_count, label))
         self.logger.w("Dispatcher: {}/{} polygons not dispatched.".format(np.count_nonzero(not_dispatched), all_count))
 
-        return dispatch_labels, np.array([self._mapping[k] if k in self._mapping else -1 for k in dispatch_labels])
+        return dispatch_labels, indexes
 
 
 class DispatchingRule(object):
