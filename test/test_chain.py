@@ -4,12 +4,12 @@ from unittest import TestCase
 import numpy as np
 
 from sldc import WorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder, DispatchingRule, PolygonFilter
+from sldc.util import has_alpha_channel
 from .util import NumpyImage, relative_error, draw_multisquare, draw_multicircle, circularity
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
 
-from sldc.util import has_alpha_channel
 
 class BigShapeSegmenter(Segmenter):
     """A segmenter which matches pixels greater than 0"""
@@ -76,19 +76,19 @@ class TestChaining(TestCase):
 
         # locations of the 9 multi-squares
         positions = [
-            (w / 7, h / 7),
-            (3 * w / 7, h / 7),
-            (5 * w / 7, h / 7),
-            (w / 7, 3 * h / 7),
-            (3 * w / 7, 3 * h / 7),
-            (5 * w / 7, 3 * h / 7),
-            (w / 7, 5 * h / 7),
-            (3 * w / 7, 5 * h / 7),
-            (5 * w / 7, 5 * h / 7)
+            (w // 7, h // 7),
+            (3 * w // 7, h // 7),
+            (5 * w // 7, h // 7),
+            (w // 7, 3 * h // 7),
+            (3 * w // 7, 3 * h // 7),
+            (5 * w // 7, 3 * h // 7),
+            (w // 7, 5 * h // 7),
+            (3 * w // 7, 5 * h // 7),
+            (5 * w // 7, 5 * h // 7)
         ]
 
         for position in positions:
-            image = draw_multisquare(image, position, w / 7, color_in=127)
+            image = draw_multisquare(image, position, w // 7, color_in=127)
 
         # Build workflow
         builder = WorkflowBuilder()
@@ -114,7 +114,7 @@ class TestChaining(TestCase):
         chain_info = chain.process(NumpyImage(image))
 
         # check results
-        big_area = (w / 7) ** 2
+        big_area = (w // 7) ** 2
         small_area = (w / 35) ** 2
 
         info1 = chain_info["big_squares"]
@@ -138,22 +138,22 @@ class TestChaining(TestCase):
         image = np.zeros((h, w), dtype=np.uint8)
         # locations of the 9 multi-squares
         shapes = [
-            ("c", (w / 7, h / 7)),
-            ("s", (3 * w / 7, h / 7)),
-            ("s", (5 * w / 7, h / 7)),
-            ("s", (w / 7, 3 * h / 7)),
-            ("c", (3 * w / 7, 3 * h / 7)),
-            ("s", (5 * w / 7, 3 * h / 7)),
-            ("c", (w / 7, 5 * h / 7)),
-            ("s", (3 * w / 7, 5 * h / 7)),
-            ("c", (5 * w / 7, 5 * h / 7))
+            ("c", (w // 7, h // 7)),
+            ("s", (3 * w // 7, h // 7)),
+            ("s", (5 * w // 7, h // 7)),
+            ("s", (w // 7, 3 * h // 7)),
+            ("c", (3 * w // 7, 3 * h // 7)),
+            ("s", (5 * w // 7, 3 * h // 7)),
+            ("c", (w // 7, 5 * h // 7)),
+            ("s", (3 * w // 7, 5 * h // 7)),
+            ("c", (5 * w // 7, 5 * h // 7))
         ]
 
         for shape, position in shapes:
             if shape == "c":
-                image = draw_multicircle(image, position, w / 7, color_in=87)
+                image = draw_multicircle(image, position, w // 7, color_in=87)
             elif shape == "s":
-                image = draw_multisquare(image, position, w / 7, color_in=187)
+                image = draw_multisquare(image, position, w // 7, color_in=187)
 
         # Build workflows
         # 1st: find big shapes and dispatch them as circle or square
