@@ -371,7 +371,7 @@ class DispatcherClassifier(Loggable):
         self.logger.info("DispatcherClassifier: start classification.")
         for index, first in zip(unique_disp_indexes, first_occurs):
             if index == -1:  # not dispatched
-                break
+                continue
             curr_disp_idx = (disp_indexes == index)  # indexes of the currently processed polygons
             # predicts classes
             timing.start_classify()
