@@ -206,27 +206,27 @@ class TestTileTopologyPartition(TestCase):
 
         # Test 5 batches
         batches1 = topology.partition_tiles(5)
-        self.assertEquals(len(batches1), 5)
+        self.assertEqual(len(batches1), 5)
         self.checkBatches(batches1)
 
         # Test 1 batches
         batches2 = topology.partition_tiles(1)
-        self.assertEquals(len(batches2), 1)
+        self.assertEqual(len(batches2), 1)
         self.checkBatches(batches2)
 
         # Test 10 batches
         batches3 = topology.partition_tiles(10)
-        self.assertEquals(len(batches3), 9)
+        self.assertEqual(len(batches3), 9)
         self.checkBatches(batches3)
 
         # Test 10 batches
         batches4 = topology.partition_tiles(9)
-        self.assertEquals(len(batches4), 9)
+        self.assertEqual(len(batches4), 9)
         self.checkBatches(batches4)
 
     def checkBatches(self, batches):
         identifier = 1
         for i, batch in enumerate(batches):
             for tile in batch:
-                self.assertEquals(tile.identifier, identifier, msg="Expect tile {} in batch {}, got tile {}".format(identifier, i, tile.identifier))
+                self.assertEqual(tile.identifier, identifier, msg="Expect tile {} in batch {}, got tile {}".format(identifier, i, tile.identifier))
                 identifier += 1

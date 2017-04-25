@@ -113,7 +113,7 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(square1.centroid.y, 500) < 0.005, True)
         self.assertEqual(results.dispatch[sorted_idx[0]], 1)  # square
         self.assertEqual(results.classes[sorted_idx[0]], ColorClassifier.WHITE)  # white
-        self.assertAlmostEquals(results.probas[sorted_idx[0]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[0]], 1.0)
 
         # first circle
         circle1 = results.polygons[sorted_idx[1]]
@@ -122,7 +122,7 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(circle1.centroid.y, 600) < 0.005, True)
         self.assertEqual(results.dispatch[sorted_idx[1]], "circle")  # circle
         self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.GREY)  # grey
-        self.assertAlmostEquals(results.probas[sorted_idx[1]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
 
         # second square (centered)
         square2 = results.polygons[sorted_idx[2]]
@@ -131,7 +131,7 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(square2.centroid.y, 1000) < 0.005, True)
         self.assertEqual(results.dispatch[sorted_idx[2]], 1)  # square
         self.assertEqual(results.classes[sorted_idx[2]], ColorClassifier.WHITE)  # white
-        self.assertAlmostEquals(results.probas[sorted_idx[2]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[2]], 1.0)
 
         # second circle
         circle2 = results.polygons[sorted_idx[3]]
@@ -140,7 +140,7 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(circle2.centroid.y, 1500) < 0.005, True)
         self.assertEqual(results.dispatch[sorted_idx[3]], "circle")  # circle
         self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.WHITE)  # grey
-        self.assertAlmostEquals(results.probas[sorted_idx[3]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[3]], 1.0)
 
         # third square
         square3 = results.polygons[sorted_idx[4]]
@@ -149,7 +149,7 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(square3.centroid.y, 1500) < 0.005, True)
         self.assertEqual(results.dispatch[sorted_idx[4]], 1)  # square
         self.assertEqual(results.classes[sorted_idx[4]], ColorClassifier.GREY)  # white
-        self.assertAlmostEquals(results.probas[sorted_idx[4]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[4]], 1.0)
 
     def testDetectCircle(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image
@@ -247,7 +247,7 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(circle1.centroid.y, 125) < 0.025)
         self.assertEqual(results.dispatch[sorted_idx[0]], "SMALL")
         self.assertEqual(results.classes[sorted_idx[0]], ColorClassifier.WHITE)
-        self.assertAlmostEquals(results.probas[sorted_idx[0]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[0]], 1.0)
 
         # first square
         square1 = results.polygons[sorted_idx[1]]
@@ -256,7 +256,7 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(square1.centroid.y, 250) < 0.025)
         self.assertEqual(results.dispatch[sorted_idx[1]], "SMALL")
         self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.WHITE)
-        self.assertAlmostEquals(results.probas[sorted_idx[1]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
 
         # second circle
         circle2 = results.polygons[sorted_idx[2]]
@@ -265,7 +265,7 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(circle2.centroid.y, 750) < 0.025)
         self.assertEqual(results.dispatch[sorted_idx[2]], "BIG")
         self.assertEqual(results.classes[sorted_idx[2]], ColorClassifier.WHITE)
-        self.assertAlmostEquals(results.probas[sorted_idx[2]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[2]], 1.0)
 
         # second square
         square2 = results.polygons[sorted_idx[3]]
@@ -274,4 +274,4 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(square2.centroid.y, 750) < 0.025)
         self.assertEqual(results.dispatch[sorted_idx[3]], "BIG")
         self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.GREY)
-        self.assertAlmostEquals(results.probas[sorted_idx[3]], 1.0)
+        self.assertAlmostEqual(results.probas[sorted_idx[3]], 1.0)
