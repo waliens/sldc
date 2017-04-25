@@ -36,6 +36,15 @@ class SquareRule(DispatchingRule):
         return circularity(polygon) <= 0.8
 
 
+class MinAreaRule(DispatchingRule):
+    """A rule matching polygons greater than a given area"""
+    def __init__(self, min_area):
+        self._min_area = min_area
+
+    def evaluate(self, image, polygon):
+        return polygon.area > self._min_area
+
+
 class ColorClassifier(PolygonClassifier):
     """A classifier which returns the color class of the center point of the polygon"""
     GREY = 0
@@ -275,3 +284,44 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(results.dispatch[sorted_idx[3]], "BIG")
         self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.GREY)
         self.assertAlmostEqual(results.probas[sorted_idx[3]], 1.0)
+
+    def testWorkflowWithExcludedObjects(self):
+        # generate circle image
+        w, h = 300, 100
+        image = np.zeros((h, w,), dtype="uint8")
+        image = draw_circle(image, 10, (100, 50), 255)  # pi * 10 * 10 -> ~ 314
+        image = draw_circle(image, 25, (200, 50), 255)  # pi * 25 * 25 -> ~ 1963
+
+        # build the workflow
+        builder = WorkflowBuilder()
+        builder.set_segmenter(CustomSegmenter())
+        builder.add_classifier(MinAreaRule(500), ColorClassifier(), "big")
+        workflow = builder.get()
+
+        # execute
+        results = workflow.process(NumpyImage(image))
+
+        # validate number of results
+        count = len(results)
+        self.assertEqual(count, 2)
+
+        # sort polygons
+        sorted_idx = sorted(range(count), key=lambda i: (results.polygons[i].centroid.y, results.polygons[i].centroid.x))
+
+        # first shape (excluded)
+        shape1 = results.polygons[sorted_idx[0]]
+        self.assertTrue(relative_error(shape1.area, np.pi * 10 * 10) < 0.025)
+        self.assertTrue(relative_error(shape1.centroid.x, 100) < 0.025)
+        self.assertTrue(relative_error(shape1.centroid.y, 50) < 0.025)
+        self.assertEqual(results.dispatch[sorted_idx[0]], None)
+        self.assertEqual(results.classes[sorted_idx[0]], None)
+        self.assertAlmostEqual(results.probas[sorted_idx[0]], 0.0)
+
+        # second shape (include)
+        shape2 = results.polygons[sorted_idx[1]]
+        self.assertTrue(relative_error(shape2.area, np.pi * 25 * 25) < 0.025)
+        self.assertTrue(relative_error(shape2.centroid.x, 200) < 0.025)
+        self.assertTrue(relative_error(shape2.centroid.y, 50) < 0.025)
+        self.assertEqual(results.dispatch[sorted_idx[1]], "big")
+        self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.WHITE)
+        self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
