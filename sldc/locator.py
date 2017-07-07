@@ -227,7 +227,7 @@ class SemanticLocator(Locator):
             if cls == self._background:  # skip background class
                 continue
             bmask = np.array(mask == cls).astype(np.uint8) * 255
-            polygons = locator.locate(bmask, offset=offset)
-            polygons.extend([(p, cls) for p in polygons])
+            located = locator.locate(bmask, offset=offset)
+            polygons.extend([(p, cls) for p in located])
 
         return polygons

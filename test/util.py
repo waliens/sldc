@@ -6,7 +6,7 @@ from shapely.geometry import Point, Polygon, box
 from sldc import Image
 
 
-def mk_gray_img(w, h, level=0):
+def mk_img(w, h, level=0):
     return np.ones((w, h)).astype("uint8") * level
 
 

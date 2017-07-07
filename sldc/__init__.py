@@ -7,7 +7,7 @@ from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule, Rul
 from .errors import ImageExtractionException, TileExtractionException, MissingComponentException, InvalidBuildingException
 from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow, DefaultTileBuilder
 from .information import WorkflowInformation, ChainInformation
-from .locator import Locator
+from .locator import Locator, BinaryLocator, SemanticLocator
 from .logging import Logger, StandardOutputLogger, FileLogger, SilentLogger, Loggable
 from .merger import Merger
 from .segmenter import Segmenter
