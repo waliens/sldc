@@ -18,11 +18,11 @@ from .workflow import SLDCWorkflow
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 __all__ = [
-    "Locator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SLDCWorkflow", "Image", "Tile",
-    "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator", "ImageExtractionException",
-    "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain", "WorkflowInformation",
-    "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger", "WorkflowTiming",
-    "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger", "WorkflowChainBuilder", "batch_split",
-    "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
+    "Locator", "BinartLocator", "SemanticLocator", "Segmenter", "DispatcherClassifier", "DispatchingRule",
+    "SLDCWorkflow", "Image", "Tile", "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator",
+    "ImageExtractionException", "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain",
+    "WorkflowInformation", "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger",
+    "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger", "WorkflowChainBuilder",
+    "batch_split", "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
     "InvalidBuildingException", "Dispatcher"
 ]

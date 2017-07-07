@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from abc import abstractmethod
 from functools import partial
 
 import cv2
@@ -103,26 +103,35 @@ def process_mask(mask):
 
 
 class Locator(object):
-    """A class providing methods for extracting polygons from a binary mask.
-    """
-    def locate(self, segmented, offset=None):
-        """Extract polygons for the foreground elements of the segmented image.
-        Inspired from: https://goo.gl/HYPrR1
+    """Interface to be implemented by Locator objects"""
+
+    @abstractmethod
+    def locate(self, mask, offset=None):
+        """Extract polygons representing the foreground elements of the segmented image.
+        
         Parameters
         ----------
-        segmented: ndarray (shape: (width, height))
-            An NumPy representation of a segmented image. Background pixels are represented by
-            the value 0 ('black') while foreground ones are represented by the value 255 ('white').
-            The type of the array values should be 'uint8'.
+        mask: ndarray (shape: (width, height))
+            A NumPy representation of a segmented image. Each pixel is associated with its (integer) class label. 
+            
         offset: (int, int) (optional, default: (0,0))
             An offset indicating the coordinates of the top-leftmost pixel of the segmented image in the
             original image.
+            
         Returns
         -------
         polygons : iterable (subtype: shapely.geometry.Polygon)
             An iterable containing the polygons extracted from the segmented image. The reference
             point (0,0) for the polygons coordinates is the upper-left corner of the initial image.
         """
+        pass
+
+
+class BinaryLocator(Locator):
+    """A class providing methods for extracting polygons from a binary mask.
+    """
+    def locate(self, segmented, offset=None):
+        """Inspired from: https://goo.gl/HYPrR1"""
         # clean invalid patterns from the mask
         segmented = process_mask(segmented)
 
@@ -175,3 +184,50 @@ class Locator(object):
         del contours
         del hierarchy
         return components
+
+
+class SemanticLocator(Locator):
+    """A class for extracting polygons in semantic segmentation masks"""
+
+    def __init__(self, background=-1):
+        """
+        Parameters
+        ----------
+        background: int (default: -1)
+            The value corresponding to the background pixel label. Polygons won't be extracted for this class.
+            If the value is not a class label, all the classes contained in the mask will be extracted.
+        """
+        self._background = background
+
+    def locate(self, mask, offset=None):
+        return list(zip(*self.class_locate(mask, offset=offset)))[0]
+
+    def class_locate(self, mask, offset=None):
+        """Locate the objects and return them alongside their classes
+        
+        Parameters:
+        -----------
+        mask: ndarray (shape: (width, height))
+            A NumPy representation of a segmented image. Each pixel is associated with its (integer) class label. 
+            
+        offset: (int, int) (optional, default: (0,0))
+            An offset indicating the coordinates of the top-leftmost pixel of the segmented image in the
+            original image.
+            
+        Returns
+        -------
+        located: list (subtype: (Polygon, int))
+            A list containing tuples of located polygons and their labels
+        """
+        locator = BinaryLocator()
+        classes = np.unique(mask)
+        polygons = list()
+
+        for cls in classes:
+            if cls == self._background:  # skip background class
+                continue
+            bmask = np.array(mask == cls).astype(np.uint8) * 255
+            polygons = locator.locate(bmask, offset=offset)
+            polygons.extend([(p, cls) for p in polygons])
+
+        return polygons

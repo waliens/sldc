@@ -4,13 +4,14 @@ from shapely.affinity import translate
 from shapely.geometry import Polygon
 
 from sldc import Locator
+from sldc.locator import BinaryLocator
 from .util import mk_gray_img, draw_circle, draw_poly
 
 
 class TestLocatorNothingToLocate(TestCase):
     def testLocator(self):
         image = mk_gray_img(2000, 3000)
-        locator = Locator()
+        locator = BinaryLocator()
         polygons = locator.locate(image)
         self.assertEqual(0, len(polygons), "No polygon found on black image")
 
@@ -28,14 +29,14 @@ class TestLocatorRectangle(TestCase):
         image = draw_poly(image, ABCD)
 
         # locate it
-        locator = Locator()
+        locator = BinaryLocator()
         polygons = locator.locate(image)
 
         self.assertEqual(1, len(polygons), "One polygon found")
         self.assertTrue(ABCD.equals(polygons[0]), "Found polygon has the same shape")
 
         # test locate with an offset
-        locator2 = Locator()
+        locator2 = BinaryLocator()
         polygons2 = locator2.locate(image, offset=(250, 200))
         self.assertEqual(1, len(polygons2), "One polygon found")
         self.assertTrue(translate(ABCD, 250, 200).equals(polygons2[0]), "Found translated polygon")
@@ -55,7 +56,7 @@ class TestLocatorCircleAndRectangle(TestCase):
         image, circle = draw_circle(image, 400, (2500, 1500), return_circle=True)
 
         # test locator
-        locator = Locator()
+        locator = BinaryLocator()
         polygons = locator.locate(image)
 
         self.assertEqual(2, len(polygons), "Two polygons found")

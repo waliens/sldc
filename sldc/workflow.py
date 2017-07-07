@@ -4,7 +4,7 @@ from joblib import delayed, Parallel
 from .errors import TileExtractionException
 from .image import Image, TileBuilder
 from .information import WorkflowInformation
-from .locator import Locator
+from .locator import BinaryLocator
 from .logging import Loggable, SilentLogger
 from .merger import Merger
 from .timing import WorkflowTiming
@@ -140,7 +140,7 @@ class SLDCWorkflow(Loggable):
         self._tile_overlap = tile_overlap
         self._tile_builder = tile_builder
         self._segmenter = segmenter
-        self._locator = Locator()
+        self._locator = BinaryLocator()
         self._merger = Merger(dist_tolerance)
         self._dispatch_classifier = dispatcher_classifier
         self._n_jobs = n_jobs
