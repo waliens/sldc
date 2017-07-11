@@ -277,7 +277,7 @@ class DispatcherClassifier(Loggable):
     TIMING_DISPATCH = "dispatch"
     TIMING_CLASSIFY = "classify"
 
-    def __init__(self, dispatcher, classifiers, timing_root=None, logger=SilentLogger()):
+    def __init__(self, dispatcher, classifiers, logger=SilentLogger()):
         """Constructor for ClassifierDispatcher object
 
         Parameters
@@ -287,15 +287,12 @@ class DispatcherClassifier(Loggable):
             dispatch indexes/labels as there are classifiers (i.e. N).
         classifiers: iterable (subtype: PolygonClassifiers, size: N)
             An iterable of polygon classifiers associated with the rules.
-        timing_root: str
-            A root phase for the inner timing object
         """
         Loggable.__init__(self, logger)
         self._dispatcher = dispatcher
         self._classifiers = classifiers
-        self._timing_root = timing_root
 
-    def dispatch_classify(self, image, polygon):
+    def dispatch_classify(self, image, polygon, timing_root=None):
         """Dispatch a single polygon to its corresponding classifier according to the dispatching rules,
         then compute and return the associated prediction.
 
@@ -305,8 +302,8 @@ class DispatcherClassifier(Loggable):
             The image to which belongs the polygon
         polygon: shapely.geometry.Polygon
             The polygon of which the class must be predicted
-        timing: WorkflowTiming
-            The timing object for computing the execution times of dispatching and classification
+        timing_root: str
+            A root phase for the inner timing object
 
         Returns
         -------
@@ -322,10 +319,10 @@ class DispatcherClassifier(Loggable):
         timing: WorkflowTiming
             The timing object containing times of the different dispatch/classify phases
         """
-        classes, probabilities, dispatches, timing = self.dispatch_classify_batch(image, [polygon])
+        classes, probabilities, dispatches, timing = self.dispatch_classify_batch(image, [polygon], timing_root=timing_root)
         return classes[0], probabilities[0], dispatches[0], timing
 
-    def dispatch_classify_batch(self, image, polygons):
+    def dispatch_classify_batch(self, image, polygons, timing_root=None):
         """Apply the dispatching and classification steps to an ensemble of polygons.
 
         Parameters
@@ -334,6 +331,8 @@ class DispatcherClassifier(Loggable):
             The image to which belongs the polygon
         polygons: iterable (subtype: shapely.geometry.Polygon, size: N)
             The polygons of which the classes must be predicted
+        timing_root: str
+            A root phase for the inner timing object
             
         Returns
         -------
@@ -352,7 +351,7 @@ class DispatcherClassifier(Loggable):
         timing: WorkflowTiming
             The timing object containing times of the different dispatch/classify phases
         """
-        timing = WorkflowTiming(root=self._timing_root)
+        timing = WorkflowTiming(root=timing_root)
         # dispatch
         timing.start(DispatcherClassifier.TIMING_DISPATCH)
         disp_labels, disp_indexes = self._dispatcher.dispatch_map(image, polygons)

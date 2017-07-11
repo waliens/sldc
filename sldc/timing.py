@@ -39,7 +39,7 @@ class WorkflowTiming(dict):
     def _full_phase(self, phase):
         """Return the full phase (user phase with prepended root phase)"""
         if self._root is not None:
-            return "{}.{}".format(self._root, phase)
+            return ".".join([self._root, phase])
         else:
             return phase
 
@@ -134,7 +134,7 @@ class WorkflowTiming(dict):
         """Return the hierarchy of phases"""
         keys = sorted(self.keys())
         splitted_keys = [k.split(".") for k in keys]
-        return self._get_phases_hierarchy(splitted_keys)
+        return self._simplify_hierarchy(self._get_phases_hierarchy(splitted_keys), root=None)
 
     @classmethod
     def _get_phases_hierarchy(cls, phases):
@@ -150,6 +150,19 @@ class WorkflowTiming(dict):
             hierarchy[top_phase] = cls._get_phases_hierarchy(subphases)
         return hierarchy
 
+    def _simplify_hierarchy(self, hierarchy, root=None):
+        if hierarchy is None:
+            return None
+        simplified = dict()
+        for key, value in hierarchy.items():
+            full_phase = ".".join([root, key]) if root is not None else key
+            if full_phase not in self and value is not None and len(value) == 1:
+                subkey = list(value.keys())[0]
+                simplified[".".join([key, subkey])] = self._simplify_hierarchy(value[subkey], root=full_phase)
+            else:
+                simplified[key] = self._simplify_hierarchy(value, root=full_phase)
+        return simplified
+
     def get_phase_statistics(self, phase):
         """Return time statistics in seconds for the given phase
         Parameters
@@ -160,39 +173,20 @@ class WorkflowTiming(dict):
         Returns
         -------
         statistics: dict    
-            A dictionary mapping statistic name (among 'max', 'min', 'mean', 'std' and 'count) with their respective 
-            values
+            A dictionary mapping statistic name (among 'max', 'min', 'mean', 'std', 'sum' and 'count') with their 
+            respective values
         """
-        self._validate_phase(phase)
-        full_phase = self._full_phase(phase)
-        if full_phase not in self:
-            raise ValueError("Unknown phase '{}'.".format(full_phase))
-        times = self[full_phase]
+        if phase not in self:
+            raise ValueError("Unknown phase '{}'.".format(phase))
+        times = self[phase]
         return {
             "count": times.shape[0],
             "mean": np.mean(times),
             "std": np.std(times),
             "min": np.min(times),
-            "max": np.max(times)
+            "max": np.max(times),
+            "sum": np.sum(times)
         }
-
-
-def _report_timing(hierarchy: dict, parent_phase: str, count: int, timing: WorkflowTiming, logger: Logger, indent="  "):
-    if hierarchy is None:
-        return
-    for phase, sub_hierarchy in hierarchy.items():
-        full_phase = "{}.{}".format(parent_phase, phase) if len(parent_phase) > 0 else phase
-        stats = timing.get_phase_statistics(full_phase)
-        logger.i("{}* {} -> mean:{} std:{} min:{} max:{} count:{}".format(
-            indent * count,
-            phase,
-            np.round(stats["mean"], 5),
-            np.round(stats["std"], 5),
-            np.round(stats["min"], 5),
-            np.round(stats["max"], 5),
-            stats["count"]
-        ))
-        _report_timing(sub_hierarchy, full_phase, count + 1, timing,  logger, indent=indent)
 
 
 def merge_timings(timing1: WorkflowTiming, timing2: WorkflowTiming):
@@ -218,6 +212,28 @@ def merge_timings(timing1: WorkflowTiming, timing2: WorkflowTiming):
     return new_timing
 
 
+def _report_timing(hierarchy: dict, parent_phase: str, count: int, timing: WorkflowTiming, logger: Logger, indent="  "):
+    if hierarchy is None:
+        return
+    for phase, sub_hierarchy in hierarchy.items():
+        full_phase = "{}.{}".format(parent_phase, phase) if len(parent_phase) > 0 else phase
+        new_count = count
+        if full_phase in timing:
+            stats = timing.get_phase_statistics(full_phase)
+            logger.i("{}* {}: {}s (mean:{}s std:{}s min:{}s max:{}s, count:{})".format(
+                indent * count,
+                phase,
+                np.round(stats["sum"], 5),
+                np.round(stats["mean"], 5),
+                np.round(stats["std"], 5),
+                np.round(stats["min"], 5),
+                np.round(stats["max"], 5),
+                stats["count"]
+            ))
+            new_count += 1
+        _report_timing(sub_hierarchy, full_phase, new_count, timing, logger, indent=indent)
+
+
 def report_timing(timing: WorkflowTiming, logger: Logger, indent="  "):
     """Report the recorded times in the given workflow timing object
     Parameters
@@ -232,298 +248,3 @@ def report_timing(timing: WorkflowTiming, logger: Logger, indent="  "):
     logger.i("Timing report:")
     _report_timing(timing.get_phases_hierarchy(), "", 0, timing, logger, indent=indent)
 
-
-# class WorkflowTimings(object):
-#     """A class that computes and stores execution times for various phases of the workflow.
-#     WorkflowTiming objects can be combined (their stored execution times are added)
-#
-#     Class constants:
-#         - LOADING : Time required for loading image into memory (call of tile.np_image)
-#         - SEGMENTATION : Time for segmenting the tiles (call of segmenter.segment)
-#         - MERGING : Time for merging the polygons found in the tiles (call of merger.merge)
-#         - LOCATION : Time for locating the polygons in the segmented tiles (call of locator.locate)
-#         - DISPATCH : Time for dispatching the polygons (call of rule.evaluate_batch or rule.evaluate)
-#         - CLASSIFY : Time for classifying the polygons (call of polygon_classifier.predict_batch or
-#                      polygon_classifier.predict)
-#         - FSL : Total time for executing the fetch/segment/locate (same as FETCHING + SEGMENTATION + MERGING in case of
-#                 sequential execution. Less then these in case of parallel execution)
-#     """
-#
-#     LOADING = "loading"
-#     SEGMENTATION = "segmentation"
-#     MERGING = "merging"
-#     LOCATION = "location"
-#     DISPATCH = "dispatch"
-#     CLASSIFY = "classify"
-#     LSL = "load_segment_locate"
-#     DC = "dispatch_classify"
-#
-#     def __init__(self):
-#         """Construct a WorkflowTiming object
-#         """
-#         self._durations = {
-#             WorkflowTiming.LOADING: [],
-#             WorkflowTiming.SEGMENTATION: [],
-#             WorkflowTiming.MERGING: [],
-#             WorkflowTiming.LOCATION: [],
-#             WorkflowTiming.DISPATCH: [],
-#             WorkflowTiming.CLASSIFY: [],
-#             WorkflowTiming.LSL: [],
-#             WorkflowTiming.DC: []
-#         }
-#         self._start_dict = dict()
-#
-#     def start_loading(self):
-#         """Record the start for the 'loading' phase
-#         """
-#         self._record_start(WorkflowTiming.LOADING)
-#
-#     def end_loading(self):
-#         """Record the end for the 'loading' phase
-#         """
-#         self._record_end(WorkflowTiming.LOADING)
-#
-#     def start_segment(self):
-#         """Record the start for the 'segment' phase
-#         """
-#         self._record_start(WorkflowTiming.SEGMENTATION)
-#
-#     def end_segment(self):
-#         """Record the end for the 'segment' phase
-#         """
-#         self._record_end(WorkflowTiming.SEGMENTATION)
-#
-#     def start_location(self):
-#         """Record the start for the 'location' phase
-#         """
-#         self._record_start(WorkflowTiming.LOCATION)
-#
-#     def end_location(self):
-#         """Record the end for the 'location' phase
-#         """
-#         self._record_end(WorkflowTiming.LOCATION)
-#
-#     def start_dispatch(self):
-#         """Record the start for the 'dispatch' phase
-#         """
-#         self._record_start(WorkflowTiming.DISPATCH)
-#
-#     def end_dispatch(self):
-#         """Record the end for the 'dispatch' phase
-#         """
-#         self._record_end(WorkflowTiming.DISPATCH)
-#
-#     def start_classify(self):
-#         """Record the start for the 'classify' phase
-#         """
-#         self._record_start(WorkflowTiming.CLASSIFY)
-#
-#     def end_classify(self):
-#         """Record the end for the 'classify' phase
-#         """
-#         self._record_end(WorkflowTiming.CLASSIFY)
-#
-#     def start_merging(self):
-#         """Record the start for the 'merging' phase
-#         """
-#         self._record_start(WorkflowTiming.MERGING)
-#
-#     def end_merging(self):
-#         """Record the end for the 'merging' phase
-#         """
-#         self._record_end(WorkflowTiming.MERGING)
-#
-#     def start_lsl(self):
-#         """Record the start for the 'load_segment_locate' phase
-#         """
-#         self._record_start(WorkflowTiming.LSL)
-#
-#     def end_lsl(self):
-#         """Record the end for the 'load_segment_locate' phase
-#         """
-#         self._record_end(WorkflowTiming.LSL)
-#
-#     def start_dc(self):
-#         """Record the start for the 'dispatch_classify' phase
-#         """
-#         self._record_start(WorkflowTiming.DC)
-#
-#     def end_dc(self):
-#         """Record the end for the 'dispatch_classify' phase
-#         """
-#         self._record_end(WorkflowTiming.DC)
-#
-#     def statistics(self):
-#         """Compute time statistics tuples for each phase of the algorithm
-#         Returns
-#         -------
-#         stats: dict
-#             A dictionary mapping phase string with a stat tuple containing time statistics for the given phase
-#         """
-#         stats = dict()
-#         for key in self._durations.keys():
-#             stats[key] = self._stat_tuple(key)
-#         return stats
-#
-#     def total(self):
-#         """Compute the total execution times of the algorithm recorded so far
-#         """
-#         total_time = 0
-#         for key in self._durations.keys():
-#             total_time += sum(self._durations[key])
-#         return total_time
-#
-#     def sl_total_duration(self):
-#         """Return the total execution time for segmenting tiles and locating polygons recoreded so far
-#         Returns
-#         -------
-#         time: float
-#             The execution time in second
-#         """
-#         return self.total_duration_of([WorkflowTiming.SEGMENTATION, WorkflowTiming.LOCATION])
-#
-#     def lsl_total_duration(self):
-#         """Return the total execution time for the loading, segment and locate phase
-#         Returns
-#         -------
-#         time: float
-#             The execution time in second
-#         """
-#         return self.total_duration_of([WorkflowTiming.LSL])
-#
-#     def dc_total_duration(self):
-#         """Return the total execution time for dispatching and classifying polygons recoreded so far
-#
-#         Returns
-#         -------
-#         time: float
-#             The execution time in second
-#         """
-#         return self.total_duration_of([WorkflowTiming.DC])
-#
-#     def duration_of(self, phase):
-#         """Return the total duration of the given phase
-#         Parameters
-#         ----------
-#         phase: string
-#             The phase string
-#
-#         Returns
-#         -------
-#         time: float
-#             Total time in seconds
-#         """
-#         if phase not in self._durations:
-#             return 0
-#         return sum(self._durations[phase])
-#
-#     def total_duration_of(self, phases):
-#         """Return the total dûration of the given phases
-#         Parameters
-#         ----------
-#         phases: iterable (subtype: string)
-#             Iterable containing the strings of the phases to be included in the computed times
-#         Returns
-#         -------
-#         time: float
-#             Total time in seconds
-#         """
-#         if len(phases) == 0:
-#             return 0
-#         return sum([self.duration_of(phase) for phase in phases])
-#
-#     def _record_start(self, phase):
-#         """Record a start for a given phase
-#         Parameters
-#         ----------
-#         phase: string
-#             The string of the phase that starts
-#         """
-#         self._start_dict[phase] = timeit.default_timer()
-#
-#     def _record_end(self, phase):
-#         """Record an end for a given phase
-#         Parameters
-#         ----------
-#         phase: string
-#             The string of the phase that ends
-#         """
-#         start = self._start_dict.get(phase)
-#         if start is not None:
-#             self._durations[phase].append(timeit.default_timer() - start)
-#             del self._start_dict[phase]
-#
-#     def _stat_tuple(self, phase):
-#         """Make a statistics tuple from the given phase string
-#         Parameters
-#         ----------
-#         phase: string
-#             The phase string of which statistics tuple is wanted
-#         Returns
-#         -------
-#         stats: tuple of (float, float, float, float, float, float)
-#             Tuple containing the following stats (sum, min, mean, max, std, count)
-#         """
-#         durations = np.array(self._durations[phase])
-#         count = durations.shape[0]
-#         if count == 0:
-#             return 0, 0, 0, 0, 0
-#         return round(np.sum(durations), 5), \
-#             round(np.min(durations), 5), \
-#             round(np.mean(durations), 5), \
-#             round(np.max(durations), 5), \
-#             round(np.std(durations), 5), \
-#             count
-#
-#     @classmethod
-#     def merge_timings(cls, timing1, timing2):
-#         """Merge the two timings into a new timing object
-#         Parameters
-#         ----------
-#         timing1: WorkflowTiming
-#             The first timing object to merge
-#         timing2: WorkflowTiming
-#             The second timing object to merge
-#         Returns
-#         -------
-#         timing: WorkflowTiming
-#             A new timing object containing the merging of the passed timings
-#         """
-#         if timing1 is None and timing2 is None:
-#             return WorkflowTiming()
-#         elif timing1 is None or timing2 is None:
-#             return timing1 if timing1 is not None else timing2
-#
-#         timing = WorkflowTiming()
-#         for key in timing._durations.keys():
-#             timing._durations[key] = timing1._durations.get(key, []) + timing2._durations.get(key, [])
-#         return timing
-#
-#     def merge(self, other):
-#         """Merge the other WorkflowTiming into the current one
-#
-#         Parameters
-#         ----------
-#         other: WorkflowTiming
-#             The WorkflowTiming object to merge
-#         """
-#         if other is None or not isinstance(other, WorkflowTiming):
-#             return
-#         for key in self._durations.keys():
-#             self._durations[key] += other._durations.get(key, [])
-#
-#     def report(self, logger, indent_count=2):
-#         """Report the execution times of the workflow phases using the given logger
-#         Parameters
-#         ----------
-#         logger: Logger
-#             The logger to which the times must be notified
-#         """
-#         indent = " " * indent_count
-#         space = "  "
-#         to_report = list()
-#         stats = self.statistics()
-#         for key in stats.keys():
-#             curr_stat = stats[key]
-#             to_report.append("{}{}{} : {} s (avg: {} s, std: {} s)".format(indent, space, key, curr_stat[0], curr_stat[2], curr_stat[4]))
-#         logger.info(os.linesep.join(to_report))

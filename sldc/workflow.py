@@ -47,7 +47,7 @@ def _segment_locate(tile, segmenter, locator, timing):
     return located
 
 
-def _sl_with_timing(tile_ids, tile_topology, segmenter, locator, logger=SilentLogger()):
+def _sl_with_timing(tile_ids, tile_topology, segmenter, locator, logger=SilentLogger(), timing_root=None):
     """Helper function for parallel execution. Error occurring in this method is notified by returning None in place of
     the found polygons list.
 
@@ -69,7 +69,7 @@ def _sl_with_timing(tile_ids, tile_topology, segmenter, locator, logger=SilentLo
     tiles_polygons: iterable (subtype: (int, shapely.geometry.Polygon), size: N)
         A list containing the tile identifiers and the polygons found inside them
     """
-    timing = WorkflowTiming()
+    timing = WorkflowTiming(root=timing_root)
     tiles_polygons = list()
     for tile_id in tile_ids:
         try:
@@ -81,7 +81,7 @@ def _sl_with_timing(tile_ids, tile_topology, segmenter, locator, logger=SilentLo
     return timing, tiles_polygons
 
 
-def _dc_with_timing(dispatcher_classifier, image, polygons):
+def _dc_with_timing(dispatcher_classifier, image, polygons, timing_root=None):
     """
 
     dispatcher_classifier:
@@ -99,7 +99,7 @@ def _dc_with_timing(dispatcher_classifier, image, polygons):
     timing: WorkflowTiming
         The timing object containing the execution times of the dispatching and classification steps
     """
-    return dispatcher_classifier.dispatch_classify_batch(image, polygons)
+    return dispatcher_classifier.dispatch_classify_batch(image, polygons, timing_root=timing_root)
 
 
 class SLDCWorkflow(Loggable):
@@ -234,7 +234,9 @@ class SLDCWorkflow(Loggable):
             tile_ids,
             tile_topology,
             self._segmenter,
-            self._locator
+            self._locator,
+            self.logger,
+            ".".join([SLDCWorkflow.TIMING_ROOT, SLDCWorkflow.TIMING_DETECT])
         ) for tile_ids in batches)
 
         sub_timings, tiles_polygons = list(zip(*results))
@@ -274,8 +276,9 @@ class SLDCWorkflow(Loggable):
             in the list provided at construction are used. Polygons that weren't matched by any rule are returned -1 as
             dispatch index.
         """
+        timing_root = ".".join([SLDCWorkflow.TIMING_ROOT, SLDCWorkflow.TIMING_DC])
         batches = batch_split(self._n_jobs, polygons)
-        results = self._pool(delayed(_dc_with_timing)(self._dispatch_classifier, image, batch) for batch in batches)
+        results = self._pool(delayed(_dc_with_timing)(self._dispatch_classifier, image, batch, timing_root) for batch in batches)
         predictions, probabilities, dispatch, timings = zip(*results)
 
         # flatten
