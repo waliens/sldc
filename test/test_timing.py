@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import time
 
-from sldc import WorkflowTiming, report_timing, StandardOutputLogger, Logger
+from sldc import WorkflowTiming, report_timing, StandardOutputLogger, Logger, merge_timings
 
 
 class TestTiming(TestCase):
@@ -67,3 +67,62 @@ class TestTiming(TestCase):
         self.assertEqual(2, len(timing.get(root_phase1)))
         self.assertEqual(1, len(timing.get(root_phase2)))
         self.assertEqual(2, len(timing.get(root_phase3)))
+
+    def testInvalidPhases(self):
+        with self.assertRaises(ValueError):
+            WorkflowTiming(root=".root")
+        with self.assertRaises(ValueError):
+            WorkflowTiming(root="root.")
+        with self.assertRaises(ValueError):
+            WorkflowTiming(root="r..oot")
+
+        timing = WorkflowTiming()
+        with self.assertRaises(ValueError):
+            timing.start(".root")
+        with self.assertRaises(ValueError):
+            timing.start("root..")
+        with self.assertRaises(ValueError):
+            timing.start("ro...ot")
+
+        with self.assertRaises(KeyError):
+            timing.end("root")
+        with self.assertRaises(KeyError):
+            timing.total("root")
+        with self.assertRaises(KeyError):
+            timing.get_phase_statistics("root")
+
+    def testMerge(self):
+        timing1 = WorkflowTiming()
+        timing2 = WorkflowTiming()
+
+        timing1.start("root1")
+        timing1.end("root1")
+        timing1.start("root")
+        timing1.end("root")
+        timing1.start("root1.adj")
+        timing1.end("root1.adj")
+        timing2.start("root2")
+        timing2.end("root2")
+        timing2.start("root")
+        timing2.end("root")
+        timing2.start("root1.adj")
+        timing2.end("root1.adj")
+
+        # merge without update of initial objects
+        merged = merge_timings(timing1, timing2)
+
+        self.assertEqual(len(merged["root1"]), 1)
+        self.assertEqual(len(merged["root2"]), 1)
+        self.assertEqual(len(merged["root"]), 2)
+        self.assertEqual(len(merged["root1.adj"]), 2)
+
+        # merge with update of timing1
+        timing1.merge(timing2)
+
+        self.assertEqual(len(timing1["root1"]), 1)
+        self.assertEqual(len(timing1["root2"]), 1)
+        self.assertEqual(len(timing1["root"]), 2)
+        self.assertEqual(len(timing1["root1.adj"]), 2)
+
+        with self.assertRaises(TypeError):
+            timing1.merge(StandardOutputLogger())

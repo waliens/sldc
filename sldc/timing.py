@@ -110,7 +110,7 @@ class WorkflowTiming(dict):
         self._validate_phase(phase)
         full_phase = self._full_phase(phase)
         if full_phase not in self:
-            raise ValueError("Unknown phase '{}'.".format(full_phase))
+            raise KeyError("Unknown phase '{}'.".format(full_phase))
         return np.sum(self[full_phase])
 
     def merge(self, other):
@@ -177,7 +177,7 @@ class WorkflowTiming(dict):
             respective values
         """
         if phase not in self:
-            raise ValueError("Unknown phase '{}'.".format(phase))
+            raise KeyError("Unknown phase '{}'.".format(phase))
         times = self[phase]
         return {
             "count": times.shape[0],
