@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from sldc import Dispatcher
+from sldc import Dispatcher, report_timing, StandardOutputLogger, Logger
 from sldc import DispatchingRule, PolygonClassifier, WorkflowBuilder, Segmenter
 from .util import circularity, draw_circle, draw_square, draw_poly, NumpyImage, relative_error
 
@@ -160,6 +160,14 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(results.classes[sorted_idx[4]], ColorClassifier.GREY)  # white
         self.assertAlmostEqual(results.probas[sorted_idx[4]], 1.0)
 
+        # check other information
+        timing = results.timing
+        self.assertEqual(timing.get_phases_hierarchy(), {"workflow.sldc": {
+            "detect": {"load": None, "segment": None, "locate": None},
+            "merge": None,
+            "dispatch_classify": {"dispatch": None, "classify": None}
+        }})
+
     def testDetectCircle(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image
         """
@@ -188,6 +196,14 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(workflow_info.classes, [1])
         self.assertEqual(workflow_info.probas, [1.0])
         self.assertEqual(workflow_info.dispatch, ["catchall"])
+
+        # check other information
+        timing = workflow_info.timing
+        self.assertEqual(timing.get_phases_hierarchy(), {"workflow.sldc": {
+            "detect": {"load": None, "segment": None, "locate": None},
+            "merge": None,
+            "dispatch_classify": {"dispatch": None, "classify": None}
+        }})
 
     def testDetectCircleParallel(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image in
@@ -220,6 +236,14 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(workflow_info.classes, [1])
         self.assertEqual(workflow_info.probas, [1.0])
         self.assertEqual(workflow_info.dispatch, ["catchall"])
+
+        # check other information
+        timing = workflow_info.timing
+        self.assertEqual(timing.get_phases_hierarchy(), {"workflow.sldc": {
+            "detect": {"load": None, "segment": None, "locate": None},
+            "merge": None,
+            "dispatch_classify": {"dispatch": None, "classify": None}
+        }})
 
     def testWorkflowWithCustomDispatcher(self):
         # generate circle image
@@ -285,6 +309,14 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.GREY)
         self.assertAlmostEqual(results.probas[sorted_idx[3]], 1.0)
 
+        # check other information
+        timing = results.timing
+        self.assertEqual(timing.get_phases_hierarchy(), {"workflow.sldc": {
+            "detect": {"load": None, "segment": None, "locate": None},
+            "merge": None,
+            "dispatch_classify": {"dispatch": None, "classify": None}
+        }})
+
     def testWorkflowWithExcludedObjects(self):
         # generate circle image
         w, h = 300, 100
@@ -325,3 +357,11 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(results.dispatch[sorted_idx[1]], "big")
         self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.WHITE)
         self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
+
+        # check other information
+        timing = results.timing
+        self.assertEqual(timing.get_phases_hierarchy(), {"workflow.sldc": {
+            "detect": {"load": None, "segment": None, "locate": None},
+            "merge": None,
+            "dispatch_classify": {"dispatch": None, "classify": None}
+        }})
