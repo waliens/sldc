@@ -44,7 +44,7 @@ class WorkflowTiming(dict):
             return phase
 
     @classmethod
-    def _validate_phase(cls, phase: str):
+    def _validate_phase(cls, phase):
         """Validate the phase identifier 
         Parameters
         ----------
@@ -189,14 +189,14 @@ class WorkflowTiming(dict):
         }
 
 
-def merge_timings(timing1: WorkflowTiming, timing2: WorkflowTiming):
+def merge_timings(timing1, timing2):
     """Merge timing into a new timing object. The passed objects are not modified.
 
     Parameters
     ----------
-    timing1: WorkflowTiming;
+    timing1: WorkflowTiming
         First timing to merge
-    timing2: WorkflowTiming;
+    timing2: WorkflowTiming
         Second timing to merge
 
     Return
@@ -212,7 +212,7 @@ def merge_timings(timing1: WorkflowTiming, timing2: WorkflowTiming):
     return new_timing
 
 
-def _report_timing(hierarchy: dict, parent_phase: str, count: int, timing: WorkflowTiming, logger: Logger, indent="  "):
+def _report_timing(hierarchy, parent_phase, count, timing, logger, indent="  "):
     if hierarchy is None:
         return
     for phase, sub_hierarchy in hierarchy.items():
@@ -234,7 +234,7 @@ def _report_timing(hierarchy: dict, parent_phase: str, count: int, timing: Workf
         _report_timing(sub_hierarchy, full_phase, new_count, timing, logger, indent=indent)
 
 
-def report_timing(timing: WorkflowTiming, logger: Logger, indent="  "):
+def report_timing(timing, logger, indent="  "):
     """Report the recorded times in the given workflow timing object
     Parameters
     ----------
