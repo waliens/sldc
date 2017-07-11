@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from .timing import WorkflowTiming
+from .timing import WorkflowTiming, merge_timings
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -227,7 +227,7 @@ class WorkflowInformation(object):
         self._dispatch += other.dispatch
         self._classes += other.classes
         self._probas += other.probas
-        self._timing = WorkflowTiming.merge_timings(self._timing, other.timing)
+        self._timing = merge_timings(self._timing, other.timing)
 
     def report(self, logger, indent_count=2):
         """Compute and print a bunch of stats about the execution of this workflow"""

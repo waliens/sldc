@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import numpy as np
 from joblib import delayed, Parallel
 
@@ -34,15 +35,15 @@ def _segment_locate(tile, segmenter, locator, timing):
         polygons: iterable (subtype: shapely.geometry.Polygon)
             Iterable containing the polygons found by the locate step
         """
-    timing.start_loading()
+    timing.start(SLDCWorkflow.TIMING_DETECT_LOAD)
     np_image = tile.np_image
-    timing.end_loading()
-    timing.start_segment()
+    timing.end(SLDCWorkflow.TIMING_DETECT_LOAD)
+    timing.start(SLDCWorkflow.TIMING_DETECT_SEGMENT)
     segmented = segmenter.segment(np_image)
-    timing.end_segment()
-    timing.start_location()
+    timing.end(SLDCWorkflow.TIMING_DETECT_SEGMENT)
+    timing.start(SLDCWorkflow.TIMING_DETECT_LOCATE)
     located = locator.locate(segmented, offset=tile.offset)
-    timing.end_location()
+    timing.end(SLDCWorkflow.TIMING_DETECT_LOCATE)
     return located
 
 
@@ -89,24 +90,29 @@ def _dc_with_timing(dispatcher_classifier, image, polygons):
 
     Returns
     -------
-    timing: WorkflowTiming
-        The timing object containing the execution times of the dispatching and classification steps
     pred: iterable (subtype: int, size: N)
         The classes predicted for the passed polygons
     proba: iterable (subtype: float, size: N)
         The probability estimates for the predicted classes
     dispatch: iterable (subtype: hashable, size: N)
         The label of the dispatching rules which dispatched the polygons
+    timing: WorkflowTiming
+        The timing object containing the execution times of the dispatching and classification steps
     """
-    timing = WorkflowTiming()
-    pred, proba, dispatch = dispatcher_classifier.dispatch_classify_batch(image, polygons, timing)
-    return timing, pred, proba, dispatch
+    return dispatcher_classifier.dispatch_classify_batch(image, polygons)
 
 
 class SLDCWorkflow(Loggable):
     """A class that coordinates various components of the SLDC workflow in order to detect objects and return
     their information.
     """
+    TIMING_ROOT = "workflow.sldc"
+    TIMING_DETECT = "detect"
+    TIMING_DETECT_LOAD = "load"
+    TIMING_DETECT_SEGMENT = "segment"
+    TIMING_DETECT_LOCATE = "locate"
+    TIMING_MERGE = "merge"
+    TIMING_DC = "dispatch_classify"
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=7,
@@ -167,39 +173,41 @@ class SLDCWorkflow(Loggable):
         This method doesn't modify the object's attributes (except for the pool).
         """
         self._set_pool()  # create the pool if it doesn't exist yet
-        timing = WorkflowTiming()
+        timing = WorkflowTiming(root=SLDCWorkflow.TIMING_ROOT)
         tile_topology = image.tile_topology(self._tile_builder, max_width=self._tile_max_width,
                                             max_height=self._tile_max_height, overlap=self._tile_overlap)
 
         # segment locate
         self.logger.info("SLDCWorkflow : start segment/locate.")
+        timing.start(SLDCWorkflow.TIMING_DETECT)
         tiles, tile_polygons = self._segment_locate(tile_topology, timing)
-
-        # log end of segment locate
-        self.logger.info("SLDCWorkflow : end segment/locate.\n" +
-                         "SLDCWorkflow : {} tile(s) processed in {} s.\n".format(len(tiles), timing.lsl_total_duration()) +
-                         "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for polygons in tile_polygons])))
+        timing.end(SLDCWorkflow.TIMING_DETECT)
+        self.logger.info(
+            "SLDCWorkflow : end segment/locate." + os.linesep +
+            "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(tiles), timing.total(SLDCWorkflow.TIMING_DETECT)) + os.linesep +
+            "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for polygons in tile_polygons]))
+        )
 
         # merge
         self.logger.info("SLDCWorkflow : start merging")
-        timing.start_merging()
+        timing.start(SLDCWorkflow.TIMING_MERGE)
         polygons = self._merger.merge(tiles, tile_polygons, tile_topology)
-        timing.end_merging()
-        self.logger.info("SLDCWorkflow : end merging.\n" +
-                         "SLDCWorkflow : {} polygon(s) found.\n".format(len(polygons)) +
-                         "SLDCWorkflow : executed in {} s.".format(timing.duration_of(WorkflowTiming.MERGING)))
+        timing.end(SLDCWorkflow.TIMING_MERGE)
+        self.logger.info(
+            "SLDCWorkflow : end merging." + os.linesep +
+            "SLDCWorkflow : {} polygon(s) found.".format(len(polygons)) + os.linesep +
+            "SLDCWorkflow : executed in {} s.".format(timing.total(SLDCWorkflow.TIMING_MERGE))
+        )
 
         # dispatch classify
         self.logger.info("SLDCWorkflow : start dispatch/classify.")
-        self._dispatch_classifier.timing = timing
-        if not self._parallel_dc:
-            timing.start_dc()
-            pred, proba, dispatch_indexes = self._dispatch_classifier.dispatch_classify_batch(image, polygons, timing)
-            timing.end_dc()
-        else:
-            pred, proba, dispatch_indexes = self._dc_parallel(image, polygons, timing)
-        self.logger.info("SLDCWorkflow : end dispatch/classify.\n" +
-                         "SLDCWorkflow : executed in {} s.".format(timing.dc_total_duration()))
+        timing.start(SLDCWorkflow.TIMING_DC)
+        pred, proba, dispatch_indexes = self._dispatch_classify(image, polygons, timing)
+        timing.end(SLDCWorkflow.TIMING_DC)
+        self.logger.info(
+            "SLDCWorkflow : end dispatch/classify.\n" +
+            "SLDCWorkflow : executed in {} s.".format(timing.total(SLDCWorkflow.TIMING_DC))
+        )
 
         return WorkflowInformation(polygons, dispatch_indexes, pred, proba, timing)
 
@@ -222,14 +230,12 @@ class SLDCWorkflow(Loggable):
         batches = tile_topology.partition_identifiers(self._n_jobs)
 
         # execute in parallel
-        timing.start_lsl()
         results = self._pool(delayed(_sl_with_timing)(
             tile_ids,
             tile_topology,
             self._segmenter,
             self._locator
         ) for tile_ids in batches)
-        timing.end_lsl()
 
         sub_timings, tiles_polygons = list(zip(*results))
         tiles = np.array([tid for result in tiles_polygons for tid, _ in result])
@@ -241,7 +247,7 @@ class SLDCWorkflow(Loggable):
 
         return tiles, tile_polygons
 
-    def _dc_parallel(self, image, polygons, timing):
+    def _dispatch_classify(self, image, polygons, timing):
         """Execute dispatching and classification on several processes
 
         Parameters
@@ -269,18 +275,19 @@ class SLDCWorkflow(Loggable):
             dispatch index.
         """
         batches = batch_split(self._n_jobs, polygons)
-
-        timing.start_dc()
         results = self._pool(delayed(_dc_with_timing)(self._dispatch_classifier, image, batch) for batch in batches)
-        timing.end_dc()
+        predictions, probabilities, dispatch, timings = zip(*results)
 
-        pred, proba, dispatch = [], [], []
-        for dc_timing, dc_pred, dc_proba, dc_dispatch in results:
-            timing.merge(dc_timing)
-            pred.extend(dc_pred)
-            proba.extend(dc_proba)
-            dispatch.extend(dc_dispatch)
-        return pred, proba, dispatch
+        # flatten
+        predictions = [pred for preds in predictions for pred in preds]
+        probabilities = [proba for probs in probabilities for proba in probs]
+        dispatch = [disp for disps in dispatch for disp in disps]
+
+        # merge timings
+        for curr_timing in timings:
+            timing.merge(curr_timing)
+
+        return predictions, probabilities, dispatch
 
     @property
     def n_jobs(self):

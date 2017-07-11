@@ -126,9 +126,7 @@ class Dispatcher(Loggable):
         If a timing object was provided at construction, it is used to compute the dispatching time
         """
         self.logger.i("Dispatcher: start dispatching.")
-        self._timing.start_dispatch()
         dispatch_labels = self.dispatch_batch(image, polygons)
-        self._timing.end_dispatch()
         self.logger.i("Dispatcher: end dispatching.")
 
         if self._mapping is None:  # no mapping defined
@@ -139,7 +137,7 @@ class Dispatcher(Loggable):
         for label, index in self._mapping.items():
             indexes[dispatch_labels == label] = index
 
-        # report dispatching (is it relevant not to report when the implementer hasn't defined any labels ?)
+        # report dispatching (TODO is it relevant not to report when the implementer hasn't defined any labels ?)
         not_dispatched = np.equal(indexes, -1)
         dispatched = np.logical_not(not_dispatched)
         dispatched_indexes, counts = np.unique(indexes[dispatched], return_counts=True)
@@ -276,7 +274,10 @@ class DispatcherClassifier(Loggable):
     Especially, the polygons are classified by the classifier they were dispatched to.
     """
 
-    def __init__(self, dispatcher, classifiers, timing=None, logger=SilentLogger()):
+    TIMING_DISPATCH = "dispatch"
+    TIMING_CLASSIFY = "classify"
+
+    def __init__(self, dispatcher, classifiers, timing_root=None, logger=SilentLogger()):
         """Constructor for ClassifierDispatcher object
 
         Parameters
@@ -286,22 +287,15 @@ class DispatcherClassifier(Loggable):
             dispatch indexes/labels as there are classifiers (i.e. N).
         classifiers: iterable (subtype: PolygonClassifiers, size: N)
             An iterable of polygon classifiers associated with the rules.
+        timing_root: str
+            A root phase for the inner timing object
         """
         Loggable.__init__(self, logger)
         self._dispatcher = dispatcher
         self._classifiers = classifiers
-        self._timing = timing
+        self._timing_root = timing_root
 
-    @property
-    def timing(self):
-        return self._timing
-
-    @timing.setter
-    def timing(self, timing):
-        self._timing = timing
-        self._dispatcher.timing = timing
-
-    def dispatch_classify(self, image, polygon, timing):
+    def dispatch_classify(self, image, polygon):
         """Dispatch a single polygon to its corresponding classifier according to the dispatching rules,
         then compute and return the associated prediction.
 
@@ -325,11 +319,13 @@ class DispatcherClassifier(Loggable):
             The probability associated with the prediction (0.0 if the polygon wasn't dispatched)
         dispatch: int
             The identifier of the rule that matched the polygon (see dispatch_classify_batch)
+        timing: WorkflowTiming
+            The timing object containing times of the different dispatch/classify phases
         """
-        classes, probabilities, dispatches = self.dispatch_classify_batch(image, [polygon], timing)
-        return classes[0], probabilities[0], dispatches[0]
+        classes, probabilities, dispatches, timing = self.dispatch_classify_batch(image, [polygon])
+        return classes[0], probabilities[0], dispatches[0], timing
 
-    def dispatch_classify_batch(self, image, polygons, timing):
+    def dispatch_classify_batch(self, image, polygons):
         """Apply the dispatching and classification steps to an ensemble of polygons.
 
         Parameters
@@ -338,9 +334,7 @@ class DispatcherClassifier(Loggable):
             The image to which belongs the polygon
         polygons: iterable (subtype: shapely.geometry.Polygon, size: N)
             The polygons of which the classes must be predicted
-        timing: WorkflowTiming
-            The timing object for computing the execution times of dispatching and classification
-
+            
         Returns
         -------
         predictions: iterable (subtype: int|None, size: N)
@@ -355,9 +349,14 @@ class DispatcherClassifier(Loggable):
             provided at construction, those are used to identify the rules. Otherwise, the integer indexes of the rules
             in the list provided at construction are used. Polygons that weren't matched by any rule are returned -1 as
             dispatch index.
+        timing: WorkflowTiming
+            The timing object containing times of the different dispatch/classify phases
         """
+        timing = WorkflowTiming(root=self._timing_root)
         # dispatch
+        timing.start(DispatcherClassifier.TIMING_DISPATCH)
         disp_labels, disp_indexes = self._dispatcher.dispatch_map(image, polygons)
+        timing.end(DispatcherClassifier.TIMING_DISPATCH)
 
         # filter not dispatched
         unique_disp_indexes, first_occurs = np.unique(disp_indexes, return_index=True)
@@ -374,11 +373,11 @@ class DispatcherClassifier(Loggable):
                 continue
             curr_disp_idx = (disp_indexes == index)  # indexes of the currently processed polygons
             # predicts classes
-            timing.start_classify()
+            timing.start(DispatcherClassifier.TIMING_CLASSIFY)
             pred, proba = self._classifiers[index].predict_batch(image, np_polygons[curr_disp_idx])
-            timing.end_classify()
+            timing.end(DispatcherClassifier.TIMING_CLASSIFY)
             # save results
             predictions[curr_disp_idx] = pred
             probabilities[curr_disp_idx] = proba
         self.logger.info("DispatcherClassifier: end classification.")
-        return list(predictions), list(probabilities), list(disp_labels)
+        return list(predictions), list(probabilities), list(disp_labels), timing

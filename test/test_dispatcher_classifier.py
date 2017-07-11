@@ -97,11 +97,11 @@ class TestDispatcherClassifier(TestCase):
         dispatcher = RuleBasedDispatcher([CatchAllRule()])
         dispatcher_classifier = DispatcherClassifier(dispatcher, [AreaClassifier(500)])
         # simple dispatch test
-        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
+        cls, probability, dispatch, _ = dispatcher_classifier.dispatch_classify(None, box1)
         self.assertEqual(1, cls)
         self.assertEqual(1.0, probability)
         self.assertEqual(0, dispatch)
-        classes, probas, dispatches = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2], WorkflowTiming())
+        classes, probas, dispatches, _ = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2])
         self.assertEqual(1, classes[0])
         self.assertEqual(0, classes[1])
         self.assertEqual(1.0, probas[0])
@@ -119,14 +119,13 @@ class TestDispatcherClassifier(TestCase):
         dispatcher_classifier = DispatcherClassifier(dispatcher, [AreaClassifier(500), AreaClassifier(500)])
 
         # simple dispatch test
-        cls, probability, dispatch = dispatcher_classifier.dispatch_classify(None, box1, WorkflowTiming())
+        cls, probability, dispatch, _ = dispatcher_classifier.dispatch_classify(None, box1)
         self.assertEqual(1, cls)
         self.assertEqual(1.0, probability)
         self.assertEqual(0, dispatch)
 
         # batch dispatch test
-        classes, probas, dispatches = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2, poly],
-                                                                                    WorkflowTiming())
+        classes, probas, dispatches, _ = dispatcher_classifier.dispatch_classify_batch(None, [box1, box2, poly])
         self.assertEqual(1, classes[0])
         self.assertEqual(0, classes[1])
         self.assertEqual(1, classes[2])
