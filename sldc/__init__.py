@@ -9,7 +9,7 @@ from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology,
 from .information import WorkflowInformation, ChainInformation
 from .locator import Locator, BinaryLocator, SemanticLocator
 from .logging import Logger, StandardOutputLogger, FileLogger, SilentLogger, Loggable
-from .merger import Merger
+from .merger import SemanticMerger
 from .segmenter import Segmenter
 from .timing import WorkflowTiming
 from .util import batch_split, alpha_rasterize, has_alpha_channel
@@ -22,7 +22,7 @@ __all__ = [
     "SLDCWorkflow", "Image", "Tile", "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator",
     "ImageExtractionException", "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain",
     "WorkflowInformation", "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger",
-    "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "Merger", "WorkflowChainBuilder",
+    "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "SemanticMerger", "WorkflowChainBuilder",
     "batch_split", "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
     "InvalidBuildingException", "Dispatcher"
 ]

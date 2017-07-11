@@ -4,11 +4,11 @@ from shapely.affinity import translate
 from shapely.geometry import Polygon, box, Point
 
 from .fake_image import FakeTileBuilder, FakeImage
-from sldc.merger import Merger
+from sldc import SemanticMerger
 
 
 class TestMergerNoPolygon(TestCase):
-    def test_merge(self):
+    def testMerge(self):
         fake_image = FakeImage(11, 8, 3)
         fake_builder = FakeTileBuilder()
         topology = fake_image.tile_topology(fake_builder, 5, 5, 1)
@@ -28,18 +28,15 @@ class TestMergerNoPolygon(TestCase):
         #    |    |    |
         #  7 +----G----H
         # (row)
-        polygons_tiles = [(tile1.identifier, []),
-                          (tile2.identifier, []),
-                          (tile3.identifier, []),
-                          (tile4.identifier, [])]
-
-        merger = Merger(1)
-        polygons = merger.merge(polygons_tiles, topology)
+        tiles = [tile1.identifier, tile2.identifier, tile3.identifier, tile4.identifier]
+        tile_polygons = [[]] * 4
+        merger = SemanticMerger(1)
+        polygons = merger.merge(tiles, tile_polygons, topology)
         self.assertEqual(len(polygons), 0, "Number of found polygon")
 
 
 class TestMergerSingleTile(TestCase):
-    def test_merge(self):
+    def testMerge(self):
         fake_image = FakeImage(11, 8, 3)
         fake_builder = FakeTileBuilder()
         topology = fake_image.tile_topology(fake_builder, 11, 8, 1)
@@ -70,17 +67,18 @@ class TestMergerSingleTile(TestCase):
         ABCD = Polygon([A, B, D, C, A])
         EFGH = Polygon([E, F, H, G, E])
 
-        polygons_tiles = [(tile1.identifier, [ABCD, EFGH])]
+        tiles = [tile1.identifier]
+        tile_polygons = [[ABCD, EFGH]]
 
-        merger = Merger(1)
-        polygons = merger.merge(polygons_tiles, topology)
+        merger = SemanticMerger(1)
+        polygons = merger.merge(tiles, tile_polygons, topology)
         self.assertEqual(len(polygons), 2, "Number of found polygon")
         self.assertTrue(polygons[0].equals(ABCD), "ABCD polygon")
         self.assertTrue(polygons[1].equals(EFGH), "EFHG polygon")
 
 
 class TestMergerRectangle(TestCase):
-    def test_merge(self):
+    def testMerge(self):
         fake_image = FakeImage(30, 11, 3)
         fake_builder = FakeTileBuilder()
         topology = fake_image.tile_topology(fake_builder, 12, 9, 2)
@@ -140,18 +138,89 @@ class TestMergerRectangle(TestCase):
         ABCD = Polygon([A, B, D, C, A])
         IJLK = Polygon([I, J, L, K, I])
 
-        polygons_tiles = [(tile1.identifier, [Aztu]),
-                          (tile2.identifier, [EFHG, zBst]),
-                          (tile3.identifier, [IJqp]),
-                          (tile4.identifier, [utwC]),
-                          (tile5.identifier, [tsDw]),
-                          (tile6.identifier, [pqLK])]
+        tiles = [tile1.identifier, tile2.identifier, tile3.identifier, tile4.identifier, tile5.identifier, tile6.identifier]
+        tile_polygons = [[Aztu], [EFHG, zBst], [IJqp], [utwC], [tsDw], [pqLK]]
 
-        polygons = Merger(1).merge(polygons_tiles, topology)
+        polygons = SemanticMerger(1).merge(tiles, tile_polygons, topology)
         self.assertEqual(len(polygons), 3, "Number of found polygon")
         self.assertTrue(polygons[0].equals(ABCD), "ABCD polygon")
         self.assertTrue(polygons[1].equals(EFHG), "EFHG polygon")
         self.assertTrue(polygons[2].equals(IJLK), "IJLK polygon")
+
+    def testSemanticMerge(self):
+        fake_image = FakeImage(30, 11, 3)
+        fake_builder = FakeTileBuilder()
+        topology = fake_image.tile_topology(fake_builder, 12, 9, 2)
+
+        tile1 = topology.tile(1)
+        tile2 = topology.tile(2)
+        tile3 = topology.tile(3)
+        tile4 = topology.tile(4)
+        tile5 = topology.tile(5)
+        tile6 = topology.tile(6)
+
+        #    0    5    10   15   20        30  (col)
+        #  0 +---------+---------+---------+
+        #    |         | E--F    |         |
+        #    |         | |1 |    |         |
+        #    |         | G--H    |         |
+        #  4 |         |         |         |
+        #    |    A----z----B    |  I---J  |
+        #    |    | 1  | 2  |    |  | 2 |  |
+        #  7 +----u----t----s----+--p---q--+
+        #    |    | 1  | 1  |    |  | 2 |  |
+        #  9 |    C----w----D    |  K---L  |
+        #    |         |         |         |
+        # 11 +---------+---------+---------+
+        # (row)
+
+        A = (5, 5)
+        B = (5, 15)
+        C = (9, 5)
+        D = (9, 15)
+
+        E = (1, 12)
+        F = (1, 15)
+        G = (3, 12)
+        H = (3, 15)
+
+        I = (5, 23)
+        J = (5, 27)
+        K = (9, 23)
+        L = (9, 27)
+
+        p = (7, 23)
+        q = (7, 27)
+        s = (7, 15)
+        t = (7, 10)
+        u = (7, 5)
+        w = (9, 10)
+        z = (5, 10)
+
+        EFHG = Polygon([E, F, H, G, E])
+        Aztu = Polygon([A, z, t, u, A])
+        zBst = Polygon([z, B, s, t, z])
+        tsDw = Polygon([t, s, D, w, t])
+        utwC = Polygon([u, t, w, C, u])
+        IJqp = Polygon([I, J, q, p, I])
+        pqLK = Polygon([p, q, L, K, p])
+        IJLK = Polygon([I, J, L, K, I])
+        AztsDwCu = Polygon([A, z, t, s, D, w, C, u, A])
+
+        tiles = [tile1.identifier, tile2.identifier, tile3.identifier, tile4.identifier, tile5.identifier, tile6.identifier]
+        tile_polygons = [[Aztu], [EFHG, zBst], [IJqp], [utwC], [tsDw], [pqLK]]
+        tile_labels = [[1], [1, 2], [2], [1], [1], [2]]
+
+        polygons, labels = SemanticMerger(1).merge(tiles, tile_polygons, topology, labels=tile_labels)
+        self.assertEqual(len(polygons), 4, "Number of found polygon")
+        self.assertTrue(polygons[0].equals(AztsDwCu), "AztsDwCu polygon")
+        self.assertTrue(labels[0], 1)
+        self.assertTrue(polygons[1].equals(EFHG), "EFHG polygon")
+        self.assertTrue(labels[1], 1)
+        self.assertTrue(polygons[2].equals(zBst), "zBst polygon")
+        self.assertTrue(labels[2], 2)
+        self.assertTrue(polygons[3].equals(IJLK), "IJLK polygon")
+        self.assertTrue(labels[3], 2)
 
 
 class TestMergerBigCircle(TestCase):
@@ -180,14 +249,10 @@ class TestMergerBigCircle(TestCase):
         tile5 = topology.tile(5)
         tile6 = topology.tile(6)
 
-        polygons_tiles = [(tile1.identifier, [circle_part1]),
-                          (tile2.identifier, [circle_part2]),
-                          (tile3.identifier, [circle_part3]),
-                          (tile4.identifier, [circle_part4]),
-                          (tile5.identifier, [circle_part5]),
-                          (tile6.identifier, [circle_part6])]
+        tiles = [tile1.identifier, tile2.identifier, tile3.identifier, tile4.identifier, tile5.identifier, tile6.identifier]
+        tile_polygons = [[circle_part1], [circle_part2], [circle_part3], [circle_part4], [circle_part5], [circle_part6]]
 
-        polygons = Merger(5).merge(polygons_tiles, topology)
+        polygons = SemanticMerger(5).merge(tiles, tile_polygons, topology)
         self.assertEqual(len(polygons), 1, "Number of found polygon")
 
         # use recall and false discovery rate to evaluate the error on the surface

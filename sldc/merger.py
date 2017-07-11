@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
-from shapely.geometry import JOIN_STYLE
+import numpy as np
+from shapely.geometry import JOIN_STYLE, Polygon
 from shapely.ops import cascaded_union
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
@@ -76,35 +76,63 @@ class Graph(object):
         return self.nodes[node_index]
 
 
-class Merger(object):
-    """A class for merging polygons from neighbouring tiles of an image
+def aggr_max_area_label(areas, labels):
+    unique_labels = np.unique(labels)
+    max_area, max_label = -1, -1
+    for l in unique_labels:
+        area = np.sum(areas[labels == l])
+        if area > max_area:
+            max_area = area
+            max_label = l
+    return max_label
+
+
+class SemanticMergingPolicy(object):
+    """Merging policy for semantic merger. Specify the strategy to apply with regard to close polygons that
+    have different labels. 
     """
-    def __init__(self, tolerance):
+    POLICY_NO_MERGE = "no_merge"  # TODO implement other policies
+
+
+class SemanticMerger(object):
+    """A class for merging labelled polygons. Close polygons having the same label are merged.
+    """
+    def __init__(self, tolerance, policy=SemanticMergingPolicy.POLICY_NO_MERGE):
         """Constructor for Merger objects
 
         Parameters:
         -----------
         tolerance: int
             Maximal distance between two polygons so that they are considered from the same object
+        policy: str
+            A merging policy to apply for overlapping polygons with different classes
         """
         self._tolerance = tolerance
+        self._policy = policy
 
-    def merge(self, polygons_tiles, tile_topology):
+    def merge(self, tiles, polygons, tile_topology, labels=None):
         """Merge the polygons passed in a per-tile fashion according to the tile topology
 
         Parameters
         ----------
-        polygons_tiles: iterable (subtype: (int, iterable of shapely.geometry.Polygon))
-            An iterable of tuples. Each tuple contains a tile identifier and its polygons in another iterable.
+        tiles: iterable of tile identifiers (size: n, subtype: int)
+            The identifiers of the tiles containing the polygons to merge
+        polygons: iterable (size: n, subtype: iterable of shapely.geometry.Polygon)
+            The polygons to merge provided as an iterable of iterables. The iterable i in polygons contains all 
+            the polygons detected in the tile tiles[i].
         tile_topology: TileTopology
             The tile topology that was used to generate the tiles passed in polygons_tiles
-
+        labels: iterable (size: n, subtype: iterable of int, default: None)
+            The labels associated with the polygons. If None, all polygons are considered to have the same label.
+            
         Returns
         -------
-        polygons: iterable (subtype: shapely.geometry.Polygon)
+        polygons: iterable (size: m, subtype: shapely.geometry.Polygon)
             An iterable of polygons objects containing the merged polygons
+        out_labels: iterable (size: m, subtype: int)
+            The labels of the merged polygons. If labels was None, this return value is omitted.
         """
-        tiles_dict, polygons_dict = Merger._build_dicts(polygons_tiles)
+        tiles_dict, polygons_dict, labels_dict = SemanticMerger._build_dicts(tiles, polygons, labels=labels)
         # no polygons
         if len(polygons_dict) <= 0:
             return []
@@ -119,13 +147,18 @@ class Merger(object):
             neighbour_tiles = tile_topology.tile_neighbours(tile_identifier)
             for neighbour in neighbour_tiles:
                 if neighbour is not None:
-                    self._register_merge(tiles_dict[tile_identifier], tiles_dict[neighbour], polygons_dict, geom_graph)
-        return self._do_merge(geom_graph, polygons_dict)
+                    self._register_merge(tiles_dict[tile_identifier], tiles_dict[neighbour], polygons_dict, labels_dict, geom_graph)
+        merged_polygons, merged_labels = self._do_merge(geom_graph, polygons_dict, labels_dict)
+        if labels is None:
+            return merged_polygons
+        else:
+            return merged_polygons, merged_labels
 
-    def _register_merge(self, polygons1, polygons2, polygons_dict, geom_graph):
-        """Compare 2-by-2 the polygons in the two arrays. If they are very close (using thickness_boundary as distance
-        threshold), they are registered as polygons to be merged in the geometry graph (the registration being
-        an edge between the nodes corresponding to the polygons in geom_graph).
+    def _register_merge(self, polygons1, polygons2, polygons_dict, labels_dict, geom_graph):
+        """Compare 2-by-2 the polygons in the two arrays. If they are very close (using `self._tolerance` as distance
+        threshold) and can be merged regarding their labels and the merging policy, they are registered as polygons to 
+        be merged in the geometry graph (the registration being an edge between the nodes corresponding to the polygons 
+        in geom_graph).
 
         Parameters
         ----------
@@ -135,24 +168,30 @@ class Merger(object):
             Iterable of integers containing polygons indexes
         polygons_dict: dict
             Dictionary mapping polygon identifiers with actual shapely polygons objects
+        labels_dict: dict
+            Dictionnary mapping polygon ids with their labels
         geom_graph: Graph
             The graph in which must be registered the polygons to be merged
         """
-        for poly1 in polygons1:
-            for poly2 in polygons2:
-                if polygons_dict[poly1].distance(polygons_dict[poly2]) < self._tolerance:
-                    geom_graph.add_edge(poly1, poly2)
+        for poly_id1 in polygons1:
+            for poly_id2 in polygons2:
+                poly1, poly2 = polygons_dict[poly_id1], polygons_dict[poly_id2]
+                label1, label2 = labels_dict[poly_id1], labels_dict[poly_id2]
+                if poly1.distance(poly2) < self._tolerance and label1 == label2:
+                    geom_graph.add_edge(poly_id1, poly_id2)
 
-    def _do_merge(self, geom_graph, polygons_dict):
+    def _do_merge(self, geom_graph, polygons_dict, labels_dict):
         """Effectively merges the polygons that were registered to be merged in the geom_graph Graph and return the
         resulting polygons in a list.
 
         Parameters
         ----------
-        polygons_dict: dict
-            Dictionary mapping polygon identifiers with actual shapely polygons objects
         geom_graph: Graph
             The graph in which were registered the polygons to be merged
+        polygons_dict: dict
+            Dictionary mapping polygon identifiers with actual shapely polygons objects
+        labels_dict: dict
+            Dictionnary mapping polygon ids with their labels
 
         Returns
         -------
@@ -162,24 +201,36 @@ class Merger(object):
         components = geom_graph.connex_components()
         dilation_dist = self._tolerance
         join = JOIN_STYLE.mitre
-        results = []
+        merged_polygons = []
+        merged_labels = []
         for component in components:
             if len(component) == 1:
-                to_append = polygons_dict[component[0]]
+                polygon = polygons_dict[component[0]]
+                label = labels_dict[component[0]]
             else:
                 polygons = [polygons_dict[poly_id].buffer(dilation_dist, join_style=join) for poly_id in component]
-                to_append = cascaded_union(polygons).buffer(-dilation_dist, join_style=join)
-            results.append(to_append)
-        return results
+                polygon = cascaded_union(polygons).buffer(-dilation_dist, join_style=join)
+                # determine label (take label representing the largest area)
+                areas = np.array([polygons_dict[poly_id].area for poly_id in component])
+                labels = np.array([labels_dict[poly_id] for poly_id in component])
+                label = aggr_max_area_label(areas, labels)
+            merged_polygons.append(polygon)
+            merged_labels.append(label)
+        return merged_polygons, merged_labels
 
     @classmethod
-    def _build_dicts(cls, polygons_tiles):
+    def _build_dicts(cls, tiles, polygons, labels=None):
         """Given a array of tuples (polygons, tile), return dictionaries for executing the merging:
 
         Parameters
-        ----------
-        polygons_tiles: iterable (subtype: (int, iterable of shapely.geometry.Polygon))
-            An iterable of tuples. Each tuple contains a tile identifier and its polygons in another iterable.
+        ----------        
+        tiles: iterable of tile identifiers (size: n, subtype: int)
+            The identifiers of the tiles containing the polygons to merge
+        polygons: iterable (size: n, subtype: iterable of shapely.geometry.Polygon)
+            The polygons to merge provided as an iterable of iterables. The iterable i in polygons contains all 
+            the polygons detected in the tile tiles[i].
+        labels: iterable (size: n, subtype: iterable of int, default: None)
+            The labels associated with the polygons. If None, all polygons are considered to have the same label.
 
         Returns
         -------
@@ -191,15 +242,18 @@ class Merger(object):
         """
         tiles_dict = dict()
         polygons_dict = dict()
+        labels_dict = dict()
+
         polygon_cnt = 1
-        for tile_id, polygons in polygons_tiles:
+        for i, (tile_id, polygons) in enumerate(zip(tiles, polygons)):
             polygons_ids = []
 
-            for polygon in polygons:
+            for j, polygon in enumerate(polygons):
                 polygons_dict[polygon_cnt] = polygon
+                labels_dict[polygon_cnt] = 1 if labels is None else labels[i][j]
                 polygons_ids.append(polygon_cnt)
                 polygon_cnt += 1
 
             tiles_dict[tile_id] = polygons_ids
 
-        return tiles_dict, polygons_dict
+        return tiles_dict, polygons_dict, labels_dict
