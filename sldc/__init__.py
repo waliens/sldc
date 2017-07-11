@@ -10,7 +10,7 @@ from .information import WorkflowInformation, ChainInformation
 from .locator import Locator, BinaryLocator, SemanticLocator
 from .logging import Logger, StandardOutputLogger, FileLogger, SilentLogger, Loggable
 from .merger import SemanticMerger
-from .segmenter import Segmenter
+from .segmenter import SemanticSegmenter, ProbabilisticSegmenter, Segmenter
 from .timing import WorkflowTiming, report_timing, merge_timings
 from .util import batch_split, alpha_rasterize, has_alpha_channel
 from .workflow import SLDCWorkflow
@@ -24,5 +24,6 @@ __all__ = [
     "WorkflowInformation", "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger",
     "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "SemanticMerger", "WorkflowChainBuilder",
     "batch_split", "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
-    "InvalidBuildingException", "Dispatcher", "report_timing", "merge_timings"
+    "InvalidBuildingException", "Dispatcher", "report_timing", "merge_timings", "SemanticSegmenter",
+    "ProbabilisticSegmenter"
 ]

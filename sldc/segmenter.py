@@ -131,7 +131,7 @@ class ProbabilisticSegmenter(SemanticSegmenter):
 
     def segment(self, image):
         probas = self.segment_proba(image)
-        return np.take(self.classes, np.argmax(probas, axis=-1))
+        return np.argmax(probas, axis=-1)
 
 
 class Segmenter(SemanticSegmenter):
