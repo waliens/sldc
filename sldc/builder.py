@@ -297,7 +297,7 @@ class WorkflowBuilder(object):
             tile_overlap=self._overlap,
             logger=self._logger,
             n_jobs=self._n_jobs,
-            parallel_dc=self._parallel_dc
+            parallel_dispatch_classify=self._parallel_dc
         )
 
         self._reset()

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+from abc import abstractmethod
+
 import numpy as np
 from joblib import delayed, Parallel
 
@@ -102,7 +104,93 @@ def _dc_with_timing(dispatcher_classifier, image, polygons, timing_root=None):
     return dispatcher_classifier.dispatch_classify_batch(image, polygons, timing_root=timing_root)
 
 
-class SLDCWorkflow(Loggable):
+class Workflow(Loggable):
+    """Abstract base class to be implemented by workflows"""
+    def __init__(self, tile_builder, tile_max_width=1024, tile_max_height=1024, tile_overlap=7, n_jobs=1, logger=SilentLogger()):
+        super(Workflow, self).__init__(logger=logger)
+        self._tile_max_width = tile_max_width
+        self._tile_max_height = tile_max_height
+        self._tile_overlap = tile_overlap
+        self._tile_builder = tile_builder
+        self._n_jobs = n_jobs
+        self._pool = None  # cache across execution
+
+    @property
+    def tile_max_width(self):
+        return self._tile_max_width
+
+    @property
+    def tile_max_height(self):
+        return self._tile_max_height
+
+    @property
+    def tile_overlap(self):
+        return self._tile_overlap
+
+    @property
+    def tile_builder(self):
+        return self._tile_builder
+
+    @property
+    def n_jobs(self):
+        return self._n_jobs
+
+    @n_jobs.setter
+    def n_jobs(self, value):
+        if value != self._n_jobs:
+            self._pool = None
+            self._n_jobs = value
+
+    def _set_pool(self):
+        """Create a pool with self._n_jobs jobs in the self._pool variable.
+        If the pool already exists, this method does nothing.
+        """
+        if self._pool is None:
+            self._pool = Parallel(n_jobs=self._n_jobs)
+
+    @property
+    def pool(self):
+        self._set_pool()
+        return self._pool
+
+    def __getstate__(self):
+        self._pool = None  # so that the workflow is serializable
+        return self.__dict__
+
+
+    def tile_topology(self, image):
+        """Create a tile topology using the tile parameters for the given image
+        Parameters
+        ----------
+        image: Image
+            The image to generate a topology for
+        Returns
+        -------
+        
+        """
+
+    @abstractmethod
+    def process(self, image):
+        """Process the given image using the workflow
+        Parameters
+        ----------
+        image: Image
+            The image to process
+
+        Returns
+        -------
+        workflow_information: WorkflowInformation
+            The workflow information object containing all the information about detected objects, execution times...
+
+        Notes
+        -----
+        This method doesn't modify the image passed as parameter.
+        This method doesn't modify the object's attributes (except for the pool).
+        """
+        pass
+
+
+class SLDCWorkflow(Workflow):
     """A class that coordinates various components of the SLDC workflow in order to detect objects and return
     their information.
     """
@@ -116,7 +204,7 @@ class SLDCWorkflow(Loggable):
 
     def __init__(self, segmenter, dispatcher_classifier, tile_builder,
                  tile_max_width=1024, tile_max_height=1024, tile_overlap=7,
-                 dist_tolerance=1, logger=SilentLogger(), n_jobs=None, parallel_dc=False):
+                 dist_tolerance=1, logger=SilentLogger(), n_jobs=None, parallel_dispatch_classify=False):
         """Constructor for SLDCWorkflow objects
 
         Parameters
@@ -139,21 +227,22 @@ class SLDCWorkflow(Loggable):
             A logger object
         n_jobs: int (optional, default: 1)
             The number of job available for executing the workflow.
-        parallel_dc: boolean (optional, default: False)
+        parallel_dispatch_classify: boolean (optional, default: False)
             True for executing dispatching and classification in parallel, False for sequential.
         """
-        Loggable.__init__(self, logger)
-        self._tile_max_width = tile_max_width
-        self._tile_max_height = tile_max_height
-        self._tile_overlap = tile_overlap
-        self._tile_builder = tile_builder
+        super(SLDCWorkflow, self).__init__(
+            n_jobs=n_jobs,
+            tile_max_height=tile_max_height,
+            tile_max_width=tile_max_width,
+            tile_builder=tile_builder,
+            tile_overlap=tile_overlap,
+            logger=logger
+        )
         self._segmenter = segmenter
         self._locator = BinaryLocator()
         self._merger = SemanticMerger(dist_tolerance)
         self._dispatch_classifier = dispatcher_classifier
-        self._n_jobs = n_jobs
-        self._parallel_dc = parallel_dc
-        self._pool = None  # To cache a pool across executions
+        self._parallel_dispatch_classify = parallel_dispatch_classify
 
     def process(self, image):
         """Process the given image using the workflow
@@ -172,10 +261,9 @@ class SLDCWorkflow(Loggable):
         This method doesn't modify the image passed as parameter.
         This method doesn't modify the object's attributes (except for the pool).
         """
-        self._set_pool()  # create the pool if it doesn't exist yet
         timing = WorkflowTiming(root=SLDCWorkflow.TIMING_ROOT)
-        tile_topology = image.tile_topology(self._tile_builder, max_width=self._tile_max_width,
-                                            max_height=self._tile_max_height, overlap=self._tile_overlap)
+        tile_topology = image.tile_topology(self.tile_builder, max_width=self.tile_max_width,
+                                            max_height=self.tile_max_height, overlap=self.tile_overlap)
 
         # segment locate
         self.logger.info("SLDCWorkflow : start segment/locate.")
@@ -229,8 +317,8 @@ class SLDCWorkflow(Loggable):
         # partition the tiles into batches for submitting them to processes
         batches = tile_topology.partition_identifiers(self._n_jobs)
 
-        # execute in parallel
-        results = self._pool(delayed(_sl_with_timing)(
+        # execute
+        results = self.pool(delayed(_sl_with_timing)(
             tile_ids,
             tile_topology,
             self._segmenter,
@@ -277,8 +365,13 @@ class SLDCWorkflow(Loggable):
             dispatch index.
         """
         timing_root = ".".join([SLDCWorkflow.TIMING_ROOT, SLDCWorkflow.TIMING_DC])
-        batches = batch_split(self._n_jobs, polygons)
-        results = self._pool(delayed(_dc_with_timing)(self._dispatch_classifier, image, batch, timing_root) for batch in batches)
+
+        # disable parallel processing if user
+        pool = self.pool if self._parallel_dispatch_classify else Parallel(n_jobs=1)
+        n_jobs = self.n_jobs if self._parallel_dispatch_classify else 1
+
+        batches = batch_split(n_jobs, polygons)
+        results = pool(delayed(_dc_with_timing)(self._dispatch_classifier, image, batch, timing_root) for batch in batches)
         predictions, probabilities, dispatch, timings = zip(*results)
 
         # flatten
@@ -292,23 +385,4 @@ class SLDCWorkflow(Loggable):
 
         return predictions, probabilities, dispatch
 
-    @property
-    def n_jobs(self):
-        return self._n_jobs
 
-    @n_jobs.setter
-    def n_jobs(self, value):
-        if value != self._n_jobs:
-            self._pool = None
-            self._n_jobs = value
-
-    def _set_pool(self):
-        """Create a pool with self._n_jobs jobs in the self._pool variable.
-        If the pool already exists, this method does nothing.
-        """
-        if self._pool is None:
-            self._pool = Parallel(n_jobs=self._n_jobs)
-
-    def __getstate__(self):
-        self._pool = None  # so that the workflow is serializable
-        return self.__dict__
