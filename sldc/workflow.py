@@ -8,7 +8,7 @@ from joblib import delayed, Parallel
 from .errors import TileExtractionException
 from .image import Image, TileBuilder
 from .information import WorkflowInformation
-from .locator import BinaryLocator
+from .locator import BinaryLocator, SemanticLocator
 from .logging import Loggable, SilentLogger
 from .merger import SemanticMerger
 from .timing import WorkflowTiming
@@ -49,7 +49,7 @@ def _segment_locate(tile, segmenter, locator, timing):
     return located
 
 
-def _sl_with_timing(tile_ids, tile_topology, segmenter, locator, logger=SilentLogger(), timing_root=None):
+def _batch_segment_locate(tile_ids, tile_topology, segmenter, locator, logger=SilentLogger(), timing_root=None):
     """Helper function for parallel execution. Error occurring in this method is notified by returning None in place of
     the found polygons list.
 
@@ -102,6 +102,54 @@ def _dc_with_timing(dispatcher_classifier, image, polygons, timing_root=None):
         The timing object containing the execution times of the dispatching and classification steps
     """
     return dispatcher_classifier.dispatch_classify_batch(image, polygons, timing_root=timing_root)
+
+
+def _parallel_segment_locate(pool, segmenter, locator, logger, tile_topology, timing):
+    """Execute the segment locate phase
+    Parameters
+    ----------
+    pool: Parallel
+        A pool of processes
+    segmenter: SemanticSegmenter
+        A segmenter
+    locator: Locator
+        A locator
+    logger: Logger
+        A logger
+    tile_topology: TileTopology
+        A tile topology
+    timing: WorkflowTiming
+        A workflow timing object for computing time
+
+    Returns
+    -------
+    tiles: iterable (size: n, subtype: int) 
+        Iterable containing the tiles ids
+    tile_polygons: iterable (size: n, subtype: iterable of Polygon objects))
+        The iterable at index i contains the polygons found in the tile having index tiles[i]
+    """
+    # partition the tiles into batches for submitting them to processes
+    batches = tile_topology.partition_identifiers(pool.n_jobs)
+
+    # execute
+    results = pool(delayed(_batch_segment_locate)(
+        tile_ids,
+        tile_topology,
+        segmenter,
+        locator,
+        logger,
+        ".".join([SLDCWorkflow.TIMING_ROOT, SLDCWorkflow.TIMING_DETECT])
+    ) for tile_ids in batches)
+
+    sub_timings, tiles_polygons = list(zip(*results))
+    tiles = np.array([tid for result in tiles_polygons for tid, _ in result])
+    tile_polygons = np.array([polygons for result in tiles_polygons for _, polygons in result])
+
+    # merge sub timings
+    for sub_timing in sub_timings:
+        timing.merge(sub_timing)
+
+    return tiles, tile_polygons
 
 
 class Workflow(Loggable):
@@ -157,8 +205,7 @@ class Workflow(Loggable):
         self._pool = None  # so that the workflow is serializable
         return self.__dict__
 
-
-    def tile_topology(self, image):
+    def _tile_topology(self, image):
         """Create a tile topology using the tile parameters for the given image
         Parameters
         ----------
@@ -166,8 +213,15 @@ class Workflow(Loggable):
             The image to generate a topology for
         Returns
         -------
-        
+        topology: TileTopology
+            The topology
         """
+        return image.tile_topology(
+            self.tile_builder,
+            max_width=self.tile_max_width,
+            max_height=self.tile_max_height,
+            overlap=self.tile_overlap
+        )
 
     @abstractmethod
     def process(self, image):
@@ -245,25 +299,9 @@ class SLDCWorkflow(Workflow):
         self._parallel_dispatch_classify = parallel_dispatch_classify
 
     def process(self, image):
-        """Process the given image using the workflow
-        Parameters
-        ----------
-        image: Image
-            The image to process
-
-        Returns
-        -------
-        workflow_information: WorkflowInformation
-            The workflow information object containing all the information about detected objects, execution times...
-
-        Notes
-        -----
-        This method doesn't modify the image passed as parameter.
-        This method doesn't modify the object's attributes (except for the pool).
-        """
+        """Process function"""
         timing = WorkflowTiming(root=SLDCWorkflow.TIMING_ROOT)
-        tile_topology = image.tile_topology(self.tile_builder, max_width=self.tile_max_width,
-                                            max_height=self.tile_max_height, overlap=self.tile_overlap)
+        tile_topology = self._tile_topology(image)
 
         # segment locate
         self.logger.info("SLDCWorkflow : start segment/locate.")
@@ -315,27 +353,14 @@ class SLDCWorkflow(Workflow):
             iterable containing the polygons found on each tile
         """
         # partition the tiles into batches for submitting them to processes
-        batches = tile_topology.partition_identifiers(self._n_jobs)
-
-        # execute
-        results = self.pool(delayed(_sl_with_timing)(
-            tile_ids,
-            tile_topology,
-            self._segmenter,
-            self._locator,
-            self.logger,
-            ".".join([SLDCWorkflow.TIMING_ROOT, SLDCWorkflow.TIMING_DETECT])
-        ) for tile_ids in batches)
-
-        sub_timings, tiles_polygons = list(zip(*results))
-        tiles = np.array([tid for result in tiles_polygons for tid, _ in result])
-        tile_polygons = np.array([polygons for result in tiles_polygons for _, polygons in result])
-
-        # merge sub timings
-        for sub_timing in sub_timings:
-            timing.merge(sub_timing)
-
-        return tiles, tile_polygons
+        return _parallel_segment_locate(
+            self.pool,
+            segmenter=self._segmenter,
+            locator=self._locator,
+            logger=self.logger,
+            tile_topology=tile_topology,
+            timing=timing
+        )
 
     def _dispatch_classify(self, image, polygons, timing):
         """Execute dispatching and classification on several processes
@@ -386,3 +411,52 @@ class SLDCWorkflow(Workflow):
         return predictions, probabilities, dispatch
 
 
+class SSLWorkflow(Workflow):
+    """SSL stands for Semantic-Segment-Locate. Detection is performed by a semantic segmentation algorithm.
+    """
+    TIMING_ROOT = "workflow.ssl"
+    TIMING_DETECT = "detect"
+    TIMING_DETECT_LOAD = "load"
+    TIMING_DETECT_SEGMENT = "segment"
+    TIMING_DETECT_LOCATE = "locate"
+    TIMING_MERGE = "merge"
+
+    def __init__(self, segmenter, tile_builder, background_class=-1, tile_max_width=1024, tile_max_height=1024,
+                 tile_overlap=7, dist_tolerance=1, logger=SilentLogger(), n_jobs=None):
+        """Constructor
+        Parameters
+        ----------
+        segmenter: SemanticSegmenter
+            The semantic segmenter
+        tile_builder: TileBuilder
+            An object for building specific tiles
+        background_class: int (default: -1)
+            The background class not to locate (-1 
+        tile_max_width: int (optional, default: 1024)
+            The maximum width of the tiles when iterating over the image
+        tile_max_height: int (optional, default: 1024)
+            The maximum height of the tiles when iterating over the image
+        tile_overlap: int (optional, default: 5)
+            The number of pixels of overlap between tiles when iterating over the image
+        dist_tolerance: int (optional, default, 7)
+            Maximal distance between two polygons so that they are considered from the same object
+        logger: Logger (optional, default: SilentLogger)
+            A logger object
+        n_jobs: int (optional, default: 1)
+            The number of job available for executing the workflow.
+        """
+        super(SSLWorkflow, self).__init__(
+            n_jobs=n_jobs,
+            tile_max_height=tile_max_height,
+            tile_max_width=tile_max_width,
+            tile_builder=tile_builder,
+            tile_overlap=tile_overlap,
+            logger=logger
+        )
+        self._segmenter = segmenter
+        self._locator = SemanticLocator(background=background_class)
+        self._merger = SemanticMerger(tolerance=dist_tolerance)
+
+    def process(self, image):
+        """Process function"""
+        pass
