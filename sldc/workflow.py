@@ -126,7 +126,7 @@ def _parallel_segment_locate(pool, segmenter, locator, logger, tile_topology, ti
     tiles: iterable (size: n, subtype: int) 
         Iterable containing the tiles ids
     tile_polygons: iterable (size: n, subtype: iterable of Polygon objects))
-        The iterable at index i contains the polygons found in the tile having index tiles[i]
+        The iterable at index i contains the polygons and pixel values found in the tile having index tiles[i]
     """
     # partition the tiles into batches for submitting them to processes
     batches = tile_topology.partition_identifiers(pool.n_jobs)
@@ -348,12 +348,13 @@ class SLDCWorkflow(Workflow):
 
         Returns
         -------
-        tiles_polygons: iterable (subtype: (int, shapely.geometry.Polygon))
-            An iterable containing tuples (tile_id, polygons) where the tile is a Tile object and polygons another
-            iterable containing the polygons found on each tile
+        tiles: iterable (size: n, subtype: int) 
+            Iterable containing the tiles ids
+        tile_polygons: iterable (size: n, subtype: iterable of Polygon objects))
+            The iterable at index i contains the polygons and pixel values found in the tile having index tiles[i]
         """
         # partition the tiles into batches for submitting them to processes
-        return _parallel_segment_locate(
+        tiles, tile_polygons = _parallel_segment_locate(
             self.pool,
             segmenter=self._segmenter,
             locator=self._locator,
@@ -361,6 +362,7 @@ class SLDCWorkflow(Workflow):
             tile_topology=tile_topology,
             timing=timing
         )
+        return tiles, list(map(lambda l: [t[0] for t in l], tile_polygons))
 
     def _dispatch_classify(self, image, polygons, timing):
         """Execute dispatching and classification on several processes
@@ -459,4 +461,60 @@ class SSLWorkflow(Workflow):
 
     def process(self, image):
         """Process function"""
-        pass
+        timing = WorkflowTiming(root=SLDCWorkflow.TIMING_ROOT)
+        tile_topology = self._tile_topology(image)
+
+        # segment locate
+        self.logger.info("SLDCWorkflow : start segment/locate.")
+        timing.start(SLDCWorkflow.TIMING_DETECT)
+        tiles, tile_polygons, tile_labels = self._segment_locate(tile_topology, timing)
+        timing.end(SLDCWorkflow.TIMING_DETECT)
+        self.logger.info(
+            "SLDCWorkflow : end segment/locate." + os.linesep +
+            "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(tiles), timing.total(SLDCWorkflow.TIMING_DETECT)) + os.linesep +
+            "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for polygons in tile_polygons]))
+        )
+
+        # merge
+        self.logger.info("SLDCWorkflow : start merging")
+        timing.start(SLDCWorkflow.TIMING_MERGE)
+        polygons, labels = self._merger.merge(tiles, tile_polygons, tile_topology, labels=tile_labels)
+        timing.end(SLDCWorkflow.TIMING_MERGE)
+        self.logger.info(
+            "SLDCWorkflow : end merging." + os.linesep +
+            "SLDCWorkflow : {} polygon(s) found.".format(len(polygons)) + os.linesep +
+            "SLDCWorkflow : executed in {} s.".format(timing.total(SLDCWorkflow.TIMING_MERGE))
+        )
+
+        n_polygons = polygons.shape[0]
+        dispatch = np.array(["default"] * n_polygons)
+        probas = np.full(n_polygons, fill_value=0.0, dtype=np.double)
+        return WorkflowInformation(polygons, dispatch, labels, probas, timing)
+
+    def _segment_locate(self, tile_topology, timing):
+        """Execute the segment locate phase
+        Parameters
+        ----------
+        tile_topology: TileTopology
+            A tile topology
+        timing: WorkflowTiming
+            A workflow timing object for computing time
+
+        Returns
+        -------
+        tiles: iterable (size: n, subtype: int) 
+            Iterable containing the tiles ids
+        tile_polygons: iterable (size: n, subtype: iterable of Polygon objects))
+            The iterable at index i contains the polygons and pixel values found in the tile having index tiles[i]
+        """
+        tiles, tile_polygons_labels = _parallel_segment_locate(
+            self.pool,
+            segmenter=self._segmenter,
+            locator=self._locator,
+            logger=self.logger,
+            tile_topology=tile_topology,
+            timing=timing
+        )
+        tile_polygons = list(map(lambda l: [t[0] for t in l], tile_polygons_labels))
+        tile_labels = list(map(lambda l: [t[1] for t in l], tile_polygons_labels))
+        return tiles, tile_polygons, tile_labels

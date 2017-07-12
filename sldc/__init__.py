@@ -7,7 +7,7 @@ from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule, Rul
 from .errors import ImageExtractionException, TileExtractionException, MissingComponentException, InvalidBuildingException
 from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow, DefaultTileBuilder
 from .information import WorkflowInformation, ChainInformation
-from .locator import Locator, BinaryLocator, SemanticLocator
+from .locator import BinaryLocator, SemanticLocator
 from .logging import Logger, StandardOutputLogger, FileLogger, SilentLogger, Loggable
 from .merger import SemanticMerger
 from .segmenter import SemanticSegmenter, ProbabilisticSegmenter, Segmenter
@@ -18,7 +18,7 @@ from .workflow import SLDCWorkflow
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 
 __all__ = [
-    "Locator", "BinartLocator", "SemanticLocator", "Segmenter", "DispatcherClassifier", "DispatchingRule",
+    "BinartLocator", "SemanticLocator", "Segmenter", "DispatcherClassifier", "DispatchingRule",
     "SLDCWorkflow", "Image", "Tile", "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator",
     "ImageExtractionException", "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain",
     "WorkflowInformation", "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger",

@@ -10,63 +10,62 @@ from .util import mk_img, draw_circle, draw_poly, relative_error
 
 class TestLocatorNothingToLocate(TestCase):
     def testLocator(self):
-        image = mk_img(2000, 3000)
+        image = mk_img(400, 600)
         locator = BinaryLocator()
-        polygons = locator.locate(image)
-        self.assertEqual(0, len(polygons), "No polygon found on black image")
+        located = locator.locate(image)
+        self.assertEqual(0, len(located), "No polygon found on black image")
 
 
 class TestLocatorRectangle(TestCase):
     def testLocator(self):
-        image = mk_img(2000, 3000)
+        image = mk_img(400, 600)
 
         # draw a rectangle
-        A = (25, 25)
-        B = (25, 1500)
-        C = (1250, 25)
-        D = (1250, 1500)
+        A = (5, 5)
+        B = (5, 300)
+        C = (250, 5)
+        D = (250, 300)
         ABCD = Polygon([A, B, D, C, A])
         image = draw_poly(image, ABCD)
 
         # locate it
         locator = BinaryLocator()
-        polygons = locator.locate(image)
+        located = locator.locate(image)
+        polygons, labels = zip(*located)
 
-        self.assertEqual(1, len(polygons), "One polygon found")
+        self.assertEqual(1, len(located), "One polygon found")
         self.assertTrue(ABCD.equals(polygons[0]), "Found polygon has the same shape")
 
         # test locate with an offset
         locator2 = BinaryLocator()
-        polygons2 = locator2.locate(image, offset=(250, 200))
-        self.assertEqual(1, len(polygons2), "One polygon found")
-        self.assertTrue(translate(ABCD, 250, 200).equals(polygons2[0]), "Found translated polygon")
+        located2 = locator2.locate(image, offset=(50, 40))
+        polygons2, labels2 = zip(*located2)
+        self.assertEqual(1, len(located2), "One polygon found")
+        self.assertTrue(translate(ABCD, 50, 40).equals(polygons2[0]), "Found translated polygon")
 
 
 class TestLocatorCircleAndRectangle(TestCase):
     def testLocator(self):
-        image = mk_img(2000, 3000)
+        image = mk_img(400, 600)
 
         # draw a rectangle
-        A = (25, 400)
-        B = (25, 1500)
-        C = (1250, 400)
-        D = (1250, 1500)
+        A = (5, 80)
+        B = (5, 300)
+        C = (250, 80)
+        D = (250, 300)
         ABCD = Polygon([A, B, D, C, A])
         image = draw_poly(image, ABCD)
-        image, circle = draw_circle(image, 400, (2500, 1500), return_circle=True)
+        image, circle = draw_circle(image, 85, (500, 300), return_circle=True)
 
         # test locator
         locator = BinaryLocator()
-        polygons = locator.locate(image)
+        located = locator.locate(image)
+        polygons, labels = zip(*located)
 
         self.assertEqual(2, len(polygons), "Two polygons found")
         self.assertTrue(ABCD.equals(polygons[1]), "Rectangle polygon is found")
 
-        # use recall and false discovery rate to evaluate the error on the surface
-        tpr = circle.difference(polygons[0]).area / circle.area
-        fdr = polygons[0].difference(circle).area / polygons[0].area
-        self.assertLessEqual(tpr, 0.005, "Recall is low for circle area")
-        self.assertLessEqual(fdr, 0.005, "False discovery rate is low for circle area")
+        self.assertLessEqual(relative_error(polygons[0].area, np.pi * 85 * 85), 0.005)
 
 
 class TestSemanticLocatorCircleAndRectangle(TestCase):
@@ -84,32 +83,10 @@ class TestSemanticLocatorCircleAndRectangle(TestCase):
 
         # test locator
         locator = SemanticLocator(background=0)
-        polygons = locator.locate(image)
+        located = locator.locate(image)
+        polygons, labels = zip(*located)
 
         self.assertEqual(2, len(polygons), "Two polygons found")
         self.assertTrue(ABCD.equals(polygons[0]), "Rectangle polygon is found")
         self.assertLessEqual(relative_error(polygons[1].area, np.pi * 40 * 40), 0.005)
 
-    def testClassLocate(self):
-        image = mk_img(200, 300)
-
-        # draw a rectangle
-        A = (3, 40)
-        B = (3, 150)
-        C = (125, 40)
-        D = (125, 150)
-        ABCD = Polygon([A, B, D, C, A])
-        image = draw_poly(image, ABCD, color=1)
-        image = draw_circle(image, 40, (250, 150), color=2)
-
-        # test locator
-        locator = SemanticLocator(background=0)
-        polygons = locator.class_locate(image)
-
-        self.assertEqual(2, len(polygons))
-        rectangle, rectangle_class = polygons[0]
-        self.assertTrue(ABCD.equals(rectangle))
-        self.assertTrue(rectangle_class, 1)
-        circle, circle_class = polygons[1]
-        self.assertLessEqual(relative_error(circle.area, np.pi * 40 * 40), 0.005)
-        self.assertTrue(circle_class, 2)
