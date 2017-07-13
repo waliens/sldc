@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .builder import WorkflowBuilder, WorkflowChainBuilder
+from .builder import SLDCWorkflowBuilder, WorkflowChainBuilder
 from .chaining import ImageProvider, WorkflowExecutor, WorkflowChain, PolygonFilter, DefaultFilter
 from .classifier import PolygonClassifier
 from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule, RuleBasedDispatcher, Dispatcher
@@ -22,7 +22,7 @@ __all__ = [
     "SLDCWorkflow", "Image", "Tile", "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator",
     "ImageExtractionException", "TileExtractionException", "ImageWindow", "WorkflowExecutor", "WorkflowChain",
     "WorkflowInformation", "ChainInformation", "Logger", "StandardOutputLogger", "FileLogger", "SilentLogger",
-    "WorkflowTiming", "Loggable", "WorkflowBuilder", "DefaultTileBuilder", "SemanticMerger", "WorkflowChainBuilder",
+    "WorkflowTiming", "Loggable", "SLDCWorkflowBuilder", "DefaultTileBuilder", "SemanticMerger", "WorkflowChainBuilder",
     "batch_split", "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
     "InvalidBuildingException", "Dispatcher", "report_timing", "merge_timings", "SemanticSegmenter",
     "ProbabilisticSegmenter"

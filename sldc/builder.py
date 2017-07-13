@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from abc import ABCMeta, abstractmethod
 
 from .chaining import WorkflowChain, WorkflowExecutor, DefaultFilter
 from .dispatcher import DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
@@ -12,6 +13,26 @@ __version__ = "0.1"
 
 
 class WorkflowBuilder(object):
+    """Interface to be implemented by any workflow builder object"""
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def get(self):
+        """To call to get the built workflow
+        Returns
+        -------
+        workflow: Workflow
+            The built workflow
+            
+        Raises
+        ------
+        MissingComponentException:
+            If some mandatory elements were not provided to the builder
+        """
+        pass
+
+
+class SLDCWorkflowBuilder(WorkflowBuilder):
     """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
     be with the same Builder object, especially if the workflows should work in parallel.
     """
@@ -63,7 +84,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._n_jobs = n_jobs
@@ -78,7 +99,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._parallel_dc = parallel_dc
@@ -93,7 +114,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._segmenter = segmenter
@@ -108,7 +129,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._logger = logger
@@ -123,7 +144,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._tile_builder = tile_builder
@@ -134,7 +155,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._tile_builder = DefaultTileBuilder()
@@ -151,7 +172,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._tile_max_width = width
@@ -167,7 +188,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._overlap = overlap
@@ -182,7 +203,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         self._distance_tolerance = tolerance
@@ -203,7 +224,7 @@ class WorkflowBuilder(object):
 
         Returns
         -------
-        builder: WorkflowBuilder
+        builder: SLDCWorkflowBuilder
             The builder
         """
         if self._one_shot_dispatcher is not None:
@@ -249,17 +270,6 @@ class WorkflowBuilder(object):
         ])
 
     def get(self):
-        """Build the workflow with the set parameters
-        Returns
-        -------
-        workflow: SLDCWorkflow
-            The SLDC Workflow
-
-        Raises
-        ------
-        MissingComponentException:
-            If some mandatory elements were not provided to the builder
-        """
         if self._segmenter is None:
             raise MissingComponentException("Missing segmenter.")
         if self._tile_builder is None:
@@ -304,6 +314,12 @@ class WorkflowBuilder(object):
         return workflow
 
 
+class SSLWorkflowBuilder(WorkflowBuilder):
+    """For building ssl workflows"""
+    def get(self):
+        pass
+
+
 class WorkflowChainBuilder(object):
     """A class for building workflow chains objects
     """
@@ -328,7 +344,7 @@ class WorkflowChainBuilder(object):
         """Set the workflow that will process the full image
         Parameters
         ----------
-        workflow: SLDCWorkflow
+        workflow: Workflow
             The workflow
         label: hashable (optional)
             The label identifying the workflow. If not set, this label is set to 0.
@@ -351,7 +367,7 @@ class WorkflowChainBuilder(object):
 
         Parameters
         ----------
-        workflow: SLDCWorkflow
+        workflow: Workflow
             The workflow object
         filter: PolygonFilter (optional, default: DefaultFilter)
             The polygon filter implementing the filtering of polygons of which the windows will be processed to
