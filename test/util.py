@@ -24,6 +24,15 @@ def draw_square(image, side, center, color):
     return draw_poly(image, p, color)
 
 
+def draw_square_by_corner(image, side, top_left, color):
+    top_left = top_left
+    top_right = (top_left[0], top_left[1] + side)
+    bottom_left = (top_left[0] + side, top_left[1])
+    bottom_right = (top_left[0] + side, top_left[1] + side)
+    p = Polygon([top_left, top_right, bottom_right, bottom_left, top_left])
+    return draw_poly(image, p, color)
+
+
 def draw_circle(image, radius, center, color=255, return_circle=False):
     """Draw a circle of radius 'radius' and centered in 'centered'"""
     circle_center = Point(*center)
