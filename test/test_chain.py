@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from sldc import WorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder, DispatchingRule, PolygonFilter
+from sldc import SLDCWorkflowBuilder, Segmenter, PolygonClassifier, WorkflowChainBuilder, DispatchingRule, PolygonFilter
 from sldc.util import has_alpha_channel
 from .util import NumpyImage, relative_error, draw_multisquare, draw_multicircle, circularity
 
@@ -91,7 +91,7 @@ class TestChaining(TestCase):
             image = draw_multisquare(image, position, w // 7, color_in=127)
 
         # Build workflow
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
 
         # Build workflow 1
         builder.set_segmenter(BigShapeSegmenter())
@@ -159,7 +159,7 @@ class TestChaining(TestCase):
         # 1st: find big shapes and dispatch them as circle or square
         # 2nd: find small circles in found circle shapes
         # 3rd: find small squares in found square shape
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
 
         builder.set_segmenter(BigShapeSegmenter())
         builder.add_classifier(CircleDispatch(), DumbClassifier(), dispatching_label="circle")

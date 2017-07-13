@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 
 from sldc import Dispatcher, report_timing, StandardOutputLogger, Logger
-from sldc import DispatchingRule, PolygonClassifier, WorkflowBuilder, Segmenter
+from sldc import DispatchingRule, PolygonClassifier, SLDCWorkflowBuilder, Segmenter
 from .util import circularity, draw_circle, draw_square, draw_poly, NumpyImage, relative_error
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
@@ -99,7 +99,7 @@ class TestFullWorkflow(TestCase):
         image = draw_square(image, 300, (1000, 1000), 255)
 
         # Build the workflow
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
         builder.set_segmenter(CustomSegmenter())
         builder.add_classifier(CircleRule(), ColorClassifier(), dispatching_label="circle")
         builder.add_classifier(SquareRule(), ColorClassifier())
@@ -177,7 +177,7 @@ class TestFullWorkflow(TestCase):
         image = draw_circle(image, 750, (1000, 1000), color=[129, 129, 129])
 
         # build workflow
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
         builder.set_segmenter(CircleSegmenter())
         builder.add_catchall_classifier(CircleClassifier())
         workflow = builder.get()
@@ -215,7 +215,7 @@ class TestFullWorkflow(TestCase):
         image = draw_circle(image, 750, (1000, 1000), [129, 129, 129])
 
         # build workflow
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
         builder.set_n_jobs(2)
         builder.set_segmenter(CircleSegmenter())
         builder.add_catchall_classifier(CircleClassifier())
@@ -255,7 +255,7 @@ class TestFullWorkflow(TestCase):
         image = draw_square(image, 50, (750, 750), 127)  # 50 * 50 -> 2500
 
         # build the workflow
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
         builder.set_segmenter(CustomSegmenter())
         builder.set_one_shot_dispatcher(CustomDispatcher(1000), {
             "BIG": ColorClassifier(),
@@ -325,7 +325,7 @@ class TestFullWorkflow(TestCase):
         image = draw_circle(image, 25, (200, 50), 255)  # pi * 25 * 25 -> ~ 1963
 
         # build the workflow
-        builder = WorkflowBuilder()
+        builder = SLDCWorkflowBuilder()
         builder.set_segmenter(CustomSegmenter())
         builder.add_classifier(MinAreaRule(500), ColorClassifier(), "big")
         workflow = builder.get()
