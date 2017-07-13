@@ -6,7 +6,7 @@ from .test_chain import TestChaining
 from .test_sldc import TestFullWorkflow
 from .test_tile import TestFittingTileTopology, TestOverflowingTopology, TestSingleTileTopology, TestTileFromImage
 from .util import mk_img, circularity, draw_square, draw_circle, draw_poly, NumpyImage, relative_error, \
-    draw_multisquare, draw_multicircle
+    draw_multisquare, draw_multicircle, draw_square_by_corner
 from .fake_image import FakeImage, FakeTile, FakeTileBuilder
 
 __all__ = ["TestDispatcherClassifier", "TestLocatorNothingToLocate", "TestLocatorRectangle",
@@ -14,4 +14,4 @@ __all__ = ["TestDispatcherClassifier", "TestLocatorNothingToLocate", "TestLocato
            "TestMergerSingleTile", "TestChaining", "TestFullWorkflow", "TestFittingTileTopology",
            "TestOverflowingTopology", "TestSingleTileTopology", "TestTileFromImage", "mk_img", "circularity",
            "draw_square", "draw_circle", "draw_poly", "NumpyImage", "relative_error", "draw_multisquare",
-           "draw_multicircle", "FakeImage", "FakeTile", "FakeTileBuilder"]
+           "draw_multicircle", "FakeImage", "FakeTile", "FakeTileBuilder", "draw_square_by_corner"]
