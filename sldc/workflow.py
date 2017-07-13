@@ -461,29 +461,29 @@ class SSLWorkflow(Workflow):
 
     def process(self, image):
         """Process function"""
-        timing = WorkflowTiming(root=SLDCWorkflow.TIMING_ROOT)
+        timing = WorkflowTiming(root=SSLWorkflow.TIMING_ROOT)
         tile_topology = self._tile_topology(image)
 
         # segment locate
         self.logger.info("SLDCWorkflow : start segment/locate.")
-        timing.start(SLDCWorkflow.TIMING_DETECT)
+        timing.start(SSLWorkflow.TIMING_DETECT)
         tiles, tile_polygons, tile_labels = self._segment_locate(tile_topology, timing)
-        timing.end(SLDCWorkflow.TIMING_DETECT)
+        timing.end(SSLWorkflow.TIMING_DETECT)
         self.logger.info(
             "SLDCWorkflow : end segment/locate." + os.linesep +
-            "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(tiles), timing.total(SLDCWorkflow.TIMING_DETECT)) + os.linesep +
+            "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(tiles), timing.total(SSLWorkflow.TIMING_DETECT)) + os.linesep +
             "SLDCWorkflow : {} polygon(s) found on those tiles.".format(sum([len(polygons) for polygons in tile_polygons]))
         )
 
         # merge
         self.logger.info("SLDCWorkflow : start merging")
-        timing.start(SLDCWorkflow.TIMING_MERGE)
+        timing.start(SSLWorkflow.TIMING_MERGE)
         polygons, labels = self._merger.merge(tiles, tile_polygons, tile_topology, labels=tile_labels)
-        timing.end(SLDCWorkflow.TIMING_MERGE)
+        timing.end(SSLWorkflow.TIMING_MERGE)
         self.logger.info(
             "SLDCWorkflow : end merging." + os.linesep +
             "SLDCWorkflow : {} polygon(s) found.".format(len(polygons)) + os.linesep +
-            "SLDCWorkflow : executed in {} s.".format(timing.total(SLDCWorkflow.TIMING_MERGE))
+            "SLDCWorkflow : executed in {} s.".format(timing.total(SSLWorkflow.TIMING_MERGE))
         )
 
         n_polygons = polygons.shape[0]
