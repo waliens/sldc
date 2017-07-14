@@ -6,7 +6,7 @@ from .dispatcher import DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
 from .errors import MissingComponentException, InvalidBuildingException
 from .image import DefaultTileBuilder
 from .logging import SilentLogger
-from .workflow import SLDCWorkflow
+from .workflow import SLDCWorkflow, SSLWorkflow
 
 __author__ = "Mormont Romain <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -15,6 +15,26 @@ __version__ = "0.1"
 class WorkflowBuilder(object):
     """Interface to be implemented by any workflow builder object"""
     __metaclass__ = ABCMeta
+
+    def __init__(self):
+        self._distance_tolerance = None
+        self._logger = None
+        self._tile_max_width = None
+        self._tile_max_height = None
+        self._overlap = None
+        self._tile_builder = None
+        self._n_jobs = None
+
+    @abstractmethod
+    def _reset(self):
+        """Reset workflow fields"""
+        self._tile_builder = DefaultTileBuilder()
+        self._distance_tolerance = 1
+        self._tile_max_width = 1024
+        self._tile_max_height = 1024
+        self._overlap = 7
+        self._n_jobs = 1
+        self._logger = SilentLogger()
 
     @abstractmethod
     def get(self):
@@ -30,110 +50,6 @@ class WorkflowBuilder(object):
             If some mandatory elements were not provided to the builder
         """
         pass
-
-
-class SLDCWorkflowBuilder(WorkflowBuilder):
-    """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
-    be with the same Builder object, especially if the workflows should work in parallel.
-    """
-    def __init__(self):
-        """Constructor for WorkflowBuilderObjects
-        Parameters
-        ----------
-        n_jobs: int
-            Number of jobs to use for executing the workflow
-        """
-        # Fields below are reset after each get()
-        self._segmenter = None
-        self._rules = None
-        self._dispatching_labels = None
-        self._one_shot_dispatcher = None
-        self._classifiers = None
-        self._tile_max_width = None
-        self._tile_max_height = None
-        self._overlap = None
-        self._distance_tolerance = None
-        self._logger = None
-        self._tile_builder = None
-        self._parallel_dc = None
-        self._n_jobs = None
-        self._reset()
-
-    def _reset(self):
-        """Reset the sldc workflow fields to their default values"""
-        self._segmenter = None
-        self._tile_builder = DefaultTileBuilder()
-        self._rules = []
-        self._dispatching_labels = []
-        self._one_shot_dispatcher = None
-        self._classifiers = []
-        self._tile_max_width = 1024
-        self._tile_max_height = 1024
-        self._overlap = 7
-        self._distance_tolerance = 1
-        self._parallel_dc = False
-        self._n_jobs = 1
-        self._logger = SilentLogger()
-
-    def set_n_jobs(self, n_jobs):
-        """Set the number of available jobs (optional)
-        Parameters
-        ----------
-        n_jobs: int
-            The number of jobs available to execute the workflow
-
-        Returns
-        -------
-        builder: SLDCWorkflowBuilder
-            The builder
-        """
-        self._n_jobs = n_jobs
-        return self
-
-    def set_parallel_dc(self, parallel_dc):
-        """Specify whether the dispatching and classification will be parallelized at the workflow level (optional)
-        Parameters
-        ----------
-        parallel_dc: boolean
-            True for enabling parallelization of dispatching and classification at the workflow level
-
-        Returns
-        -------
-        builder: SLDCWorkflowBuilder
-            The builder
-        """
-        self._parallel_dc = parallel_dc
-        return self
-
-    def set_segmenter(self, segmenter):
-        """Set the segmenter (mandatory)
-        Parameters
-        ----------
-        segmenter: Segmenter
-            The segmenter
-
-        Returns
-        -------
-        builder: SLDCWorkflowBuilder
-            The builder
-        """
-        self._segmenter = segmenter
-        return self
-
-    def set_logger(self, logger):
-        """Set the logger. If not called, a SilentLogger is provided by default.
-        Parameters
-        ----------
-        logger: Logger
-            The logger
-
-        Returns
-        -------
-        builder: SLDCWorkflowBuilder
-            The builder
-        """
-        self._logger = logger
-        return self
 
     def set_tile_builder(self, tile_builder):
         """Set the tile builder
@@ -161,14 +77,14 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
         self._tile_builder = DefaultTileBuilder()
         return self
 
-    def set_tile_size(self, width, height):
+    def set_tile_size(self, height, width):
         """Set the tile sizes. If not called, sizes (1024, 1024) are provided by default.
         Parameters
         ----------
-        width: int
-            The maximum width of the tiles
         height: int
             The maximum height of the tiles
+        width: int
+            The maximum width of the tiles
 
         Returns
         -------
@@ -207,6 +123,98 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
             The builder
         """
         self._distance_tolerance = tolerance
+        return self
+
+    def set_n_jobs(self, n_jobs):
+        """Set the number of available jobs (optional)
+        Parameters
+        ----------
+        n_jobs: int
+            The number of jobs available to execute the workflow
+
+        Returns
+        -------
+        builder: SLDCWorkflowBuilder
+            The builder
+        """
+        self._n_jobs = n_jobs
+        return self
+
+    def set_logger(self, logger):
+        """Set the logger. If not called, a SilentLogger is provided by default.
+        Parameters
+        ----------
+        logger: Logger
+            The logger
+
+        Returns
+        -------
+        builder: SLDCWorkflowBuilder
+            The builder
+        """
+        self._logger = logger
+        return self
+
+
+class SLDCWorkflowBuilder(WorkflowBuilder):
+    """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
+    be with the same Builder object, especially if the workflows should work in parallel.
+    """
+    def __init__(self):
+        """Constructor for WorkflowBuilderObjects
+        Parameters
+        ----------
+        n_jobs: int
+            Number of jobs to use for executing the workflow
+        """
+        # Fields below are reset after each get()
+        super(SLDCWorkflowBuilder, self).__init__()
+        self._segmenter = None
+        self._rules = None
+        self._dispatching_labels = None
+        self._one_shot_dispatcher = None
+        self._classifiers = None
+        self._parallel_dc = None
+        self._reset()
+
+    def _reset(self):
+        """Reset the sldc workflow fields to their default values"""
+        super(SLDCWorkflowBuilder, self)._reset()
+        self._segmenter = None
+        self._rules = []
+        self._dispatching_labels = []
+        self._one_shot_dispatcher = None
+        self._classifiers = []
+        self._parallel_dc = False
+
+    def set_parallel_dc(self, parallel_dc):
+        """Specify whether the dispatching and classification will be parallelized at the workflow level (optional)
+        Parameters
+        ----------
+        parallel_dc: boolean
+            True for enabling parallelization of dispatching and classification at the workflow level
+
+        Returns
+        -------
+        builder: SLDCWorkflowBuilder
+            The builder
+        """
+        self._parallel_dc = parallel_dc
+        return self
+
+    def set_segmenter(self, segmenter):
+        """Set the segmenter (mandatory)
+        Parameters
+        ----------
+        segmenter: Segmenter
+            The segmenter
+
+        Returns
+        -------
+        builder: SLDCWorkflowBuilder
+            The builder
+        """
+        self._segmenter = segmenter
         return self
 
     def add_classifier(self, rule, classifier, dispatching_label=None):
@@ -316,8 +324,65 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
 
 class SSLWorkflowBuilder(WorkflowBuilder):
     """For building ssl workflows"""
+    def __init__(self):
+        """Constructor for WorkflowBuilderObjects
+        Parameters
+        ----------
+        n_jobs: int
+            Number of jobs to use for executing the workflow
+        """
+        # Fields below are reset after each get()
+        super(SSLWorkflowBuilder, self).__init__()
+        self._segmenter = None
+        self._background_class = None
+        self._reset()
+
+    def _reset(self):
+        """Reset the sldc workflow fields to their default values"""
+        super(SSLWorkflowBuilder, self).__init__()
+        self._segmenter = None
+        self._background_class = -1
+
+    def set_segmenter(self, segmenter):
+        """Set the segmenter
+        Parameters
+        ----------
+        segmenter: SemanticSegmenter
+            The segmenter
+        """
+        self._segmenter = segmenter
+        return self
+
+    def set_background_class(self, background_class):
+        """Set the background class
+        Parameters
+        ----------
+        background_class: int
+            The background class
+        """
+        self._background_class = background_class
+        return self
+
     def get(self):
-        pass
+        if self._segmenter is None:
+            raise MissingComponentException("Missing segmenter.")
+        if self._tile_builder is None:
+            raise MissingComponentException("Missing tile builder.")
+
+        workflow = SSLWorkflow(
+            self._segmenter,
+            self._tile_builder,
+            background_class=self._background_class,
+            tile_max_height=self._tile_max_height,
+            tile_max_width=self._tile_max_width,
+            tile_overlap=self._overlap,
+            dist_tolerance=self._distance_tolerance,
+            logger=self._logger,
+            n_jobs=self._n_jobs
+        )
+
+        self._reset()
+        return workflow
 
 
 class WorkflowChainBuilder(object):
