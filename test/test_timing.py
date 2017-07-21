@@ -125,4 +125,10 @@ class TestTiming(TestCase):
         self.assertEqual(len(timing1["root1.adj"]), 2)
 
         with self.assertRaises(TypeError):
-            timing1.merge(StandardOutputLogger())
+            timing1.merge(StandardOutputLogger(level=Logger.DEBUG))
+
+        timing1.merge(timing1)
+        self.assertEqual(len(timing1["root1"]), 1)
+        self.assertEqual(len(timing1["root2"]), 1)
+        self.assertEqual(len(timing1["root"]), 2)
+        self.assertEqual(len(timing1["root1.adj"]), 2)

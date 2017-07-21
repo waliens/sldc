@@ -2,6 +2,7 @@
 from unittest import TestCase
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from sldc import Dispatcher, report_timing, StandardOutputLogger, Logger
 from sldc import DispatchingRule, PolygonClassifier, SLDCWorkflowBuilder, Segmenter
@@ -120,8 +121,8 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(square1.area, 200 * 200) < 0.005, True)
         self.assertEqual(relative_error(square1.centroid.x, 500) < 0.005, True)
         self.assertEqual(relative_error(square1.centroid.y, 500) < 0.005, True)
-        self.assertEqual(results.dispatch[sorted_idx[0]], 1)  # square
-        self.assertEqual(results.classes[sorted_idx[0]], ColorClassifier.WHITE)  # white
+        self.assertEqual(results.dispatches[sorted_idx[0]], "1")  # square
+        self.assertEqual(results.labels[sorted_idx[0]], ColorClassifier.WHITE)  # white
         self.assertAlmostEqual(results.probas[sorted_idx[0]], 1.0)
 
         # first circle
@@ -129,8 +130,8 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(circle1.area, np.pi * 100 * 100) < 0.005, True)
         self.assertEqual(relative_error(circle1.centroid.x, 1500) < 0.005, True)
         self.assertEqual(relative_error(circle1.centroid.y, 600) < 0.005, True)
-        self.assertEqual(results.dispatch[sorted_idx[1]], "circle")  # circle
-        self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.GREY)  # grey
+        self.assertEqual(results.dispatches[sorted_idx[1]], "circle")  # circle
+        self.assertEqual(results.labels[sorted_idx[1]], ColorClassifier.GREY)  # grey
         self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
 
         # second square (centered)
@@ -138,8 +139,8 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(square2.area, 300 * 300) < 0.005, True)
         self.assertEqual(relative_error(square2.centroid.x, 1000) < 0.005, True)
         self.assertEqual(relative_error(square2.centroid.y, 1000) < 0.005, True)
-        self.assertEqual(results.dispatch[sorted_idx[2]], 1)  # square
-        self.assertEqual(results.classes[sorted_idx[2]], ColorClassifier.WHITE)  # white
+        self.assertEqual(results.dispatches[sorted_idx[2]], "1")  # square
+        self.assertEqual(results.labels[sorted_idx[2]], ColorClassifier.WHITE)  # white
         self.assertAlmostEqual(results.probas[sorted_idx[2]], 1.0)
 
         # second circle
@@ -147,8 +148,8 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(circle2.area, np.pi * 100 * 100) < 0.005, True)
         self.assertEqual(relative_error(circle2.centroid.x, 500) < 0.005, True)
         self.assertEqual(relative_error(circle2.centroid.y, 1500) < 0.005, True)
-        self.assertEqual(results.dispatch[sorted_idx[3]], "circle")  # circle
-        self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.WHITE)  # grey
+        self.assertEqual(results.dispatches[sorted_idx[3]], "circle")  # circle
+        self.assertEqual(results.labels[sorted_idx[3]], ColorClassifier.WHITE)  # grey
         self.assertAlmostEqual(results.probas[sorted_idx[3]], 1.0)
 
         # third square
@@ -156,8 +157,8 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(square3.area, 200 * 200) < 0.005, True)
         self.assertEqual(relative_error(square3.centroid.x, 1500) < 0.005, True)
         self.assertEqual(relative_error(square3.centroid.y, 1500) < 0.005, True)
-        self.assertEqual(results.dispatch[sorted_idx[4]], 1)  # square
-        self.assertEqual(results.classes[sorted_idx[4]], ColorClassifier.GREY)  # white
+        self.assertEqual(results.dispatches[sorted_idx[4]], "1")  # square
+        self.assertEqual(results.labels[sorted_idx[4]], ColorClassifier.GREY)  # white
         self.assertAlmostEqual(results.probas[sorted_idx[4]], 1.0)
 
         # check other information
@@ -193,9 +194,9 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(polygon.area, np.pi * 750 * 750) <= 0.005, True)
         self.assertEqual(relative_error(polygon.centroid.x, 1000) <= 0.005, True)
         self.assertEqual(relative_error(polygon.centroid.y, 1000) <= 0.005, True)
-        self.assertEqual(workflow_info.classes, [1])
-        self.assertEqual(workflow_info.probas, [1.0])
-        self.assertEqual(workflow_info.dispatch, ["catchall"])
+        assert_array_equal(workflow_info.labels, [1])
+        assert_array_almost_equal(workflow_info.probas, [1.0])
+        assert_array_equal(workflow_info.dispatches, ["catchall"])
 
         # check other information
         timing = workflow_info.timing
@@ -233,9 +234,9 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(relative_error(polygon.area, np.pi * 750 * 750) <= 0.005, True)
         self.assertEqual(relative_error(polygon.centroid.x, 1000) <= 0.005, True)
         self.assertEqual(relative_error(polygon.centroid.y, 1000) <= 0.005, True)
-        self.assertEqual(workflow_info.classes, [1])
-        self.assertEqual(workflow_info.probas, [1.0])
-        self.assertEqual(workflow_info.dispatch, ["catchall"])
+        assert_array_equal(workflow_info.labels, [1])
+        assert_array_almost_equal(workflow_info.probas, [1.0])
+        assert_array_equal(workflow_info.dispatches, ["catchall"])
 
         # check other information
         timing = workflow_info.timing
@@ -278,8 +279,8 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(circle1.area, np.pi * 10 * 10) < 0.025)
         self.assertTrue(relative_error(circle1.centroid.x, 125) < 0.025)
         self.assertTrue(relative_error(circle1.centroid.y, 125) < 0.025)
-        self.assertEqual(results.dispatch[sorted_idx[0]], "SMALL")
-        self.assertEqual(results.classes[sorted_idx[0]], ColorClassifier.WHITE)
+        self.assertEqual(results.dispatches[sorted_idx[0]], "SMALL")
+        self.assertEqual(results.labels[sorted_idx[0]], ColorClassifier.WHITE)
         self.assertAlmostEqual(results.probas[sorted_idx[0]], 1.0)
 
         # first square
@@ -287,8 +288,8 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(square1.area, 26 * 26) < 0.025)
         self.assertTrue(relative_error(square1.centroid.x, 250) < 0.025)
         self.assertTrue(relative_error(square1.centroid.y, 250) < 0.025)
-        self.assertEqual(results.dispatch[sorted_idx[1]], "SMALL")
-        self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.WHITE)
+        self.assertEqual(results.dispatches[sorted_idx[1]], "SMALL")
+        self.assertEqual(results.labels[sorted_idx[1]], ColorClassifier.WHITE)
         self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
 
         # second circle
@@ -296,8 +297,8 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(circle2.area, np.pi * 25 * 25) < 0.025)
         self.assertTrue(relative_error(circle2.centroid.x, 250) < 0.025)
         self.assertTrue(relative_error(circle2.centroid.y, 750) < 0.025)
-        self.assertEqual(results.dispatch[sorted_idx[2]], "BIG")
-        self.assertEqual(results.classes[sorted_idx[2]], ColorClassifier.WHITE)
+        self.assertEqual(results.dispatches[sorted_idx[2]], "BIG")
+        self.assertEqual(results.labels[sorted_idx[2]], ColorClassifier.WHITE)
         self.assertAlmostEqual(results.probas[sorted_idx[2]], 1.0)
 
         # second square
@@ -305,8 +306,8 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(square2.area, 50 * 50) < 0.025)
         self.assertTrue(relative_error(square2.centroid.x, 750) < 0.025)
         self.assertTrue(relative_error(square2.centroid.y, 750) < 0.025)
-        self.assertEqual(results.dispatch[sorted_idx[3]], "BIG")
-        self.assertEqual(results.classes[sorted_idx[3]], ColorClassifier.GREY)
+        self.assertEqual(results.dispatches[sorted_idx[3]], "BIG")
+        self.assertEqual(results.labels[sorted_idx[3]], ColorClassifier.GREY)
         self.assertAlmostEqual(results.probas[sorted_idx[3]], 1.0)
 
         # check other information
@@ -345,8 +346,8 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(shape1.area, np.pi * 10 * 10) < 0.025)
         self.assertTrue(relative_error(shape1.centroid.x, 100) < 0.025)
         self.assertTrue(relative_error(shape1.centroid.y, 50) < 0.025)
-        self.assertEqual(results.dispatch[sorted_idx[0]], None)
-        self.assertEqual(results.classes[sorted_idx[0]], None)
+        self.assertEqual(results.dispatches[sorted_idx[0]], None)
+        self.assertEqual(results.labels[sorted_idx[0]], None)
         self.assertAlmostEqual(results.probas[sorted_idx[0]], 0.0)
 
         # second shape (include)
@@ -354,8 +355,8 @@ class TestFullWorkflow(TestCase):
         self.assertTrue(relative_error(shape2.area, np.pi * 25 * 25) < 0.025)
         self.assertTrue(relative_error(shape2.centroid.x, 200) < 0.025)
         self.assertTrue(relative_error(shape2.centroid.y, 50) < 0.025)
-        self.assertEqual(results.dispatch[sorted_idx[1]], "big")
-        self.assertEqual(results.classes[sorted_idx[1]], ColorClassifier.WHITE)
+        self.assertEqual(results.dispatches[sorted_idx[1]], "big")
+        self.assertEqual(results.labels[sorted_idx[1]], ColorClassifier.WHITE)
         self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
 
         # check other information

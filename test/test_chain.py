@@ -56,15 +56,15 @@ class SquareDispatch(DispatchingRule):
 class CircleShapeFilter(PolygonFilter):
     """A filter which excludes all shapes which were not detected by the first workflow and which are not circles"""
     def filter(self, chain_information):
-        return [polygon for workflow, polygon, dispatch, _, _ in chain_information
-                if workflow == 0 and dispatch == "circle"]
+        workflow_info = chain_information[0]
+        return [workflow_info[i].polygon for i in range(len(workflow_info)) if workflow_info[i].dispatch == "circle"]
 
 
 class SquareShapeFilter(PolygonFilter):
     """A filter which excludes all shapes which were not detected by the first workflow and which are not squares"""
     def filter(self, chain_information):
-        return [polygon for workflow, polygon, dispatch, _, _ in chain_information
-                if workflow == 0 and dispatch == "square"]
+        workflow_info = chain_information[0]
+        return [workflow_info[i].polygon for i in range(len(workflow_info)) if workflow_info[i].dispatch == "square"]
 
 
 class TestChaining(TestCase):
@@ -119,19 +119,19 @@ class TestChaining(TestCase):
 
         info1 = chain_info["big_squares"]
         self.assertEqual(9, len(info1))
-        for polygon, disp, cls, proba in info1:
-            self.assertTrue(relative_error(polygon.area, big_area) < 0.005)
-            self.assertEqual("catchall", disp)
-            self.assertEqual(1, cls)
-            self.assertAlmostEqual(1.0, proba)
+        for object_info in info1:
+            self.assertTrue(relative_error(object_info.polygon.area, big_area) < 0.005)
+            self.assertEqual("catchall", object_info.dispatch)
+            self.assertEqual(1, object_info.label)
+            self.assertAlmostEqual(1.0, object_info.proba)
 
         info2 = chain_info["small_squares"]
         self.assertEqual(36, len(info2))
-        for polygon, disp, cls, proba in info2:
-            self.assertTrue(relative_error(polygon.area, small_area) < 0.005)
-            self.assertEqual("catchall", disp)
-            self.assertEqual(1, cls)
-            self.assertAlmostEqual(1.0, proba)
+        for object_info in info2:
+            self.assertTrue(relative_error(object_info.polygon.area, small_area) < 0.005)
+            self.assertEqual("catchall", object_info.dispatch)
+            self.assertEqual(1, object_info.label)
+            self.assertAlmostEqual(1.0, object_info.proba)
 
     def testSquareAndCircleIncluded(self):
         w, h = 2000, 2000
@@ -186,8 +186,8 @@ class TestChaining(TestCase):
 
         info1 = chain_info[0]
         self.assertEqual(9, len(info1))
-        self.assertEqual(4, len([d for d in info1.dispatch if d == "circle"]))
-        self.assertEqual(5, len([d for d in info1.dispatch if d == "square"]))
+        self.assertEqual(4, len([d for d in info1.dispatches if d == "circle"]))
+        self.assertEqual(5, len([d for d in info1.dispatches if d == "square"]))
 
         info2 = chain_info[1]
         self.assertEqual(16, len(info2))

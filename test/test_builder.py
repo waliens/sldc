@@ -146,10 +146,6 @@ class TestBuilder(TestCase):
             builder.get()
 
         builder.set_segmenter(segmenter)
-
-        with self.assertRaises(MissingComponentException):
-            builder.get()
-
         builder.set_default_tile_builder()
 
         workflow = builder.get()
