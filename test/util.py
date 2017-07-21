@@ -25,9 +25,9 @@ def draw_square(image, side, center, color):
 
 
 def draw_square_by_corner(image, side, top_left, color):
-    top_left = top_left
-    top_right = (top_left[0], top_left[1] + side)
-    bottom_left = (top_left[0] + side, top_left[1])
+    top_left = (top_left[1], top_left[0])
+    top_right = (top_left[0] + side, top_left[1])
+    bottom_left = (top_left[0], top_left[1] + side)
     bottom_right = (top_left[0] + side, top_left[1] + side)
     p = Polygon([top_left, top_right, bottom_right, bottom_left, top_left])
     return draw_poly(image, p, color)

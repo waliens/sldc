@@ -228,7 +228,7 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
             The polygon that classifies polygons
         dispatching_label: key (optional, default: None)
             The dispatching label for this classifier. By default, (n) is used where n is the number of rules and
-            classifiers added before.
+            classifiers added before (n is formatted as a string)
 
         Returns
         -------
@@ -237,7 +237,7 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
         """
         if self._one_shot_dispatcher is not None:
             raise InvalidBuildingException("Cannot use a rule based dispatcher alongside a one shot dispatcher.")
-        self._dispatching_labels.append(dispatching_label if dispatching_label is not None else len(self._rules))
+        self._dispatching_labels.append(dispatching_label if dispatching_label is not None else str(len(self._rules)))
         self._rules.append(rule)
         self._classifiers.append(classifier)
         return self
@@ -339,7 +339,7 @@ class SSLWorkflowBuilder(WorkflowBuilder):
 
     def _reset(self):
         """Reset the sldc workflow fields to their default values"""
-        super(SSLWorkflowBuilder, self).__init__()
+        super(SSLWorkflowBuilder, self)._reset()
         self._segmenter = None
         self._background_class = -1
 

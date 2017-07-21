@@ -6,6 +6,7 @@ from copy import copy
 from joblib import Parallel, delayed
 from shapely.affinity import translate
 
+from .timing import WorkflowTiming
 from .image import Image
 from .information import ChainInformation, WorkflowInformation
 from .logging import Loggable, SilentLogger
@@ -84,14 +85,14 @@ def _execute_workflow(workflow, windows, do_translate, logger=SilentLogger()):
     logger: Logger (optional, default: SilentLogger)
         The logger to use for displaying the results
     """
-    workflow_information = WorkflowInformation([], [], [], [], None)
+    workflow_information = None
     window_count = len(windows)
     for i, window in enumerate(windows):
         logger.info("WorkflowExecutor : process image {}/{}.".format(i + 1, window_count))
         returned_info = workflow.process(window)
         if do_translate:
             _translate(window, returned_info)
-        workflow_information.merge(returned_info)
+        workflow_information = returned_info if workflow_information is None else workflow_information.merge(returned_info)
     return workflow_information
 
 
@@ -143,16 +144,21 @@ class WorkflowExecutor(Loggable):
         # prepare parallel processing
         window_batches = batch_split(self._n_jobs, windows)
 
-        results = self._pool(delayed(_execute_workflow)
-                             (self._workflow, batch,
-                              self._do_translate,
-                              logger=self.logger)
-                             for batch in window_batches)
+        results = self._pool(
+            delayed(_execute_workflow)(
+                self._workflow, batch,
+                self._do_translate,
+                logger=self.logger)
+                for batch in window_batches
+        )
 
         # merge produced workflow information
-        workflow_information = WorkflowInformation([], [], [], [], None)
-        for workflow_info in results:
-            workflow_information.merge(workflow_info)
+        if len(results) == 0:
+            return WorkflowInformation([], [], WorkflowTiming())
+
+        workflow_information = results[0]
+        for workflow_info in results[1:]:
+            workflow_information = workflow_information.merge(workflow_info)
 
         return workflow_information
 
@@ -205,7 +211,7 @@ class PolygonFilter(object):
 class DefaultFilter(PolygonFilter):
     """A polygon filter which filters no polygon"""
     def filter(self, chain_information):
-        return [polygon for _, polygon, _, _, _ in chain_information.polygons()]
+        return [p for p in chain_information.polygons]
 
 
 class WorkflowChain(Loggable):

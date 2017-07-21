@@ -335,7 +335,7 @@ class SLDCWorkflow(Workflow):
             "SLDCWorkflow : executed in {} s.".format(timing.total(SLDCWorkflow.TIMING_DC))
         )
 
-        return WorkflowInformation(polygons, dispatch_indexes, pred, proba, timing)
+        return WorkflowInformation(polygons, pred, timing, dispatches=(dispatch_indexes, "dispatch"), probas=(proba, "proba"))
 
     def _segment_locate(self, tile_topology, timing):
         """Execute the segment locate phase
@@ -487,9 +487,7 @@ class SSLWorkflow(Workflow):
         )
 
         n_polygons = polygons.shape[0]
-        dispatch = np.array(["default"] * n_polygons)
-        probas = np.full(n_polygons, fill_value=0.0, dtype=np.double)
-        return WorkflowInformation(polygons, dispatch, labels, probas, timing)
+        return WorkflowInformation(polygons, labels, timing)
 
     def _segment_locate(self, tile_topology, timing):
         """Execute the segment locate phase

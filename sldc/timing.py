@@ -123,6 +123,8 @@ class WorkflowTiming(dict):
         """
         if not isinstance(other, WorkflowTiming):
             raise TypeError("The `other` parameter should be a workflow timing object, object of type `{}` found.".format(type(other)))
+        if other is self:
+            return
         for phase, times in other.items():
             curr_times = self.get(phase, None)
             if curr_times is None:
