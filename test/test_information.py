@@ -76,6 +76,9 @@ class TestInformation(TestCase):
             self.assertEqual(object_info.label, labels[i])
             self.assertEqual(object_info.dispatch, dispatch[i])
 
+        with self.assertRaises(TypeError):
+            merge_information(labels, info0)
+
     def testErrors(self):
         p1, p2 = Point(0, 0), Point(1, 0)
         timing = WorkflowTiming()
