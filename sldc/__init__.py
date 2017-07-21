@@ -6,7 +6,7 @@ from .classifier import PolygonClassifier
 from .dispatcher import DispatchingRule, DispatcherClassifier, CatchAllRule, RuleBasedDispatcher, Dispatcher
 from .errors import ImageExtractionException, TileExtractionException, MissingComponentException, InvalidBuildingException
 from .image import Image, Tile, TileBuilder, TileTopologyIterator, TileTopology, ImageWindow, DefaultTileBuilder
-from .information import WorkflowInformation, ChainInformation
+from .information import WorkflowInformation, ChainInformation, merge_information
 from .locator import BinaryLocator, SemanticLocator
 from .logging import Logger, StandardOutputLogger, FileLogger, SilentLogger, Loggable
 from .merger import SemanticMerger
@@ -24,5 +24,5 @@ __all__ = [
     "WorkflowTiming", "Loggable", "SLDCWorkflowBuilder", "DefaultTileBuilder", "SemanticMerger", "WorkflowChainBuilder",
     "batch_split", "PolygonFilter", "DefaultFilter", "alpha_rasterize", "has_alpha_channel", "RuleBasedDispatcher",
     "InvalidBuildingException", "Dispatcher", "report_timing", "merge_timings", "SemanticSegmenter",
-    "ProbabilisticSegmenter", "SSLWorkflowBuilder"
+    "ProbabilisticSegmenter", "SSLWorkflowBuilder", "merge_information"
 ]
