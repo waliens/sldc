@@ -153,7 +153,7 @@ class Logger(object):
 
     def _format_msg(self, level, msg):
         if self._prefix:
-            rows = ["{} {}".format(self.prefix(level), row) for row in msg.split(os.linesep)]
+            rows = ["{} {}".format(self.prefix(level), row) for row in msg.splitlines()]
             return os.linesep.join(rows)
         else:
             return msg
