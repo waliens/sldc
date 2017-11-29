@@ -76,7 +76,7 @@ def _execute_workflow(workflow, windows, do_translate, logger=SilentLogger()):
 
     Parameters
     ----------
-    workflow: SLDCWorkflow
+    workflow: Workflow
         THe workflow to use for processing the images
     windows: iterable (subtype: Image|ImageWindow)
         The windows to be processed
@@ -107,7 +107,7 @@ class WorkflowExecutor(Loggable):
 
         Parameters
         ----------
-        workflow: SLDCWorkflow
+        workflow: Workflow
             The workflow object for processing windows
         translate: boolean
             True for translating polygons in the full coordinate system.
@@ -223,7 +223,7 @@ class WorkflowChain(Loggable):
 
         Parameters
         ----------
-        workflow: SLDCWorkflow
+        workflow: Workflow
             The first workflow to apply to the full image
         executors: iterable (subtype: WorkflowExecutor, size: N)
             The executors encapsulating the execution of the workflows to apply after the first one;
