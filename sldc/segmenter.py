@@ -140,7 +140,7 @@ class Segmenter(SemanticSegmenter):
     Interface to be implemented by any class which implements a (binary) segmentation algorithm.
     
     Background pixels are represented by the value 0 ('black') while foreground ones are represented 
-    by the value 255 ('white').
+    by the value 255 ('white') by default.
     """
     __metaclass__ = ABCMeta
 
