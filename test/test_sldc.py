@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import unittest
 from unittest import TestCase
 
 import numpy as np
@@ -206,6 +207,7 @@ class TestFullWorkflow(TestCase):
             "dispatch_classify": {"dispatch": None, "classify": None}
         }})
 
+    @unittest.skip
     def testDetectCircleParallel(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image in
         parallel
