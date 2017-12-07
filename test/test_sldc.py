@@ -207,7 +207,7 @@ class TestFullWorkflow(TestCase):
             "dispatch_classify": {"dispatch": None, "classify": None}
         }})
 
-    @unittest.skip
+    @unittest.skip("Weird behaviour, see issue #8 https://github.com/waliens/sldc/issues")
     def testDetectCircleParallel(self):
         """A test which executes a full workflow on image containing a white circle in the center of an black image in
         parallel
