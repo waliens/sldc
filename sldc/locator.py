@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from abc import abstractmethod
 from functools import partial
+from warnings import warn
 
 import cv2
 import numpy as np
-from scipy.ndimage.morphology import binary_hit_or_miss
 from shapely.affinity import affine_transform as aff_transfo
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import explain_validity
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
@@ -18,10 +17,8 @@ def affine_transform(xx_coef=1, xy_coef=0, yx_coef=0, yy_coef=1,
                      delta_x=0, delta_y=0):
     """
     Represents a 2D affine transformation:
-
     x' = xx_coef * x + xy_coef * y + delta_x
     y' = yx_coef * x + yy_coef * y + delta_y
-
     Constructor parameters
     ----------------------
     xx_coef: float (default: 1)
@@ -36,7 +33,6 @@ def affine_transform(xx_coef=1, xy_coef=0, yx_coef=0, yy_coef=1,
         The translation over x-axis
     delta_y: float (default: 0)
         The translation over y-axis
-
     Return
     ------
     affine_transformer : callable: shapely.Geometry => shapely.Geometry
@@ -48,12 +44,10 @@ def affine_transform(xx_coef=1, xy_coef=0, yx_coef=0, yy_coef=1,
 
 def identity(x):
     """Identity function
-
     Parameters
     ----------
     x: T
         The object to return
-
     Returns
     -------
     x: T
@@ -62,51 +56,55 @@ def identity(x):
     return x
 
 
-def process_mask(mask):
-    """Remove patterns from the mask that'd yield invalid polygons
-    Inspired from: https://goo.gl/fTxuqk
-    Parameters
-    ----------
-    mask: ndarray
-        The binary mask
+def geom_as_list(geometry):
+    """Return the list of sub-polygon a polygon is made up of"""
+    if geometry.geom_type == "Polygon":
+        return [geometry]
+    elif geometry.geom_type == "MultiPolygon":
+        return geometry.geoms
 
-    Returns
-    -------
-    cleaned: ndarray
-        The cleaned mask
-    """
-    structures = list()
-    # remove down-left to up-right diagonal pattern
-    structures.append((np.array([[0, 0, 1], [0, 1, 0], [0, 0, 0]]), np.array([[0, 1, 0], [0, 0, 1], [0, 0, 0]])))
-    # remove up-left to down-right diagonal pattern
-    structures.append((np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]]), np.array([[0, 1, 0], [1, 0, 0], [0, 0, 0]])))
-    # Does removing the second pattern can recreate the first one ? If so, how to avoid it? (iterative way?)
-    # remove up line
-    structures.append((np.array([[0, 0, 0], [0, 1, 0], [0, 1, 0]]), np.array([[0, 0, 0], [1, 0, 1], [0, 0, 0]])))
-    # remove down line
-    structures.append((np.array([[0, 1, 0], [0, 1, 0], [0, 0, 0]]), np.array([[0, 0, 0], [1, 0, 1], [0, 0, 0]])))
-    # remove left line
-    structures.append((np.array([[0, 0, 0], [0, 1, 1], [0, 0, 0]]), np.array([[0, 1, 0], [0, 0, 0], [0, 1, 0]])))
-    # remove right line
-    structures.append((np.array([[0, 0, 0], [1, 1, 0], [0, 0, 0]]), np.array([[0, 1, 0], [0, 0, 0], [0, 1, 0]])))
 
-    for struct1, struct2 in structures:
-        # TODO remove scipy.ndimage.binary_hit_or_miss dependency
-        # Tried with opencv hit or miss implementation but resulting transformation is not the same
-        # yielding plenty of self-intersections.. need to be investigated
-        pattern_mask = binary_hit_or_miss(mask, structure1=struct1, structure2=struct2).astype(np.uint8)
-        pattern_mask[pattern_mask == 1] = 255
-        pattern_mask[pattern_mask == 0] = 0
-        mask = mask - pattern_mask
+def linear_ring_is_valid(ring):
+    points = set([(x, y) for x, y in ring.coords])
+    return len(points) >= 3
 
-    return mask
+
+def fix_geometry(geometry, fail=True):
+    """Attempts to fix an invalid geometry (from https://goo.gl/nfivMh)"""
+    try:
+        return geometry.buffer(0)
+    except ValueError:
+        pass
+
+    polygons = geom_as_list(geometry)
+
+    fixed_polygons = list()
+    for i, polygon in enumerate(polygons):
+        if not linear_ring_is_valid(polygon.exterior):
+            continue
+
+        interiors = []
+        for ring in polygon.interiors:
+            if linear_ring_is_valid(ring):
+                interiors.append(ring)
+
+        fixed_polygon = Polygon(polygon.exterior, interiors)
+
+        try:
+            fixed_polygon = fixed_polygon.buffer(0)
+        except ValueError:
+            continue
+
+        fixed_polygons.extend(geom_as_list(fixed_polygon))
+
+    if len(fixed_polygons) > 0:
+        return MultiPolygon(fixed_polygons)
+    else:
+        return None
 
 
 def _locate(segmented, offset=None):
     """Inspired from: https://goo.gl/HYPrR1"""
-    # clean invalid patterns from the mask
-    segmented = process_mask(segmented)
-
     # CV_RETR_EXTERNAL to only get external contours.
     _, contours, hierarchy = cv2.findContours(segmented.copy(),
                                               cv2.RETR_CCOMP,
@@ -145,7 +143,12 @@ def _locate(segmented, offset=None):
                 if polygon.is_valid:  # some polygons might be invalid
                     components.append(polygon)
                 else:
-                    print (explain_validity(polygon))
+                    fixed = fix_geometry(polygon)
+                    if fixed.is_valid:
+                        components.append(fixed)
+                    else:
+                        warn("Attempted to fix invalidity '{}' in polygon but failed... "
+                             "Output polygon still invalid '{}'".format(explain_validity(polygon), explain_validity(fixed)))
 
             # check if there is another top contour
             if hierarchy[0][top_index][0] != -1:
@@ -209,4 +212,3 @@ class BinaryLocator(SemanticLocator):
 
     def locate(self, mask, offset=None):
         return [(p, 255) for p in _locate(mask, offset=offset)]
-
