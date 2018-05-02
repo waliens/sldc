@@ -84,6 +84,7 @@ class TestSemanticLocatorCircleAndRectangle(TestCase):
         # test locator
         locator = SemanticLocator(background=0)
         located = locator.locate(image)
+        located = sorted(located, key=lambda o: (o[0].centroid.x, o[0].centroid.y))
         polygons, labels = zip(*located)
 
         self.assertEqual(2, len(polygons), "Two polygons found")
