@@ -7,9 +7,10 @@ import numpy as np
 from shapely.affinity import affine_transform as aff_transfo
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import explain_validity
+from skimage.measure import points_in_poly
 
-__author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
-__contributors__ = ["Romain Mormont <r.mormont@student.ulg.ac.be>"]
+__author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
+__contributors__ = ["Begon Jean-Michel <jm.begon@gmail.com>"]
 __version__ = "0.1"
 
 
@@ -69,7 +70,7 @@ def linear_ring_is_valid(ring):
     return len(points) >= 3
 
 
-def fix_geometry(geometry, fail=True):
+def fix_geometry(geometry):
     """Attempts to fix an invalid geometry (from https://goo.gl/nfivMh)"""
     try:
         return geometry.buffer(0)
@@ -148,7 +149,8 @@ def _locate(segmented, offset=None):
                         components.append(fixed)
                     else:
                         warn("Attempted to fix invalidity '{}' in polygon but failed... "
-                             "Output polygon still invalid '{}'".format(explain_validity(polygon), explain_validity(fixed)))
+                             "Output polygon still invalid '{}'".format(explain_validity(polygon),
+                                                                        explain_validity(fixed)))
 
             # check if there is another top contour
             if hierarchy[0][top_index][0] != -1:
@@ -159,6 +161,74 @@ def _locate(segmented, offset=None):
     del contours
     del hierarchy
     return components
+
+
+def get_polygon_inner_point(polygon):
+    """
+    Algorithm:
+        1) Take a point on the exterior boundary
+        2) Find an adjacent point (with digitized coordinates) that lies in the polygon
+        3) Return the coordinates of this point
+    Parameters
+    ----------
+    polygon: Polygon
+        The polygon
+    Returns
+    -------
+    point: tuple
+        (x, y) coordinates for the found points. x and y are integers.
+    """
+    exterior = polygon.exterior.coords
+    for x, y in exterior:  # usually this function will return in one iteration
+        neighbours = np.array(neighbour_pixels(int(x), int(y)))
+        in_poly = np.array(points_in_poly(list(neighbours), exterior))
+        if np.count_nonzero(in_poly) > 0:  # make sure at least one point is in the polygon
+            return neighbours[in_poly][0]
+    raise ValueError("No points could be found inside the polygon ({}) !".format(polygon.wkt))
+
+
+def neighbour_pixels(x, y):
+    """Get the neigbours pixel of x and y"""
+    return [
+        (x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
+        (x - 1, y    ), (x, y    ), (x + 1, y    ),
+        (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)
+    ]
+
+
+def mask_to_objects_2d(mask, background=0, offset=None):
+    """Convert 2D (binary or label) mask to polygons.
+    Parameters
+    ----------
+    mask: ndarray
+        2D mask array. Expected shape: (height, width).
+    background: int
+        Value used for encoding background pixels.
+    offset: tuple (optional, default: None)
+        (x, y) coordinate offset to apply to all the extracted polygons.
+    Returns
+    -------
+    extracted: list of ObjectSlice
+        Each object slice represent an object from the image. Fields time and depth of ObjectSlice are set to None.
+    Notes
+    -----
+    Adjacent but distinct polygons must be separated by at least one line of background (e.g. value 0) pixels.
+    The mask array is not modified by the function.
+    """
+    if mask.ndim != 2:
+        raise ValueError("Cannot handle image with ndim different from 2 ({} dim. given).".format(mask.ndim))
+    # opencv only supports contour extraction for binary masks
+    mask_cpy = np.zeros(mask.shape, dtype=np.uint8)
+    mask_cpy[mask != background] = 255
+    # extract polygons and labels
+    polygons = _locate(mask_cpy, offset=offset)
+    objects = list()
+    for polygon in polygons:
+        x, y = get_polygon_inner_point(polygon)
+        if offset is not None:
+            x, y = x - offset[0], y - offset[1]
+        objects.append((polygon, mask[y, x]))
+    return objects
 
 
 class SemanticLocator(object):
@@ -192,23 +262,12 @@ class SemanticLocator(object):
             which resulted in generating this polygon. The reference point (0,0) for the polygons coordinates is 
             the upper-left corner of the initial image.
         """
-        classes = np.unique(mask)
-        polygons = list()
-
-        for cls in list(classes):
-            if cls == self._background:  # skip background class
-                continue
-            bmask = np.array(255 * (mask == cls)).astype("uint8")
-            located = _locate(bmask, offset=offset)
-            polygons.extend([(p, cls) for p in located])
-
-        return polygons
+        return mask_to_objects_2d(mask, background=self._background, offset=offset)
 
 
 class BinaryLocator(SemanticLocator):
-    """Locator that assigns the 0-label to background and 255 to foreground"""
+    """Locator that assigns the 0-label to background and 255 to foreground
+    Mostly there for backward compatibility.
+    """
     def __init__(self):
         super(BinaryLocator, self).__init__(background=0)
-
-    def locate(self, mask, offset=None):
-        return [(p, 255) for p in _locate(mask, offset=offset)]
