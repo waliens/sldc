@@ -391,6 +391,9 @@ class SLDCWorkflow(Workflow):
             in the list provided at construction are used. Polygons that weren't matched by any rule are returned -1 as
             dispatch index.
         """
+        if len(polygons) == 0:
+            return np.array([]), np.array([]), np.array([])
+
         timing_root = ".".join([SLDCWorkflow.TIMING_ROOT, SLDCWorkflow.TIMING_DC])
 
         # disable parallel processing if user

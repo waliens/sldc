@@ -81,6 +81,22 @@ class CustomDispatcher(Dispatcher):
 
 
 class TestFullWorkflow(TestCase):
+    def testNoObjects(self):
+        """Test detection on empty image"""
+        w, h = 200, 200
+        image = np.zeros((h, w), dtype="uint8")
+
+        builder = SLDCWorkflowBuilder()
+        builder.set_segmenter(CustomSegmenter())
+        builder.add_classifier(CircleRule(), ColorClassifier(), dispatching_label="circle")
+        builder.add_classifier(SquareRule(), ColorClassifier())
+        workflow = builder.get()
+
+        # Execute
+        results = workflow.process(NumpyImage(image))
+
+        self.assertEqual(len(results), 0)
+
     def testFindCircleAndSquare(self):
         """Test the workflow on an image containing both squares and circles of different colors
         Two squares of side: 200
