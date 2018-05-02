@@ -32,25 +32,13 @@ The required dependencies are the following :
 
 1) Install Anaconda/Miniconda: https://docs.continuum.io/anaconda/install
 
-2) Set up the environment (replace `__PY_VERSION__` by either `2.7` or `3.5` according to the python version you want to use)
+2) Set up the environment (replace `__PY_VERSION__` by either `2.7` or `3.5` according to the python version you want to use). For instance, with anaconda:
 
- + For UNIX-based systems:
 ```bash
 # Create envrionment and install packages
-conda create -n sldc python=__PY_VERSION__ pillow numpy joblib shapely opencv scipy
+conda create -n sldc python=__PY_VERSION__ pillow numpy joblib shapely opencv scipy scikit-image
 # Activate environment
 source activate sldc
-```
-
- + For windows:
-```bash
-# Create environment and install packages
-conda create -n sldc python=__PY_VERSION__ pillow numpy joblib scipy
-# Activate environment
-activate sldc
-# Install shapely and opencv3
-conda install -c conda-forge shapely
-conda install -c menpo opencv3=3.1.0
 ```
 
 3) Install sldc
