@@ -22,7 +22,7 @@ install:
   - conda info -a
 
   # Install sldc environment
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pillow numpy joblib shapely opencv scipy
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pillow numpy joblib shapely opencv scipy scikit-image
   - source activate test-environment
   - pip install codecov
 
