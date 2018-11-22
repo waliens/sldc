@@ -1,18 +1,14 @@
-from distutils.core import setup
-
 from setuptools import setup
 
-import sldc
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-with open("LICENSE.txt", "r") as fh:
-    license = fh.read()
+__version__ = "1.0.1"
 
 setup(
     name='sldc',
-    version=sldc.__version__,
+    version=__version__,
     description='SLDC, a generic framework for object detection and classification in large images.',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -36,6 +32,5 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7'
     ],
-    install_requires=['pillow', 'numpy', 'joblib', 'shapely', 'scipy', 'scikit-image', 'opencv-python-headless'],
-    license=license
+    install_requires=['pillow', 'numpy', 'joblib', 'shapely', 'scipy', 'scikit-image', 'opencv-python-headless']
 )

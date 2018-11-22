@@ -28,28 +28,9 @@ The required dependencies are the following :
 
 ## Install
 
-### With anaconda environment
+### With PyPi
 
-1) Install Anaconda/Miniconda: https://docs.continuum.io/anaconda/install
-
-2) Set up the environment (replace `__PY_VERSION__` by either `2.7` or `3.5` according to the python version you want to use). For instance, with anaconda:
-
-```bash
-# Create envrionment and install packages
-conda create -n sldc python=__PY_VERSION__ pillow numpy joblib shapely opencv scipy scikit-image
-# Activate environment
-source activate sldc
-```
-
-3) Install sldc
-
- + Download the sources
-  + Either by cloning the repository: `git clone https://github.com/waliens/sldc.git`
-  + Or by downloading an archive: `https://github.com/waliens/sldc/archive/master.zip`
- + Move to the _SLDC_ sources root folder
- + Install sldc: `python setup.py install`
-
-4) Check your install by running `python -c "import sldc"`
+Simply: `pip install sldc`
 
 ## Bindings
 

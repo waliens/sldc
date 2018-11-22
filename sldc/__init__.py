@@ -15,8 +15,6 @@ from .timing import WorkflowTiming, report_timing, merge_timings
 from .util import batch_split, alpha_rasterize, has_alpha_channel
 from .workflow import SLDCWorkflow, SSLWorkflow
 
-__version__ = "1.0.0"
-
 __all__ = [
     "BinartLocator", "SemanticLocator", "Segmenter", "DispatcherClassifier", "DispatchingRule", "SSLWorkflow",
     "SLDCWorkflow", "Image", "Tile", "TileBuilder", "PolygonClassifier", "TileTopology", "TileTopologyIterator",
