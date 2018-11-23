@@ -65,7 +65,7 @@ class TestLocatorCircleAndRectangle(TestCase):
         self.assertEqual(2, len(polygons), "Two polygons found")
         self.assertTrue(ABCD.equals(polygons[1]), "Rectangle polygon is found")
 
-        self.assertLessEqual(relative_error(polygons[0].area, np.pi * 85 * 85), 0.005)
+        self.assertLessEqual(relative_error(polygons[0].area, np.pi * 85 * 85), 0.025)
 
 
 class TestSemanticLocatorCircleAndRectangle(TestCase):
@@ -89,5 +89,5 @@ class TestSemanticLocatorCircleAndRectangle(TestCase):
 
         self.assertEqual(2, len(polygons), "Two polygons found")
         self.assertTrue(ABCD.equals(polygons[0]), "Rectangle polygon is found")
-        self.assertLessEqual(relative_error(polygons[1].area, np.pi * 40 * 40), 0.005)
+        self.assertLessEqual(relative_error(polygons[1].area, np.pi * 40 * 40), 0.025)
 

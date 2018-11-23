@@ -339,13 +339,13 @@ class TestFullWorkflow(TestCase):
         # generate circle image
         w, h = 300, 100
         image = np.zeros((h, w,), dtype="uint8")
-        image = draw_circle(image, 10, (100, 50), 255)  # pi * 10 * 10 -> ~ 314
-        image = draw_circle(image, 25, (200, 50), 255)  # pi * 25 * 25 -> ~ 1963
+        image = draw_circle(image, 25, (100, 40), 255)  # pi * 25 * 25 -> ~ 1963
+        image = draw_circle(image, 35, (200, 60), 255)  # pi * 35 * 35 -> ~ 3858
 
         # build the workflow
         builder = SLDCWorkflowBuilder()
         builder.set_segmenter(CustomSegmenter())
-        builder.add_classifier(MinAreaRule(500), ColorClassifier(), "big")
+        builder.add_classifier(MinAreaRule(2000), ColorClassifier(), "big")
         workflow = builder.get()
 
         # execute
@@ -360,18 +360,18 @@ class TestFullWorkflow(TestCase):
 
         # first shape (excluded)
         shape1 = results.polygons[sorted_idx[0]]
-        self.assertTrue(relative_error(shape1.area, np.pi * 10 * 10) < 0.025)
-        self.assertTrue(relative_error(shape1.centroid.x, 100) < 0.025)
-        self.assertTrue(relative_error(shape1.centroid.y, 50) < 0.025)
+        self.assertLess(relative_error(shape1.area, np.pi * 25 * 25), 0.025)
+        self.assertLess(relative_error(shape1.centroid.x, 100), 0.025)
+        self.assertLess(relative_error(shape1.centroid.y, 40), 0.025)
         self.assertEqual(results.dispatches[sorted_idx[0]], None)
         self.assertEqual(results.labels[sorted_idx[0]], None)
         self.assertAlmostEqual(results.probas[sorted_idx[0]], 0.0)
 
         # second shape (include)
         shape2 = results.polygons[sorted_idx[1]]
-        self.assertTrue(relative_error(shape2.area, np.pi * 25 * 25) < 0.025)
-        self.assertTrue(relative_error(shape2.centroid.x, 200) < 0.025)
-        self.assertTrue(relative_error(shape2.centroid.y, 50) < 0.025)
+        self.assertLess(relative_error(shape2.area, np.pi * 35 * 35), 0.025)
+        self.assertLess(relative_error(shape2.centroid.x, 200), 0.025)
+        self.assertLess(relative_error(shape2.centroid.y, 60), 0.025)
         self.assertEqual(results.dispatches[sorted_idx[1]], "big")
         self.assertEqual(results.labels[sorted_idx[1]], ColorClassifier.WHITE)
         self.assertAlmostEqual(results.probas[sorted_idx[1]], 1.0)
