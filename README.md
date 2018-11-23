@@ -29,9 +29,12 @@ The required dependencies are the following :
 
 ## Install
 
-### With PyPi
-
 Simply: `pip install sldc`
+
+#### On windows
+
+On Windows, some `.dll` are needed by `shapely` and are not installed by `pip` when you install `sldc`. Therefore, you might have to install
+`shapely` yourself from `conda` (i.e. `conda install shapely`) or from [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely) after having run `pip install sldc`.
 
 ## Bindings
 

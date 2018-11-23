@@ -1,10 +1,18 @@
+import sys
 from setuptools import setup
 
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
+
+# fix versions for dependencies for python 2.7 (otherwise some tests fail)
+if sys.version_info[0] == 2:
+    requires = ['pillow == 5.1', 'numpy == 1.15', 'joblib == 0.11', 'geos', 'shapely == 1.6.4',
+                'scipy == 1.1', 'scikit-image', 'opencv-python-headless']
+else:  # python 3
+    requires = ['pillow', 'numpy', 'joblib', 'geos', 'shapely', 'scipy', 'scikit-image', 'opencv-python-headless']
 
 setup(
     name='sldc',
@@ -32,5 +40,5 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7'
     ],
-    install_requires=['pillow', 'numpy', 'joblib', 'shapely', 'scipy', 'scikit-image', 'opencv-python-headless']
+    install_requires=requires
 )
