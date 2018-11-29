@@ -40,7 +40,7 @@ On Windows, some `.dll` are needed by `shapely` and are not installed by `pip` w
 
 The library is image format agnostic and therefore allows you to integrate it with any existing image format by implementing some interfaces. However, some bindings were implemented for integrating SLDC with: 
 
-+ [Cytomine](http://www.cytomine.be/): [`cytomine-sldc` repository](https://github.com/cytomine/Cytomine-python-datamining/tree/master/cytomine-datamining/algorithms/sldc) 
++ [Cytomine](http://www.cytomine.be/): [`sldc-cytomine` repository](https://github.com/waliens/sldc-cytomine) 
 + [OpenSlide](http://openslide.org/): [`sldc-openslide` repository](https://github.com/waliens/sldc-openslide)
 
 ## References
