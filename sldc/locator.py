@@ -1,46 +1,18 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 from warnings import warn
 
 import cv2
 import numpy as np
-from shapely.affinity import affine_transform as aff_transfo
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.affinity import affine_transform
+from shapely.geometry import Polygon, MultiPolygon, Point, LineString
 from shapely.validation import explain_validity
 from skimage.measure import points_in_poly
+from skimage.morphology import dilation, square, erosion
 
 __author__ = "Romain Mormont <r.mormont@student.ulg.ac.be>"
 __contributors__ = ["Begon Jean-Michel <jm.begon@gmail.com>"]
 __version__ = "0.1"
 
-
-def affine_transform(xx_coef=1, xy_coef=0, yx_coef=0, yy_coef=1,
-                     delta_x=0, delta_y=0):
-    """
-    Represents a 2D affine transformation:
-    x' = xx_coef * x + xy_coef * y + delta_x
-    y' = yx_coef * x + yy_coef * y + delta_y
-    Constructor parameters
-    ----------------------
-    xx_coef: float (default: 1)
-        The x from x coefficient
-    xy_coef: float (default: 0)
-        The x from y coefficient
-    yx_coef: float (default: 0)
-        The y from x coefficient
-    yy_coef: float (default: 1)
-        The y from y coefficient
-    delta_x: float (default: 0)
-        The translation over x-axis
-    delta_y: float (default: 0)
-        The translation over y-axis
-    Return
-    ------
-    affine_transformer : callable: shapely.Geometry => shapely.Geometry
-        The function representing the 2D affine transformation
-    """
-    return partial(aff_transfo, matrix=[xx_coef, xy_coef, yx_coef, yy_coef,
-                                        delta_x, delta_y])
 
 
 def identity(x):
@@ -104,6 +76,52 @@ def fix_geometry(geometry):
         return None
 
 
+def clean_mask(mask, background=0):
+    """Remove ill-structured objects from a mask which prevent conversion to valid polygons.
+    Parameters
+    ----------
+    mask: ndarray (2d)
+        The mask to remove
+    background: int
+        Value of the background
+    Returns
+    -------
+    mask: ndarray
+        Cleaned mask
+    Notes
+    -----
+    Example of ill-structured mask (caused by pixel 2)
+    0 0 0 0 0
+    0 1 1 0 0
+    0 0 1 0 0
+    0 0 0 2 0
+    0 0 0 0 0
+    """
+    kernels = [
+        np.array([[ 1, -1, -1], [-1,  1, -1], [-1, -1, -1]]),  # top left standalone pixel
+        np.array([[-1, -1,  1], [-1,  1, -1], [-1, -1, -1]]),  # top right standalone pixel
+        np.array([[-1, -1, -1], [-1,  1, -1], [ 1, -1, -1]]),  # bottom left standalone pixel
+        np.array([[-1, -1, -1], [-1,  1, -1], [-1, -1,  1]])   # bottom right standalone pixel
+    ]
+
+    proc_masks = [cv2.morphologyEx(mask, cv2.MORPH_HITMISS, kernel).astype(np.bool) for kernel in kernels]
+
+    for proc_mask in proc_masks:
+        mask[proc_mask] = background
+    return mask
+
+
+def flatten_geoms(geoms):
+    """Flatten (possibly nested) multipart geometry."""
+    geometries = []
+    for g in geoms:
+        if hasattr(g, "geoms"):
+            geometries.extend(flatten_geoms(g))
+        else:
+            geometries.append(g)
+    return geometries
+
+
 def _locate(segmented, offset=None):
     """Inspired from: https://goo.gl/HYPrR1"""
     # CV_RETR_EXTERNAL to only get external contours.
@@ -115,7 +133,7 @@ def _locate(segmented, offset=None):
     transform = identity
     if offset is not None:
         col_off, row_off = offset
-        transform = affine_transform(delta_x=col_off, delta_y=row_off)
+        transform = lambda p: affine_transform(p, [1, 0, 0, 1, col_off, row_off])
     components = []
     if len(contours) > 0:
         top_index = 0
@@ -138,14 +156,18 @@ def _locate(segmented, offset=None):
                         subs_remaining = False
 
             # add component tuple to components only if exterior is a polygon
-            if len(exterior) > 3:
+            if len(exterior) == 1:
+                components.append(Point(exterior[0]))
+            elif len(exterior) == 2:
+                components.append(LineString(exterior))
+            elif len(exterior) > 2:
                 polygon = Polygon(exterior, interiors)
                 polygon = transform(polygon)
                 if polygon.is_valid:  # some polygons might be invalid
                     components.append(polygon)
                 else:
                     fixed = fix_geometry(polygon)
-                    if fixed.is_valid:
+                    if fixed.is_valid and not fixed.is_empty:
                         components.append(fixed)
                     else:
                         warn("Attempted to fix invalidity '{}' in polygon but failed... "
@@ -178,12 +200,20 @@ def get_polygon_inner_point(polygon):
     point: tuple
         (x, y) coordinates for the found points. x and y are integers.
     """
+    if isinstance(polygon, Point):
+        return int(polygon.x), int(polygon.y)
+    if isinstance(polygon, LineString):
+        return [int(c) for c in polygon.coords[0]]
+    # this function works whether or not the boundary is inside or outside (one pixel around) the
+    # object boundary in the mask
     exterior = polygon.exterior.coords
     for x, y in exterior:  # usually this function will return in one iteration
         neighbours = np.array(neighbour_pixels(int(x), int(y)))
         in_poly = np.array(points_in_poly(list(neighbours), exterior))
         if np.count_nonzero(in_poly) > 0:  # make sure at least one point is in the polygon
             return neighbours[in_poly][0]
+    if len(exterior) == 4:  # fallback for three pixel polygons
+        return [int(v) for v in exterior[0]]
     raise ValueError("No points could be found inside the polygon ({}) !".format(polygon.wkt))
 
 
@@ -197,7 +227,7 @@ def neighbour_pixels(x, y):
 
 
 def mask_to_objects_2d(mask, background=0, offset=None):
-    """Convert 2D (binary or label) mask to polygons.
+    """Convert 2D (binary or label) mask to polygons. Generates borders fitting in the objects.
     Parameters
     ----------
     mask: ndarray
@@ -208,26 +238,28 @@ def mask_to_objects_2d(mask, background=0, offset=None):
         (x, y) coordinate offset to apply to all the extracted polygons.
     Returns
     -------
-    extracted: list of ObjectSlice
-        Each object slice represent an object from the image. Fields time and depth of ObjectSlice are set to None.
-    Notes
-    -----
-    Adjacent but distinct polygons must be separated by at least one line of background (e.g. value 0) pixels.
-    The mask array is not modified by the function.
+    extracted: list of AnnotationSlice
+        Each object slice represent an object from the image. Fields time and depth of AnnotationSlice are set to None.
     """
     if mask.ndim != 2:
         raise ValueError("Cannot handle image with ndim different from 2 ({} dim. given).".format(mask.ndim))
-    # opencv only supports contour extraction for binary masks
+    if offset is None:
+        offset = (0, 0)
+    # opencv only supports contour extraction for binary masks: clean mask and binarize
     mask_cpy = np.zeros(mask.shape, dtype=np.uint8)
     mask_cpy[mask != background] = 255
+    # create artificial separation between adjacent touching each other + clean
+    contours = dilation(mask, square(3)) - mask
+    mask_cpy[np.logical_and(contours > 0, mask > 0)] = background
+    mask_cpy = clean_mask(mask_cpy, background=background)
     # extract polygons and labels
     polygons = _locate(mask_cpy, offset=offset)
     objects = list()
     for polygon in polygons:
-        x, y = get_polygon_inner_point(polygon)
-        if offset is not None:
-            x, y = x - offset[0], y - offset[1]
-        objects.append((polygon, mask[y, x]))
+        # loop for handling multipart geometries
+        for curr in flatten_geoms(polygon.geoms) if hasattr(polygon, "geoms") else [polygon]:
+            x, y = get_polygon_inner_point(curr)
+            objects.append((polygon, mask[y - offset[1], x - offset[0]]))
     return objects
 
 
