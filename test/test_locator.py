@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
-from shapely.affinity import translate
+from shapely.affinity import translate, affine_transform
 from shapely.geometry import Polygon
 
 from sldc import BinaryLocator, SemanticLocator
@@ -34,14 +34,15 @@ class TestLocatorRectangle(TestCase):
         polygons, labels = zip(*located)
 
         self.assertEqual(1, len(located), "One polygon found")
-        self.assertTrue(ABCD.equals(polygons[0]), "Found polygon has the same shape")
+        expected_polygon = Polygon([A, (5, 301), (251, 301), (251, 5), A])
+        self.assertTrue(expected_polygon.equals(polygons[0]), "Found polygon has the same shape")
 
         # test locate with an offset
         locator2 = BinaryLocator()
         located2 = locator2.locate(image, offset=(50, 40))
         polygons2, labels2 = zip(*located2)
         self.assertEqual(1, len(located2), "One polygon found")
-        self.assertTrue(translate(ABCD, 50, 40).equals(polygons2[0]), "Found translated polygon")
+        self.assertTrue(translate(expected_polygon, 50, 40).equals(polygons2[0]), "Found translated polygon")
 
 
 class TestLocatorCircleAndRectangle(TestCase):
@@ -63,9 +64,9 @@ class TestLocatorCircleAndRectangle(TestCase):
         polygons, labels = zip(*located)
 
         self.assertEqual(2, len(polygons), "Two polygons found")
-        self.assertTrue(ABCD.equals(polygons[1]), "Rectangle polygon is found")
-
-        self.assertLessEqual(relative_error(polygons[0].area, np.pi * 85 * 85), 0.025)
+        expected_polygon = Polygon([A, (5, 301), (251, 301), (251, 80), A])
+        self.assertTrue(expected_polygon.equals(polygons[0]), "Rectangle polygon is found")
+        self.assertLessEqual(relative_error(polygons[1].area, np.pi * 85 * 86), 0.025)
 
 
 class TestSemanticLocatorCircleAndRectangle(TestCase):
@@ -88,6 +89,7 @@ class TestSemanticLocatorCircleAndRectangle(TestCase):
         polygons, labels = zip(*located)
 
         self.assertEqual(2, len(polygons), "Two polygons found")
-        self.assertTrue(ABCD.equals(polygons[0]), "Rectangle polygon is found")
-        self.assertLessEqual(relative_error(polygons[1].area, np.pi * 40 * 40), 0.025)
+        expected_polygon = Polygon([A, (3, 151), (126, 151), (126, 40), A])
+        self.assertTrue(expected_polygon.equals(polygons[0]), "Rectangle polygon is found")
+        self.assertLessEqual(relative_error(polygons[1].area, np.pi * 40 * 41), 0.025)
 

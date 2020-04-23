@@ -44,13 +44,13 @@ class DumbClassifier(PolygonClassifier):
 class CircleDispatch(DispatchingRule):
     """A rule that dispatches circles"""
     def evaluate(self, image, polygon):
-        return circularity(polygon) > 0.85
+        return circularity(polygon.buffer(5).buffer(-5)) > 0.85
 
 
 class SquareDispatch(DispatchingRule):
     """A rule that dispatches squares"""
     def evaluate(self, image, polygon):
-        return circularity(polygon) < 0.85
+        return circularity(polygon.buffer(5).buffer(-5)) < 0.85
 
 
 class CircleShapeFilter(PolygonFilter):
@@ -114,8 +114,8 @@ class TestChaining(TestCase):
         chain_info = chain.process(NumpyImage(image))
 
         # check results
-        big_area = (w // 7) ** 2
-        small_area = (w / 35) ** 2
+        big_area = (1 + (w // 7)) ** 2
+        small_area = (1 + (w / 35)) ** 2
 
         info1 = chain_info["big_squares"]
         self.assertEqual(9, len(info1))

@@ -5,14 +5,15 @@ from setuptools import setup
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-__version__ = "1.1.3"
+__version__ = "1.2.0"
 
 # fix versions for dependencies for python 2.7 (otherwise some tests fail)
 if sys.version_info[0] == 2:
-    requires = ['pillow == 5.1', 'numpy == 1.15', 'joblib == 0.11', 'geos', 'shapely == 1.6.4',
+    requires = ['rasterio', 'affine', 'pillow == 5.1', 'numpy == 1.15', 'joblib == 0.11', 'geos', 'shapely == 1.6.4',
                 'scipy == 1.1', 'scikit-image', 'opencv-python-headless']
 else:  # python 3
-    requires = ['pillow', 'numpy', 'joblib', 'geos', 'shapely', 'scipy', 'scikit-image', 'opencv-python-headless']
+    requires = ['rasterio', 'affine', 'pillow', 'numpy', 'joblib', 'geos', 'shapely', 'scipy', 'scikit-image',
+                'opencv-python-headless']
 
 setup(
     name='sldc',

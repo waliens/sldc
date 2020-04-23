@@ -29,13 +29,13 @@ class CircleClassifier(PolygonClassifier):
 class CircleRule(DispatchingRule):
     """A rule which matches circle polygons"""
     def evaluate(self, image, polygon):
-        return circularity(polygon) > 0.85
+        return circularity(polygon.buffer(5).buffer(-5)) > 0.85
 
 
 class SquareRule(DispatchingRule):
     """A rule that matches square polygons"""
     def evaluate(self, image, polygon):
-        return circularity(polygon) <= 0.8
+        return circularity(polygon.buffer(5).buffer(-5)) <= 0.8
 
 
 class MinAreaRule(DispatchingRule):
@@ -135,7 +135,7 @@ class TestFullWorkflow(TestCase):
 
         # first square
         square1 = results.polygons[sorted_idx[0]]
-        self.assertEqual(relative_error(square1.area, 200 * 200) < 0.005, True)
+        self.assertEqual(relative_error(square1.area, 201 * 201) < 0.005, True)
         self.assertEqual(relative_error(square1.centroid.x, 500) < 0.005, True)
         self.assertEqual(relative_error(square1.centroid.y, 500) < 0.005, True)
         self.assertEqual(results.dispatches[sorted_idx[0]], "1")  # square
@@ -144,7 +144,7 @@ class TestFullWorkflow(TestCase):
 
         # first circle
         circle1 = results.polygons[sorted_idx[1]]
-        self.assertEqual(relative_error(circle1.area, np.pi * 100 * 100) < 0.005, True)
+        self.assertEqual(relative_error(circle1.area, np.pi * 100 * 101) < 0.005, True)
         self.assertEqual(relative_error(circle1.centroid.x, 1500) < 0.005, True)
         self.assertEqual(relative_error(circle1.centroid.y, 600) < 0.005, True)
         self.assertEqual(results.dispatches[sorted_idx[1]], "circle")  # circle
@@ -153,7 +153,7 @@ class TestFullWorkflow(TestCase):
 
         # second square (centered)
         square2 = results.polygons[sorted_idx[2]]
-        self.assertEqual(relative_error(square2.area, 300 * 300) < 0.005, True)
+        self.assertEqual(relative_error(square2.area, 301 * 301) < 0.005, True)
         self.assertEqual(relative_error(square2.centroid.x, 1000) < 0.005, True)
         self.assertEqual(relative_error(square2.centroid.y, 1000) < 0.005, True)
         self.assertEqual(results.dispatches[sorted_idx[2]], "1")  # square
@@ -162,7 +162,7 @@ class TestFullWorkflow(TestCase):
 
         # second circle
         circle2 = results.polygons[sorted_idx[3]]
-        self.assertEqual(relative_error(circle2.area, np.pi * 100 * 100) < 0.005, True)
+        self.assertEqual(relative_error(circle2.area, np.pi * 100 * 101) < 0.005, True)
         self.assertEqual(relative_error(circle2.centroid.x, 500) < 0.005, True)
         self.assertEqual(relative_error(circle2.centroid.y, 1500) < 0.005, True)
         self.assertEqual(results.dispatches[sorted_idx[3]], "circle")  # circle
@@ -171,7 +171,7 @@ class TestFullWorkflow(TestCase):
 
         # third square
         square3 = results.polygons[sorted_idx[4]]
-        self.assertEqual(relative_error(square3.area, 200 * 200) < 0.005, True)
+        self.assertEqual(relative_error(square3.area, 201 * 201) < 0.005, True)
         self.assertEqual(relative_error(square3.centroid.x, 1500) < 0.005, True)
         self.assertEqual(relative_error(square3.centroid.y, 1500) < 0.005, True)
         self.assertEqual(results.dispatches[sorted_idx[4]], "1")  # square
@@ -293,7 +293,7 @@ class TestFullWorkflow(TestCase):
 
         # first circle
         circle1 = results.polygons[sorted_idx[0]]
-        self.assertTrue(relative_error(circle1.area, np.pi * 10 * 10) < 0.025)
+        self.assertTrue(relative_error(circle1.area, np.pi * 10 * 11) < 0.025)
         self.assertTrue(relative_error(circle1.centroid.x, 125) < 0.025)
         self.assertTrue(relative_error(circle1.centroid.y, 125) < 0.025)
         self.assertEqual(results.dispatches[sorted_idx[0]], "SMALL")
@@ -302,7 +302,7 @@ class TestFullWorkflow(TestCase):
 
         # first square
         square1 = results.polygons[sorted_idx[1]]
-        self.assertTrue(relative_error(square1.area, 26 * 26) < 0.025)
+        self.assertTrue(relative_error(square1.area, 27 * 27) < 0.025)
         self.assertTrue(relative_error(square1.centroid.x, 250) < 0.025)
         self.assertTrue(relative_error(square1.centroid.y, 250) < 0.025)
         self.assertEqual(results.dispatches[sorted_idx[1]], "SMALL")
@@ -311,7 +311,7 @@ class TestFullWorkflow(TestCase):
 
         # second circle
         circle2 = results.polygons[sorted_idx[2]]
-        self.assertTrue(relative_error(circle2.area, np.pi * 25 * 25) < 0.025)
+        self.assertTrue(relative_error(circle2.area, np.pi * 25 * 26) < 0.025)
         self.assertTrue(relative_error(circle2.centroid.x, 250) < 0.025)
         self.assertTrue(relative_error(circle2.centroid.y, 750) < 0.025)
         self.assertEqual(results.dispatches[sorted_idx[2]], "BIG")
@@ -320,7 +320,7 @@ class TestFullWorkflow(TestCase):
 
         # second square
         square2 = results.polygons[sorted_idx[3]]
-        self.assertTrue(relative_error(square2.area, 50 * 50) < 0.025)
+        self.assertTrue(relative_error(square2.area, 51 * 51) < 0.025)
         self.assertTrue(relative_error(square2.centroid.x, 750) < 0.025)
         self.assertTrue(relative_error(square2.centroid.y, 750) < 0.025)
         self.assertEqual(results.dispatches[sorted_idx[3]], "BIG")
