@@ -157,7 +157,7 @@ def mask_to_objects_2d(mask, background=0, offset=None, flatten_collection=True)
             continue
 
         if not hasattr(polygon, "geoms") or not flatten_collection:
-            slices.append((polygon, label))
+            slices.append((polygon, int(label)))
         else:
             for curr in flatten_geoms(polygon.geoms):
                 slices.append((curr, int(label)))
