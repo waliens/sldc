@@ -77,8 +77,8 @@ def _batch_segment_locate(tile_ids, tile_topology, segmenter, locator, logger=Si
         try:
             tile = tile_topology.tile(tile_id)
             tiles_polygons.append((tile_id, _segment_locate(tile, segmenter, locator, timing)))
-        except TileExtractionException:
-            logger.w("SLDCWorkflow : a tile (id:{}) couldn't be fetched computations.".format(tile_id))
+        except TileExtractionException as e:
+            logger.w("SLDCWorkflow: a tile (id:{}) couldn't be fetched computations '{}'".format(tile_id, str(e)))
             tiles_polygons.append((tile_id, []))
     return timing, tiles_polygons
 
