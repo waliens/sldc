@@ -147,7 +147,7 @@ def mask_to_objects_2d(mask, background=0, offset=None, flatten_collection=True)
     exclusion = np.logical_not(mask == background)
     affine = Affine(1, 0, offset[0], 0, 1, offset[1])
     slices = list()
-    for gjson, label in shapes(mask.copy(), mask=exclusion, transform=affine):
+    for gjson, label in shapes(mask.astype(np.int32), mask=exclusion, transform=affine):
         polygon = shape(gjson)
 
         # fixing polygon
