@@ -135,7 +135,7 @@ class SemanticMerger(object):
         tiles_dict, polygons_dict, labels_dict = SemanticMerger._build_dicts(tiles, polygons, labels=labels)
         # no polygons
         if len(polygons_dict) <= 0:
-            return []
+            return np.array([]) if labels is None else (np.array([]), np.array([]))
         # stores the polygons indexes as nodes
         geom_graph = Graph()
         # add polygons

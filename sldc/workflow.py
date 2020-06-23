@@ -489,7 +489,6 @@ class SSLWorkflow(Workflow):
             "SLDCWorkflow : executed in {} s.".format(timing.total(SSLWorkflow.TIMING_MERGE))
         )
 
-        n_polygons = polygons.shape[0]
         return WorkflowInformation(polygons, labels, timing)
 
     def _segment_locate(self, tile_topology, timing):

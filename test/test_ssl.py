@@ -14,6 +14,19 @@ class BasicSemanticSegmenter(SemanticSegmenter):
 
 
 class TestFullWorkflow(TestCase):
+
+    def testEmptyImage(self):
+        image = np.zeros((200, 250), dtype=np.int64)
+        builder = SSLWorkflowBuilder()
+        builder.set_segmenter(BasicSemanticSegmenter())
+        builder.set_default_tile_builder()
+        builder.set_tile_size(100, 90)
+        builder.set_background_class(0)
+        workflow = builder.get()
+        results = workflow.process(NumpyImage(image))
+
+        self.assertEqual(len(results), 0, msg="no result")
+
     def testDetectSquares(self):
         # sorted by area
         all_poly = [
