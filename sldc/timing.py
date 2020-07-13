@@ -95,6 +95,10 @@ class WorkflowTiming(dict):
         else:
             self[full_phase] = np.concatenate((self[full_phase], [duration]))
 
+    def cm(self, phase):
+        """Returns a context manager for computing time for a given phase"""
+        return TimingContextManager(self, phase)
+
     def total(self, phase):
         """Total duration of the given phase
         Parameters
@@ -189,6 +193,20 @@ class WorkflowTiming(dict):
             "max": np.max(times),
             "sum": np.sum(times)
         }
+
+
+class TimingContextManager(object):
+    def __init__(self, timing, phase):
+        """A context manager for computing a duration for a given phase"""
+        self._timing = timing
+        self._phase = phase
+
+    def __enter__(self):
+        self._timing.start(self._phase)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._timing.end(self._phase)
 
 
 def merge_timings(timing1, timing2):

@@ -6,7 +6,7 @@ import numpy as np
 from joblib import delayed, Parallel
 
 from .errors import TileExtractionException
-from .image import Image, TileBuilder
+from .image import Image, TileBuilder, DefaultTileBuilder
 from .information import WorkflowInformation
 from .locator import BinaryLocator, SemanticLocator
 from .logging import Loggable, SilentLogger
@@ -18,38 +18,36 @@ __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version = "0.1"
 
 
-def _segment_locate(tile, segmenter, locator, timing):
-    """Load the tile numpy representation and applies it segmentation and location using the given objects
+def _segment_locate(tiles, images, segmenter, locator, timing):
+    """Applies segmentation and location to a set of tiles
 
-        Parameters
-        ----------
-        tile: Tile
-            The tile to process for the segment locate
-        segmenter: Segmenter
-            For segmenting the image
-        locator: Locator
-            For converting a mask to polygons
-        timing: WorkflowTiming
-            The workflow timing object for measuring the execution times of the various steps
+    Parameters
+    ----------
+    tiles: list (subtype: Tile, size: N)
+        The tile to process for the segment locate
+    images: ndarray (dims: [N, height, width[, ]])
+        Numpy array of images (same order as tiles
+    segmenter: Segmenter
+        For segmenting the image
+    locator: Locator
+        For converting a mask to polygons
+    timing: WorkflowTiming
+        The workflow timing object for measuring the execution times of the various steps
 
-        Returns
-        -------
-        polygons: iterable (subtype: shapely.geometry.Polygon)
-            Iterable containing the polygons found by the locate step
-        """
-    timing.start(SLDCWorkflow.TIMING_DETECT_LOAD)
-    np_image = tile.np_image
-    timing.end(SLDCWorkflow.TIMING_DETECT_LOAD)
-    timing.start(SLDCWorkflow.TIMING_DETECT_SEGMENT)
-    segmented = segmenter.segment(np_image)
-    timing.end(SLDCWorkflow.TIMING_DETECT_SEGMENT)
-    timing.start(SLDCWorkflow.TIMING_DETECT_LOCATE)
-    located = locator.locate(segmented, offset=tile.offset)
-    timing.end(SLDCWorkflow.TIMING_DETECT_LOCATE)
+    Returns
+    -------
+    polygons: iterable (subtype: shapely.geometry.Polygon)
+        Iterable containing the polygons found by the locate step
+    """
+    with timing.cm(SLDCWorkflow.TIMING_DETECT_SEGMENT):
+        segmented = segmenter.segment_batch(images)
+    with timing.cm(SLDCWorkflow.TIMING_DETECT_LOCATE):
+        located = [locator.locate(segmented[i], offset=tiles[i].offset) for i in range(segmented.shape[0])]
     return located
 
 
-def _batch_segment_locate(tile_ids, tile_topology, segmenter, locator, logger=SilentLogger(), timing_root=None):
+def _batch_segment_locate(tile_ids, tile_topology, segmenter, locator, logger=SilentLogger(), timing_root=None,
+                          batch_size=1):
     """Helper function for parallel execution. Error occurring in this method is notified by returning None in place of
     the found polygons list.
 
@@ -63,6 +61,8 @@ def _batch_segment_locate(tile_ids, tile_topology, segmenter, locator, logger=Si
         The segmenter object
     locator: Locator
         The locator object
+    batch_size: int
+        Batch size for segmentation
 
     Returns
     -------
@@ -73,13 +73,27 @@ def _batch_segment_locate(tile_ids, tile_topology, segmenter, locator, logger=Si
     """
     timing = WorkflowTiming(root=timing_root)
     tiles_polygons = list()
-    for tile_id in tile_ids:
-        try:
+
+    for start in range(0, len(tile_ids), batch_size):
+        end = min(len(tile_ids), start + batch_size)
+        batch_tile_ids = tile_ids[start:end]
+
+        # extract tiles
+        images = list()
+        kept_tiles = list()
+        for tile_id in batch_tile_ids:
             tile = tile_topology.tile(tile_id)
-            tiles_polygons.append((tile_id, _segment_locate(tile, segmenter, locator, timing)))
-        except TileExtractionException as e:
-            logger.w("SLDCWorkflow: a tile (id:{}) couldn't be fetched computations '{}'".format(tile_id, str(e)))
-            tiles_polygons.append((tile_id, []))
+            try:
+                with timing.cm(SLDCWorkflow.TIMING_DETECT_LOAD):
+                    images.append(tile.np_image)
+                kept_tiles.append(tile)
+            except TileExtractionException as e:
+                logger.w("Workflow: a tile (id:{}) couldn't be fetched computations '{}'".format(tile_id, str(e)))
+                tiles_polygons.append((tile_id, []))
+
+        located = _segment_locate(kept_tiles, np.array(images), segmenter, locator, timing)
+        tiles_polygons.extend(zip(map(lambda t: t.identifier, kept_tiles), located))
+
     return timing, tiles_polygons
 
 
@@ -154,14 +168,47 @@ def _parallel_segment_locate(pool, segmenter, locator, logger, tile_topology, ti
 
 class Workflow(Loggable):
     """Abstract base class to be implemented by workflows"""
-    def __init__(self, tile_builder, tile_max_width=1024, tile_max_height=1024, tile_overlap=7, n_jobs=1, logger=SilentLogger()):
+    def __init__(self, tile_builder, tile_max_width=1024, tile_max_height=1024, tile_overlap=7, n_jobs=1,
+                 seg_batch_size=1, dist_tolerance=1, logger=SilentLogger()):
+        """
+        tile_builder: TileBuilder
+            An object for building specific tiles
+        tile_max_width: int (optional, default: 1024)
+            The maximum width of the tiles when iterating over the image
+        tile_max_height: int (optional, default: 1024)
+            The maximum height of the tiles when iterating over the image
+        tile_overlap: int (optional, default: 5)
+            The number of pixels of overlap between tiles when iterating over the image
+        seg_batch_size: int (optional, default: 1)
+            Batch size for segmentation
+        dist_tolerance: int (optional, default, 7)
+            Maximal distance between two polygons so that they are considered from the same object
+        logger: Logger (optional, default: SilentLogger)
+            A logger object
+        n_jobs: int (optional, default: 1)
+            The number of job available for executing the workflow.
+        """
         super(Workflow, self).__init__(logger=logger)
         self._tile_max_width = tile_max_width
         self._tile_max_height = tile_max_height
         self._tile_overlap = tile_overlap
         self._tile_builder = tile_builder
         self._n_jobs = n_jobs
+        self._seg_batch_size = seg_batch_size
         self._pool = None  # cache across execution
+        self._dist_tolerance = dist_tolerance
+
+    @property
+    def dist_tolerance(self):
+        return self._dist_tolerance
+
+    @property
+    def batch_segment_enabled(self):
+        return self.seg_batch_size > 1
+
+    @property
+    def seg_batch_size(self):
+        return self._seg_batch_size
 
     @property
     def tile_max_width(self):
@@ -256,45 +303,24 @@ class SLDCWorkflow(Workflow):
     TIMING_MERGE = "merge"
     TIMING_DC = "dispatch_classify"
 
-    def __init__(self, segmenter, dispatcher_classifier, tile_builder,
-                 tile_max_width=1024, tile_max_height=1024, tile_overlap=7,
-                 dist_tolerance=1, logger=SilentLogger(), n_jobs=None, parallel_dispatch_classify=False):
+    def __init__(self, segmenter, dispatcher_classifier, tile_builder, parallel_dispatch_classify=False, **kwargs):
         """Constructor for SLDCWorkflow objects
 
         Parameters
         ----------
         segmenter: Segmenter
             The segmenter implementing segmentation procedure to apply on tiles.
+        tile_builder: TileBuilder
+            A tile builder
         dispatcher_classifier: DispatcherClassifier
             The dispatcher classifier object for dispatching polygons and classify them.
-        tile_builder: TileBuilder
-            An object for building specific tiles
-        tile_max_width: int (optional, default: 1024)
-            The maximum width of the tiles when iterating over the image
-        tile_max_height: int (optional, default: 1024)
-            The maximum height of the tiles when iterating over the image
-        tile_overlap: int (optional, default: 5)
-            The number of pixels of overlap between tiles when iterating over the image
-        dist_tolerance: int (optional, default, 7)
-            Maximal distance between two polygons so that they are considered from the same object
-        logger: Logger (optional, default: SilentLogger)
-            A logger object
-        n_jobs: int (optional, default: 1)
-            The number of job available for executing the workflow.
         parallel_dispatch_classify: boolean (optional, default: False)
             True for executing dispatching and classification in parallel, False for sequential.
         """
-        super(SLDCWorkflow, self).__init__(
-            n_jobs=n_jobs,
-            tile_max_height=tile_max_height,
-            tile_max_width=tile_max_width,
-            tile_builder=tile_builder,
-            tile_overlap=tile_overlap,
-            logger=logger
-        )
+        super(SLDCWorkflow, self).__init__(tile_builder, **kwargs)
         self._segmenter = segmenter
         self._locator = BinaryLocator()
-        self._merger = SemanticMerger(dist_tolerance)
+        self._merger = SemanticMerger(self.dist_tolerance)
         self._dispatch_classifier = dispatcher_classifier
         self._parallel_dispatch_classify = parallel_dispatch_classify
 
@@ -305,9 +331,8 @@ class SLDCWorkflow(Workflow):
 
         # segment locate
         self.logger.info("SLDCWorkflow : start segment/locate.")
-        timing.start(SLDCWorkflow.TIMING_DETECT)
-        tiles, tile_polygons = self._segment_locate(tile_topology, timing)
-        timing.end(SLDCWorkflow.TIMING_DETECT)
+        with timing.cm(SLDCWorkflow.TIMING_DETECT):
+            tiles, tile_polygons = self._segment_locate(tile_topology, timing)
         self.logger.info(
             "SLDCWorkflow : end segment/locate." + os.linesep +
             "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(tiles), timing.total(SLDCWorkflow.TIMING_DETECT)) + os.linesep +
@@ -316,9 +341,9 @@ class SLDCWorkflow(Workflow):
 
         # merge
         self.logger.info("SLDCWorkflow : start merging")
-        timing.start(SLDCWorkflow.TIMING_MERGE)
-        polygons = self._merger.merge(tiles, tile_polygons, tile_topology)
-        timing.end(SLDCWorkflow.TIMING_MERGE)
+        with timing.cm(SLDCWorkflow.TIMING_MERGE):
+            polygons = self._merger.merge(tiles, tile_polygons, tile_topology)
+
         self.logger.info(
             "SLDCWorkflow : end merging." + os.linesep +
             "SLDCWorkflow : {} polygon(s) found.".format(len(polygons)) + os.linesep +
@@ -327,9 +352,8 @@ class SLDCWorkflow(Workflow):
 
         # dispatch classify
         self.logger.info("SLDCWorkflow : start dispatch/classify.")
-        timing.start(SLDCWorkflow.TIMING_DC)
-        pred, proba, dispatch_indexes = self._dispatch_classify(image, polygons, timing)
-        timing.end(SLDCWorkflow.TIMING_DC)
+        with timing.cm(SLDCWorkflow.TIMING_DC):
+            pred, proba, dispatch_indexes = self._dispatch_classify(image, polygons, timing)
         self.logger.info(
             "SLDCWorkflow : end dispatch/classify.\n" +
             "SLDCWorkflow : executed in {} s.".format(timing.total(SLDCWorkflow.TIMING_DC))
@@ -426,41 +450,21 @@ class SSLWorkflow(Workflow):
     TIMING_DETECT_LOCATE = "locate"
     TIMING_MERGE = "merge"
 
-    def __init__(self, segmenter, tile_builder, background_class=-1, tile_max_width=1024, tile_max_height=1024,
-                 tile_overlap=7, dist_tolerance=1, logger=SilentLogger(), n_jobs=None):
+    def __init__(self, segmenter, tile_builder, background_class=-1, **kwargs):
         """Constructor
         Parameters
         ----------
         segmenter: SemanticSegmenter
             The semantic segmenter
         tile_builder: TileBuilder
-            An object for building specific tiles
+            A tile builder
         background_class: int (default: -1)
-            The background class not to locate (-1 
-        tile_max_width: int (optional, default: 1024)
-            The maximum width of the tiles when iterating over the image
-        tile_max_height: int (optional, default: 1024)
-            The maximum height of the tiles when iterating over the image
-        tile_overlap: int (optional, default: 5)
-            The number of pixels of overlap between tiles when iterating over the image
-        dist_tolerance: int (optional, default, 7)
-            Maximal distance between two polygons so that they are considered from the same object
-        logger: Logger (optional, default: SilentLogger)
-            A logger object
-        n_jobs: int (optional, default: 1)
-            The number of job available for executing the workflow.
+            The background class not to locate (-1)
         """
-        super(SSLWorkflow, self).__init__(
-            n_jobs=n_jobs,
-            tile_max_height=tile_max_height,
-            tile_max_width=tile_max_width,
-            tile_builder=tile_builder,
-            tile_overlap=tile_overlap,
-            logger=logger
-        )
+        super(SSLWorkflow, self).__init__(tile_builder, **kwargs)
         self._segmenter = segmenter
         self._locator = SemanticLocator(background=background_class)
-        self._merger = SemanticMerger(tolerance=dist_tolerance)
+        self._merger = SemanticMerger(tolerance=self.dist_tolerance)
 
     def process(self, image):
         """Process function"""
@@ -469,9 +473,8 @@ class SSLWorkflow(Workflow):
 
         # segment locate
         self.logger.info("SLDCWorkflow : start segment/locate.")
-        timing.start(SSLWorkflow.TIMING_DETECT)
-        tiles, tile_polygons, tile_labels = self._segment_locate(tile_topology, timing)
-        timing.end(SSLWorkflow.TIMING_DETECT)
+        with timing.cm(SSLWorkflow.TIMING_DETECT):
+            tiles, tile_polygons, tile_labels = self._segment_locate(tile_topology, timing)
         self.logger.info(
             "SLDCWorkflow : end segment/locate." + os.linesep +
             "SLDCWorkflow : {} tile(s) processed in {} s.".format(len(tiles), timing.total(SSLWorkflow.TIMING_DETECT)) + os.linesep +
@@ -480,9 +483,8 @@ class SSLWorkflow(Workflow):
 
         # merge
         self.logger.info("SLDCWorkflow : start merging")
-        timing.start(SSLWorkflow.TIMING_MERGE)
-        polygons, labels = self._merger.merge(tiles, tile_polygons, tile_topology, labels=tile_labels)
-        timing.end(SSLWorkflow.TIMING_MERGE)
+        with timing.cm(SSLWorkflow.TIMING_MERGE):
+            polygons, labels = self._merger.merge(tiles, tile_polygons, tile_topology, labels=tile_labels)
         self.logger.info(
             "SLDCWorkflow : end merging." + os.linesep +
             "SLDCWorkflow : {} polygon(s) found.".format(len(polygons)) + os.linesep +

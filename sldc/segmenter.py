@@ -32,12 +32,29 @@ class SemanticSegmenter(object):
 
         Returns
         -------
-        segmented : ndarray (shape: [width, height], dtype=np.int)
+        segmented : ndarray (shape: [width, height], dtype=np.int32)
             An NumPy representation of the segmented image. Each pixel is associated with its class index.
             The class index is a number in {0, 1, ..., n_classes - 1} where n_classes is the number of classes produced 
             by the segmenter. The class index corresponds to the index of the class in `self.classes` if defined.
         """
         pass
+
+    def segment_batch(self, images):
+        """Segment a batch of images using a custom segmentation algorithm. Default implementation calls
+        segment() iteratively on each individual images. Re-implement this method for actual batch segmentation.
+
+        Parameters
+        ----------
+        images: ndarray (shape: [batch_size, width, height{, channels}])
+            An NumPy representation of the images to segment.
+
+        Returns
+        -------
+        segmented : ndarray (shape: [batch_size, width, height], dtype=np.int32)
+            An NumPy representation of the segmented images. See `segment` for specification of the segmentation mask.
+        """
+        masks = [self.segment(image) for image in images]
+        return np.array(masks)
 
     @property
     def n_classes(self):
@@ -47,7 +64,6 @@ class SemanticSegmenter(object):
         n_classes: int
             The (maximum) number of classes produced by this segmenter. -1 if undefined.
         """
-
         return len(self._classes) if self._classes is not None else -1
 
     @property
@@ -131,7 +147,7 @@ class ProbabilisticSegmenter(SemanticSegmenter):
 
     def segment(self, image):
         probas = self.segment_proba(image)
-        return np.argmax(probas, axis=-1)
+        return np.argmax(probas, axis=-1).astype(np.int32)
 
 
 class Segmenter(SemanticSegmenter):
