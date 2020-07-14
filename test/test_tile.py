@@ -1,5 +1,8 @@
 from unittest import TestCase
 
+import numpy as np
+from sldc.image import SkipBordersTileTopology
+from .util import NumpyImage
 from .fake_image import FakeImage, FakeTileBuilder
 
 
@@ -230,3 +233,62 @@ class TestTileTopologyPartition(TestCase):
             for tile in batch:
                 self.assertEqual(tile.identifier, identifier, msg="Expect tile {} in batch {}, got tile {}".format(identifier, i, tile.identifier))
                 identifier += 1
+
+
+class TestSkipBordersTileTopology(TestCase):
+    def testVerticallyOverflowing(self):
+        fake_builder = FakeTileBuilder()
+        fake_image = FakeImage(525, 450, 3)
+        base_topology = fake_image.tile_topology(fake_builder, 175, 175, 0)
+        topology = SkipBordersTileTopology(base_topology)
+
+        self.assertEqual(topology.tile_horizontal_count, 3)
+        self.assertEqual(topology.tile_vertical_count, 2)
+        self.assertEqual(topology.tile_count, 6)
+        self.assertEqual(6, len([t for t in topology]))
+
+        self.assertEqual(topology.tile_neighbours(1), (None, 4, None, 2))
+        self.assertEqual(topology.tile_neighbours(2), (None, 5, 1, 3))
+        self.assertEqual(topology.tile_neighbours(3), (None, 6, 2, None))
+        self.assertEqual(topology.tile_neighbours(4), (1, None, None, 5))
+        self.assertEqual(topology.tile_neighbours(5), (2, None, 4, 6))
+        self.assertEqual(topology.tile_neighbours(6), (3, None, 5, None))
+
+    def testHorizontallyOverflowing(self):
+        fake_builder = FakeTileBuilder()
+        fake_image = FakeImage(450, 525, 3)
+        base_topology = fake_image.tile_topology(fake_builder, 175, 175, 0)
+        topology = SkipBordersTileTopology(base_topology)
+
+        self.assertEqual(topology.tile_horizontal_count, 2)
+        self.assertEqual(topology.tile_vertical_count, 3)
+        self.assertEqual(topology.tile_count, 6)
+        self.assertEqual(6, len([t for t in topology]))
+
+        self.assertEqual(topology.tile_neighbours(1), (None, 3, None, 2))
+        self.assertEqual(topology.tile_neighbours(2), (None, 4, 1, None))
+        self.assertEqual(topology.tile_neighbours(3), (1, 5, None, 4))
+        self.assertEqual(topology.tile_neighbours(4), (2, 6, 3, None))
+        self.assertEqual(topology.tile_neighbours(5), (3, None, None, 6))
+        self.assertEqual(topology.tile_neighbours(6), (4, None, 5, None))
+
+    def testTileImageContent(self):
+        fake_builder = FakeTileBuilder()
+        image = np.zeros((100, 50), dtype=np.uint8)
+        image[:45, :45] = 1
+        image[45:90, :45] = 2
+        fake_image = NumpyImage(image)
+
+        base_topology = fake_image.tile_topology(fake_builder, 45, 45, 0)
+        topology = SkipBordersTileTopology(base_topology)
+
+        self.assertEqual(topology.tile_horizontal_count, 1)
+        self.assertEqual(topology.tile_vertical_count, 2)
+        self.assertEqual(topology.tile_count, 2)
+        self.assertEqual(2, len([t for t in topology]))
+
+        tile1 = np.unique(topology.tile(1).np_image)
+        self.assertEqual(np.unique(tile1).tolist(), [1])
+        tile2 = np.unique(topology.tile(2).np_image)
+        self.assertEqual(np.unique(tile2).tolist(), [2])
+

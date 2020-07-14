@@ -752,7 +752,7 @@ class TileTopology(object):
         if left is not None and self._tile_coord(left)[0] != tile_row:
             left = None
         right = identifier + 1 if identifier < tile_count else None
-        # check whether the tile is on an edge. In this case no left tile.
+        # check whether the tile is on an edge. In this case no right tile.
         if right is not None and self._tile_coord(right)[0] != tile_row:
             right = None
         return top, bottom, left, right
@@ -899,3 +899,59 @@ class TileTopology(object):
     def __len__(self):
         """Number of tiles"""
         return self.tile_count
+
+
+class SkipBordersTileTopology(TileTopology):
+    """A tile topology that skips border if they do not have the (max_width, max_height) dimensions."""
+    def __init__(self, topology):
+        super(SkipBordersTileTopology, self).__init__(
+            image=topology._image,
+            tile_builder=topology._tile_builder,
+            max_width=topology._max_width,
+            max_height=topology._max_height,
+            overlap=topology._overlap
+        )
+        self._parent = topology
+        skip_h, skip_v = self._do_skip()
+        self._skip_h = skip_h
+        self._skip_v = skip_v
+        print(dir(self))
+
+    def _do_skip(self):
+        """Evaluates whether the border tiles should be skipped"""
+        n_h = self._parent.tile_horizontal_count
+        n_v = self._parent.tile_vertical_count
+        h_tile = self._parent.tile(n_h)
+        v_tile = self._parent.tile((n_v - 1) * n_h + 1)
+        return (h_tile.width != self._max_width or h_tile.height != self._max_height,
+                v_tile.width != self._max_width or v_tile.height != self._max_height)
+
+    def _convert_id(self, parent_identifier):
+        """Convert a parent tile identifier to the corresponding identifier for this topology.
+        Returns
+        -------
+        identifier: int|None
+            A valid identifier for this topology, None if the parent identifier corresponds to an invalid tile
+        """
+        if parent_identifier is None:
+            return None
+        row, col = self._parent._tile_coord(parent_identifier)
+        # check that tile is actually valid
+        if self._skip_h and col == self._parent.tile_horizontal_count - 1:
+            return None
+        if self._skip_v and row == row == self._parent.tile_vertical_count - 1:
+            return None
+        return parent_identifier - (row if self._skip_h else 0)
+
+    @property
+    def tile_horizontal_count(self):
+        return super().tile_horizontal_count - (1 if self._skip_h else 0)
+
+    @property
+    def tile_vertical_count(self):
+        return super().tile_vertical_count - (1 if self._skip_v else 0)
+
+    def tile_neighbours(self, identifier):
+        row, col = self._tile_coord(identifier)
+        parent_identifier = identifier + (row if self._skip_h else 0)
+        return tuple([self._convert_id(_id) for _id in self._parent.tile_neighbours(parent_identifier)])
