@@ -900,10 +900,41 @@ class TileTopology(object):
         """Number of tiles"""
         return self.tile_count
 
+def _borders_have_expected_size(topology, max_width, max_height):
+    """Evaluates whether the border tiles should be skipped
+    Parameters
+    ----------
+    topology: TileTopology
+        A regular tile topology
+    max_width: int
+        Max tile width
+    max_height: int
+        Max tile height
+
+    Returns
+    -------
+    right_not_ok: bool
+        True if right border tiles do not have dimensions (max_width, max_height)
+    bottom_not_ok: bool
+        True if bottom border tiles do not have dimensions (max_width, max_height)
+    """
+    n_h = topology.tile_horizontal_count
+    n_v = topology.tile_vertical_count
+    h_tile = topology.tile(n_h)
+    v_tile = topology.tile((n_v - 1) * n_h + 1)
+    return (h_tile.width != max_width or h_tile.height != max_height,
+            v_tile.width != max_width or v_tile.height != max_height)
 
 class SkipBordersTileTopology(TileTopology):
-    """A tile topology that skips border if they do not have the (max_width, max_height) dimensions."""
+    """A topology that ensures that all tiles have the specified dimensions. This is done by skipping tiles at right
+    and bottom borders."""
     def __init__(self, topology):
+        """
+        Parameters
+        ----------
+        topology: TileTopology
+            A regular topology
+        """
         super(SkipBordersTileTopology, self).__init__(
             image=topology._image,
             tile_builder=topology._tile_builder,
@@ -912,19 +943,9 @@ class SkipBordersTileTopology(TileTopology):
             overlap=topology._overlap
         )
         self._parent = topology
-        skip_h, skip_v = self._do_skip()
+        skip_h, skip_v = _borders_have_expected_size(topology, self._max_width, self._max_height)
         self._skip_h = skip_h
         self._skip_v = skip_v
-        print(dir(self))
-
-    def _do_skip(self):
-        """Evaluates whether the border tiles should be skipped"""
-        n_h = self._parent.tile_horizontal_count
-        n_v = self._parent.tile_vertical_count
-        h_tile = self._parent.tile(n_h)
-        v_tile = self._parent.tile((n_v - 1) * n_h + 1)
-        return (h_tile.width != self._max_width or h_tile.height != self._max_height,
-                v_tile.width != self._max_width or v_tile.height != self._max_height)
 
     def _convert_id(self, parent_identifier):
         """Convert a parent tile identifier to the corresponding identifier for this topology.
@@ -955,3 +976,31 @@ class SkipBordersTileTopology(TileTopology):
         row, col = self._tile_coord(identifier)
         parent_identifier = identifier + (row if self._skip_h else 0)
         return tuple([self._convert_id(_id) for _id in self._parent.tile_neighbours(parent_identifier)])
+
+
+class FixedSizeTileTopology(TileTopology):
+    """A topology that ensures that all tiles have the specified dimensions. This is done by extending tiles at left
+    and bottom borders to overlap their neighbouring by more than the specified overlap."""
+    def __init__(self, topology):
+        """
+        Parameters
+        ----------
+        topology: TileTopology
+            A regular topology
+        """
+        super(FixedSizeTileTopology, self).__init__(
+            image=topology._image,
+            tile_builder=topology._tile_builder,
+            max_width=topology._max_width,
+            max_height=topology._max_height,
+            overlap=topology._overlap
+        )
+
+    def tile_offset(self, identifier):
+        row, col = self._tile_coord(identifier)
+        off_x, off_y = super().tile_offset(identifier)
+        if row == self.tile_vertical_count - 1:
+            off_y -= self._max_height - (self._image.height - off_y)
+        if col == self.tile_horizontal_count - 1:
+            off_x -= self._max_width - (self._image.width - off_x)
+        return off_x, off_y

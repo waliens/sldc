@@ -1,7 +1,9 @@
 from unittest import TestCase
 
 import numpy as np
-from sldc.image import SkipBordersTileTopology
+from numpy.testing import assert_array_equal
+
+from sldc.image import SkipBordersTileTopology, FixedSizeTileTopology
 from .util import NumpyImage
 from .fake_image import FakeImage, FakeTileBuilder
 
@@ -287,8 +289,30 @@ class TestSkipBordersTileTopology(TestCase):
         self.assertEqual(topology.tile_count, 2)
         self.assertEqual(2, len([t for t in topology]))
 
-        tile1 = np.unique(topology.tile(1).np_image)
+        tile1 = topology.tile(1).np_image
         self.assertEqual(np.unique(tile1).tolist(), [1])
-        tile2 = np.unique(topology.tile(2).np_image)
+        tile2 = topology.tile(2).np_image
         self.assertEqual(np.unique(tile2).tolist(), [2])
 
+
+class TestFixedSizeTileTopology(TestCase):
+    def testTopology(self):
+        fake_builder = FakeTileBuilder()
+        image = np.zeros((100, 50), dtype=np.uint8)
+        image[:45, :45] = 1
+        image[45:90, :45] = 2
+        fake_image = NumpyImage(image)
+        base_topology = fake_image.tile_topology(fake_builder, 45, 45, 0)
+        topology = FixedSizeTileTopology(base_topology)
+
+        self.assertEqual(topology.tile_horizontal_count, 2)
+        self.assertEqual(topology.tile_vertical_count, 3)
+        self.assertEqual(topology.tile_count, 6)
+        self.assertEqual(6, len([t for t in topology]))
+
+        assert_array_equal(topology.tile(1).np_image, image[:45, :45])
+        assert_array_equal(topology.tile(2).np_image, image[:45, 5:])
+        assert_array_equal(topology.tile(3).np_image, image[45:90, :45])
+        assert_array_equal(topology.tile(4).np_image, image[45:90, 5:])
+        assert_array_equal(topology.tile(5).np_image, image[55:, :45])
+        assert_array_equal(topology.tile(6).np_image, image[55:, 5:])
