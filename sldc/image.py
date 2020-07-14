@@ -900,6 +900,7 @@ class TileTopology(object):
         """Number of tiles"""
         return self.tile_count
 
+
 def _borders_have_expected_size(topology, max_width, max_height):
     """Evaluates whether the border tiles should be skipped
     Parameters
@@ -924,6 +925,7 @@ def _borders_have_expected_size(topology, max_width, max_height):
     v_tile = topology.tile((n_v - 1) * n_h + 1)
     return (h_tile.width != max_width or h_tile.height != max_height,
             v_tile.width != max_width or v_tile.height != max_height)
+
 
 class SkipBordersTileTopology(TileTopology):
     """A topology that ensures that all tiles have the specified dimensions. This is done by skipping tiles at right
@@ -1003,4 +1005,5 @@ class FixedSizeTileTopology(TileTopology):
             off_y -= self._max_height - (self._image.height - off_y)
         if col == self.tile_horizontal_count - 1:
             off_x -= self._max_width - (self._image.width - off_x)
-        return off_x, off_y
+        # take max for when image is too small
+        return max(off_x, 0), max(off_y, 0)
