@@ -6,14 +6,14 @@ from .dispatcher import DispatcherClassifier, CatchAllRule, RuleBasedDispatcher
 from .errors import MissingComponentException, InvalidBuildingException
 from .image import DefaultTileBuilder
 from .logging import SilentLogger
-from .workflow import SLDCWorkflow, SSLWorkflow
+from .workflow import SLDCWorkflow, SSLWorkflow, Workflow
 
 __author__ = "Mormont Romain <romainmormont@hotmail.com>"
 __version__ = "0.1"
 
 
 class WorkflowBuilder(object):
-    """Interface to be implemented by any workflow builder object"""
+    """Base class to be extended by any workflow builder object"""
     __metaclass__ = ABCMeta
 
     def __init__(self):
@@ -24,6 +24,8 @@ class WorkflowBuilder(object):
         self._overlap = None
         self._tile_builder = None
         self._n_jobs = None
+        self._seg_batch_size = None
+        self._border_tiles = None
 
     @abstractmethod
     def _reset(self):
@@ -35,6 +37,8 @@ class WorkflowBuilder(object):
         self._overlap = 7
         self._n_jobs = 1
         self._logger = SilentLogger()
+        self._seg_batch_size = 1
+        self._border_tiles = Workflow.BORDER_TILES_KEEP
 
     @abstractmethod
     def get(self):
@@ -50,6 +54,36 @@ class WorkflowBuilder(object):
             If some mandatory elements were not provided to the builder
         """
         pass
+
+    def set_seg_batch_size(self, batch_size):
+        """Set the batch size for segmentation
+        Parameters
+        ----------
+        batch_size: int
+            The batch size for segmentation
+
+        Returns
+        -------
+        builder: SLDCWorkflowBuilder
+            The builder
+        """
+        self._seg_batch_size = batch_size
+        return self
+
+    def set_border_tiles(self, border_tiles):
+        """Set the border tiles policy
+        Parameters
+        ----------
+        border_tiles: str
+            The border tiles policy
+
+        Returns
+        -------
+        builder: SLDCWorkflowBuilder
+            The builder
+        """
+        self._border_tiles = border_tiles
+        return self
 
     def set_tile_builder(self, tile_builder):
         """Set the tile builder
@@ -155,6 +189,25 @@ class WorkflowBuilder(object):
         self._logger = logger
         return self
 
+    def get_kwargs(self):
+        """Returns a dictionary mapping Workflow constructor parameters and their values
+
+        Returns
+        -------
+        kwargs: dict
+        """
+        return {
+            "tile_builder": self._tile_builder,
+            "dist_tolerance": self._distance_tolerance,
+            "tile_max_width": self._tile_max_width,
+            "tile_max_height": self._tile_max_height,
+            "tile_overlap": self._overlap,
+            "n_jobs": self._n_jobs,
+            "logger": self._logger,
+            "seg_batch_size": self._seg_batch_size,
+            "border_tiles": self._border_tiles
+        }
+
 
 class SLDCWorkflowBuilder(WorkflowBuilder):
     """A class for building SLDC Workflow objects. When several instances of SLDCWorkflow should be built, they should
@@ -186,6 +239,31 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
         self._one_shot_dispatcher = None
         self._classifiers = []
         self._parallel_dc = False
+
+    def get_kwargs(self):
+        """extends parent method with SLDCWorkflow specifics"""
+        # define the dispatcher and classifier
+        if self._one_shot_dispatcher is None:
+            dispatcher = RuleBasedDispatcher(
+                self._rules,
+                labels=self._dispatching_labels,
+                logger=self._logger
+            )
+        else:
+            dispatcher = self._one_shot_dispatcher
+
+        dispatcher_classifier = DispatcherClassifier(
+            dispatcher,
+            self._classifiers,
+            logger=self._logger
+        )
+
+        return {
+            "segmenter": self._segmenter,
+            "dispatcher_classifier": dispatcher_classifier,
+            "parallel_dispatch_classify": self._parallel_dc,
+            **super().get_kwargs()
+        }
 
     def set_parallel_dc(self, parallel_dc):
         """Specify whether the dispatching and classification will be parallelized at the workflow level (optional)
@@ -287,37 +365,7 @@ class SLDCWorkflowBuilder(WorkflowBuilder):
                                             "dispatching must be used.")
         if len(self._classifiers) == 0:
             raise MissingComponentException("Missing classifiers.")
-
-        # define the dispatcher and classifier
-        if self._one_shot_dispatcher is None:
-            dispatcher = RuleBasedDispatcher(
-                self._rules,
-                labels=self._dispatching_labels,
-                logger=self._logger
-            )
-        else:
-            dispatcher = self._one_shot_dispatcher
-
-        dispatcher_classifier = DispatcherClassifier(
-            dispatcher,
-            self._classifiers,
-            logger=self._logger
-        )
-
-        # define the workflow
-        workflow = SLDCWorkflow(
-            self._segmenter,
-            dispatcher_classifier,
-            self._tile_builder,
-            dist_tolerance=self._distance_tolerance,
-            tile_max_height=self._tile_max_height,
-            tile_max_width=self._tile_max_width,
-            tile_overlap=self._overlap,
-            logger=self._logger,
-            n_jobs=self._n_jobs,
-            parallel_dispatch_classify=self._parallel_dc
-        )
-
+        workflow = SLDCWorkflow(**self.get_kwargs())
         self._reset()
         return workflow
 
@@ -342,6 +390,14 @@ class SSLWorkflowBuilder(WorkflowBuilder):
         super(SSLWorkflowBuilder, self)._reset()
         self._segmenter = None
         self._background_class = -1
+
+    def get_kwargs(self):
+        """extends parent method with SLDCWorkflow specifics"""
+        return {
+            "segmenter": self._segmenter,
+            "background_class": self._background_class,
+            **super().get_kwargs()
+        }
 
     def set_segmenter(self, segmenter):
         """Set the segmenter
@@ -368,19 +424,7 @@ class SSLWorkflowBuilder(WorkflowBuilder):
             raise MissingComponentException("Missing segmenter.")
         if self._tile_builder is None:
             raise MissingComponentException("Missing tile builder.")
-
-        workflow = SSLWorkflow(
-            self._segmenter,
-            self._tile_builder,
-            background_class=self._background_class,
-            tile_max_height=self._tile_max_height,
-            tile_max_width=self._tile_max_width,
-            tile_overlap=self._overlap,
-            dist_tolerance=self._distance_tolerance,
-            logger=self._logger,
-            n_jobs=self._n_jobs
-        )
-
+        workflow = SSLWorkflow(**self.get_kwargs())
         self._reset()
         return workflow
 

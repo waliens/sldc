@@ -6,7 +6,7 @@ import numpy as np
 from joblib import delayed, Parallel
 
 from .errors import TileExtractionException
-from .image import Image, TileBuilder, DefaultTileBuilder
+from .image import Image, TileBuilder, DefaultTileBuilder, SkipBordersTileTopology, FixedSizeTileTopology
 from .information import WorkflowInformation
 from .locator import BinaryLocator, SemanticLocator
 from .logging import Loggable, SilentLogger
@@ -168,8 +168,12 @@ def _parallel_segment_locate(pool, segmenter, locator, logger, tile_topology, ti
 
 class Workflow(Loggable):
     """Abstract base class to be implemented by workflows"""
+    BORDER_TILES_SKIP = "skip"
+    BORDER_TILES_EXTEND = "extend"
+    BORDER_TILES_KEEP = "keep"
+
     def __init__(self, tile_builder, tile_max_width=1024, tile_max_height=1024, tile_overlap=7, n_jobs=1,
-                 seg_batch_size=1, dist_tolerance=1, logger=SilentLogger()):
+                 seg_batch_size=1, dist_tolerance=1, border_tiles=BORDER_TILES_KEEP, logger=SilentLogger()):
         """
         tile_builder: TileBuilder
             An object for building specific tiles
@@ -187,8 +191,13 @@ class Workflow(Loggable):
             A logger object
         n_jobs: int (optional, default: 1)
             The number of job available for executing the workflow.
+        border_tiles: str
+
         """
         super(Workflow, self).__init__(logger=logger)
+        if seg_batch_size > 1 and border_tiles == self.BORDER_TILES_KEEP:
+            raise ValueError("When segmentation tile batch size is greater than 1 (here: {}), another border tiles "
+                             "management should be picked.".format(seg_batch_size))
         self._tile_max_width = tile_max_width
         self._tile_max_height = tile_max_height
         self._tile_overlap = tile_overlap
@@ -197,6 +206,11 @@ class Workflow(Loggable):
         self._seg_batch_size = seg_batch_size
         self._pool = None  # cache across execution
         self._dist_tolerance = dist_tolerance
+        self._border_tiles = border_tiles
+
+    @property
+    def border_tiles(self):
+        return self._border_tiles
 
     @property
     def dist_tolerance(self):
@@ -263,12 +277,17 @@ class Workflow(Loggable):
         topology: TileTopology
             The topology
         """
-        return image.tile_topology(
+        topology = image.tile_topology(
             self.tile_builder,
             max_width=self.tile_max_width,
             max_height=self.tile_max_height,
             overlap=self.tile_overlap
         )
+        if self.border_tiles == self.BORDER_TILES_SKIP:
+            topology = SkipBordersTileTopology(topology)
+        elif self.border_tiles == self.BORDER_TILES_EXTEND:
+            topology = FixedSizeTileTopology(topology)
+        return topology
 
     @abstractmethod
     def process(self, image):
