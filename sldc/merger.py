@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from shapely.geometry import JOIN_STYLE, Polygon
-from shapely.ops import cascaded_union
+from collections import defaultdict
+from shapely.geometry import JOIN_STYLE, box
+from shapely.ops import unary_union
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __contributor__ = ["Romain Mormont <romainmormont@hotmail.com>"]
@@ -85,6 +86,53 @@ def aggr_max_area_label(areas, labels):
             max_area = area
             max_label = l
     return max_label
+
+
+class TilePolygons(object):
+    TOP = 0
+    BOTTOM = 1
+    LEFT = 2
+    RIGHT = 3
+    OTHER = 4
+    
+    def __init__(self, tile_id, topology, polygons, filter_dist=None):
+        super().__init__()
+        self._tile_id = tile_id
+        self._topology = topology
+        self._all = polygons
+        self._filter_dist = filter_dist
+        self._by_side = self._compute_by_side(polygons)
+
+    @classmethod
+    def compute_by_side(cls, tile_id, polygons, topology, dist=1):
+        """Group polygons based on whether they touch the side of the tile or not"""
+        tile = topology.tile(tile_id)
+        boxes = {
+            cls.TOP: box(0, 0, tile.width, dist),
+            cls.BOTTOM: box(0, tile.height - dist, tile.width, tile.height),
+            cls.LEFT: box(0, 0, dist, tile.height),
+            cls.RIGHT: box(tile.width - dist, 0, tile.width, tile.height)
+        }
+        by_side = defaultdict(list)
+        for polygon in polygons:
+            matched_any = False
+            for side, box in boxes.items():
+                if box.intersects(polygon):
+                    by_side[side].append(polygon)
+                    matched_any = True
+            if not matched_any:
+                by_side[cls.OTHER].append(polygon)
+        return by_side
+
+    @property
+    def polygons(self):
+        return self._polygons
+
+    def poly_by_side(self, side):
+        if self._filter_dist is None:
+            # not filter dist -> return all poly
+            return self.polygons 
+        return self._by_side[side]
 
 
 class SemanticMergingPolicy(object):
@@ -209,7 +257,7 @@ class SemanticMerger(object):
                 label = labels_dict[component[0]]
             else:
                 polygons = [polygons_dict[poly_id].buffer(dilation_dist, join_style=join) for poly_id in component]
-                polygon = cascaded_union(polygons).buffer(-dilation_dist, join_style=join)
+                polygon = unary_union(polygons).buffer(-dilation_dist, join_style=join)
                 # determine label (take label representing the largest area)
                 areas = np.array([polygons_dict[poly_id].area for poly_id in component])
                 labels = np.array([labels_dict[poly_id] for poly_id in component])
