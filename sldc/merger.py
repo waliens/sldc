@@ -1,80 +1,65 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 import numpy as np
 from collections import defaultdict
-from shapely.geometry import JOIN_STYLE, box
+from shapely.geometry import JOIN_STYLE, box as bbox
 from shapely.ops import unary_union
+from shapely import affinity
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __contributor__ = ["Romain Mormont <romainmormont@hotmail.com>"]
 __version = "0.1"
 
 
-class Graph(object):
-    """A class for representing a graph
-    """
-    def __init__(self):
-        self.nodes = []
-        self.node2idx = {}
-        self.edges = {}
+class UnionFind(object):
+    def __init__(self, elements):
+        self._nodes = {e: (e, 0) for e in elements}
+    
+    def union(self, elem1, elem2):
+        if not self.has(elem1) or not self.has(elem2):
+            return False
+        parent1, rank1 = self.find(elem1)
+        parent2, rank2 = self.find(elem2)
+        
+        if parent1 == parent2:
+            return True
 
-    def add_node(self, value):
-        """Add a node to the graph
+        if rank1 > rank2: 
+            self._nodes[parent1] = (parent2, rank1)
+            self._nodes[parent2] = (parent2, rank2 + 1)
+            return parent2
+        else:
+            self._nodes[parent2] = (parent1, rank2) 
+            self._nodes[parent1] = (parent1, rank1 + 1)
+            return parent1
 
-        Parameters
-        ----------
-        value: int
-            Node value
-        Returns
-        -------
-        index: int
-            Return the node index
-        """
-        self.nodes.append(value)
-        self.node2idx[value] = len(self.nodes) - 1
-        return len(self.nodes) - 1
+    def same(self, elem1, elem2):
+        parent1 = self.find(elem1)
+        return parent1 is not None and parent1 == self.find(elem2)
 
-    def add_edge(self, source, destination):
-        """Add an edge to the graph
+    def has(self, elem):
+        return elem in self._nodes
 
-        Parameters
-        ----------
-        source: int
-            Id of the source node
-        destination: int
-            Id of the destination node
-        """
-        ls = self.edges.get(source, [])
-        if len(ls) == 0:
-            self.edges[source] = ls
-        ls.append(destination)
+    def _find(self, elem):
+        if not self.has(elem):
+            return None, -1
+        parent, rank = self._nodes[elem]
+        if parent == elem:
+            return parent, rank
+        else:
+            pparent, prank = self._find(parent)
+            self._nodes[elem] = (pparent, rank)
+            return pparent, prank
 
-    def connex_components(self):
-        """Find the connex components of the graph
-        Returns
-        -------
-        components: iterable (subtype: iterable of int)
-            An iterable containing connex components. A connex component is an iterable of node indexes
-        """
-        visited = [False]*len(self.nodes)
-        components = []
-        stack = []  # store index of reachable nodes
-        for node in self.node2idx.keys():
-            current_comp = []
-            stack.append(node)
-            while len(stack) > 0:
-                current_node = stack.pop()
-                curr_idx = self.node2idx[current_node]
-                if visited[curr_idx]:
-                    continue
-                visited[curr_idx] = True
-                current_comp.append(current_node)
-                stack.extend(self.edges.get(current_node, []))
-            if len(current_comp) > 0:
-                components.append(current_comp)
-        return components
+    def find(self, elem):
+        parent, _ = self._find(elem)
+        return parent
 
-    def __getitem__(self, node_index):
-        return self.nodes[node_index]
+    def components(self):
+        comp_dict = defaultdict(list)
+        for elem, (parent, rank) in self._nodes.items():
+            if elem == parent: 
+                 
 
 
 def aggr_max_area_label(areas, labels):
@@ -93,46 +78,51 @@ class TilePolygons(object):
     BOTTOM = 1
     LEFT = 2
     RIGHT = 3
-    OTHER = 4
+    NONE = 4
     
-    def __init__(self, tile_id, topology, polygons, filter_dist=None):
+    def __init__(self, tile_id, topology, polygons_dict, filter_dist=None):
         super().__init__()
         self._tile_id = tile_id
         self._topology = topology
-        self._all = polygons
+        self._polygons_dict = polygons_dict
         self._filter_dist = filter_dist
-        self._by_side = self._compute_by_side(polygons)
+        self._by_side = self._compute_by_side()
 
-    @classmethod
-    def compute_by_side(cls, tile_id, polygons, topology, dist=1):
+    def _compute_by_side(self):
         """Group polygons based on whether they touch the side of the tile or not"""
-        tile = topology.tile(tile_id)
+        tile = self._topology.tile(self._tile_id)
+        off_x, off_y = tile.offset
+        translate = partial(affinity.translate, xoff=off_x, yoff=off_y)
         boxes = {
-            cls.TOP: box(0, 0, tile.width, dist),
-            cls.BOTTOM: box(0, tile.height - dist, tile.width, tile.height),
-            cls.LEFT: box(0, 0, dist, tile.height),
-            cls.RIGHT: box(tile.width - dist, 0, tile.width, tile.height)
+            self.TOP: translate(bbox(0, 0, tile.width, self._filter_dist)),
+            self.BOTTOM: translate(bbox(0, tile.height - self._filter_dist, tile.width, tile.height)),
+            self.LEFT: translate(bbox(0, 0, self._filter_dist, tile.height)),
+            self.RIGHT: translate(bbox(tile.width - self._filter_dist, 0, tile.width, tile.height))
         }
         by_side = defaultdict(list)
-        for polygon in polygons:
+        for poly_id, polygon in self._polygons_dict.items():
             matched_any = False
             for side, box in boxes.items():
                 if box.intersects(polygon):
-                    by_side[side].append(polygon)
+                    by_side[side].append(poly_id)
                     matched_any = True
             if not matched_any:
-                by_side[cls.OTHER].append(polygon)
+                by_side[self.NONE].append(poly_id)
         return by_side
 
     @property
     def polygons(self):
         return self._polygons
 
-    def poly_by_side(self, side):
+    def polygons_by_side(self, side):
         if self._filter_dist is None:
             # not filter dist -> return all poly
             return self.polygons 
         return self._by_side[side]
+
+    @classmethod
+    def opposite_side(cls, side):
+        return {cls.TOP: cls.BOTTOM, cls.BOTTOM: cls.TOP, cls.LEFT: cls.RIGHT, cls.RIGHT: cls.LEFT}.get(side)
 
 
 class SemanticMergingPolicy(object):
@@ -180,29 +170,31 @@ class SemanticMerger(object):
         out_labels: iterable (size: m, subtype: int)
             The labels of the merged polygons. If labels was None, this return value is omitted.
         """
-        tiles_dict, polygons_dict, labels_dict = SemanticMerger._build_dicts(tiles, polygons, labels=labels)
+        tiles_dict, polygons_dict, labels_dict = self._build_dicts(tiles, polygons, tile_topology, labels=labels)
         # no polygons
         if len(polygons_dict) <= 0:
             return np.array([]) if labels is None else (np.array([]), np.array([]))
+        
         # stores the polygons indexes as nodes
-        geom_graph = Graph()
-        # add polygons
-        for index in polygons_dict.keys():
-            geom_graph.add_node(index)
+        geom_uf = UnionFind(polygons_dict.keys())
+        
         # add edges between polygons that should be merged
-        for tile_identifier in tiles_dict.keys():
-            # check whether polygons in neighbour tiles must be merged
-            neighbour_tiles = tile_topology.tile_neighbours(tile_identifier)
-            for neighbour in neighbour_tiles:
-                if neighbour is not None:
-                    self._register_merge(tiles_dict[tile_identifier], tiles_dict[neighbour], polygons_dict, labels_dict, geom_graph)
+        for tile_id, tile_polygons in tiles_dict.items():
+            # check whether polygons in neighbour tiles must be merged 
+            for side, neighbour in enumerate(tile_topology.tile_neighbours(tile_id)):
+                if neighbour is None:
+                    continue
+                curr_candidates = tile_polygons.polygons_by_side(side)
+                neigh_candidates = tiles_dict[neighbour].polygons_by_side(TilePolygons.opposite_side(side))
+                self._register_merge(curr_candidates, neigh_candidates, polygons_dict, labels_dict, geom_uf)
+        
         merged_polygons, merged_labels = self._do_merge(geom_graph, polygons_dict, labels_dict)
         if labels is None:
             return np.array(merged_polygons)
         else:
             return np.array(merged_polygons), np.array(merged_labels)
 
-    def _register_merge(self, polygons1, polygons2, polygons_dict, labels_dict, geom_graph):
+    def _register_merge(self, polygons1, polygons2, polygons_dict, labels_dict, geom_uf):
         """Compare 2-by-2 the polygons in the two arrays. If they are very close (using `self._tolerance` as distance
         threshold) and can be merged regarding their labels and the merging policy, they are registered as polygons to 
         be merged in the geometry graph (the registration being an edge between the nodes corresponding to the polygons 
@@ -218,24 +210,26 @@ class SemanticMerger(object):
             Dictionary mapping polygon identifiers with actual shapely polygons objects
         labels_dict: dict
             Dictionnary mapping polygon ids with their labels
-        geom_graph: Graph
-            The graph in which must be registered the polygons to be merged
+        geom_graph: UnionFind
+            Disjoint set structure for registering meregs
         """
         for poly_id1 in polygons1:
             for poly_id2 in polygons2:
+                if geom_uf.same(poly1, poly2):
+                    continue
                 poly1, poly2 = polygons_dict[poly_id1], polygons_dict[poly_id2]
                 label1, label2 = labels_dict[poly_id1], labels_dict[poly_id2]
                 if poly1.distance(poly2) < self._tolerance and label1 == label2:
-                    geom_graph.add_edge(poly_id1, poly_id2)
+                    geom_uf.union(poly_id1, poly_id2)
 
-    def _do_merge(self, geom_graph, polygons_dict, labels_dict):
+    def _do_merge(self, geom_uf, polygons_dict, labels_dict):
         """Effectively merges the polygons that were registered to be merged in the geom_graph Graph and return the
         resulting polygons in a list.
 
         Parameters
         ----------
-        geom_graph: Graph
-            The graph in which were registered the polygons to be merged
+        geom_uf: UnionFind
+            A disjoint set structure with registered merges
         polygons_dict: dict
             Dictionary mapping polygon identifiers with actual shapely polygons objects
         labels_dict: dict
@@ -246,7 +240,6 @@ class SemanticMerger(object):
         polygons: iterable
             An iterable of polygons objects containing the merged polygons
         """
-        components = geom_graph.connex_components()
         dilation_dist = self._tolerance
         join = JOIN_STYLE.mitre
         merged_polygons = []
@@ -266,8 +259,7 @@ class SemanticMerger(object):
             merged_labels.append(label)
         return merged_polygons, merged_labels
 
-    @classmethod
-    def _build_dicts(cls, tiles, polygons, labels=None):
+    def _build_dicts(self, tiles, polygons, topology, labels=None):
         """Given a array of tuples (polygons, tile), return dictionaries for executing the merging:
 
         Parameters
@@ -279,6 +271,8 @@ class SemanticMerger(object):
             the polygons detected in the tile tiles[i].
         labels: iterable (size: n, subtype: iterable of int, default: None)
             The labels associated with the polygons. If None, all polygons are considered to have the same label.
+        topology: TileTopology
+            The tile topology
 
         Returns
         -------
@@ -294,14 +288,14 @@ class SemanticMerger(object):
 
         polygon_cnt = 1
         for i, (tile_id, polygons) in enumerate(zip(tiles, polygons)):
-            polygons_ids = []
 
+            curr_tile_poly_dict = dict()
             for j, polygon in enumerate(polygons):
-                polygons_dict[polygon_cnt] = polygon
+                curr_tile_poly_dict[polygon_cnt] = polygon
                 labels_dict[polygon_cnt] = 1 if labels is None else labels[i][j]
-                polygons_ids.append(polygon_cnt)
                 polygon_cnt += 1
 
-            tiles_dict[tile_id] = polygons_ids
+            tiles_dict[tile_id] = TilePolygons(tile_id, topology, curr_tile_poly_dict, filter_dist=self._tolerance)
+            polygons_dict.update(curr_tile_poly_dict)
 
         return tiles_dict, polygons_dict, labels_dict
