@@ -157,7 +157,7 @@ def _parallel_segment_locate(pool, segmenter, locator, logger, tile_topology, ti
 
     sub_timings, tiles_polygons = list(zip(*results))
     tiles = np.array([tid for result in tiles_polygons for tid, _ in result])
-    tile_polygons = np.array([polygons for result in tiles_polygons for _, polygons in result])
+    tile_polygons = np.array([polygons for result in tiles_polygons for _, polygons in result], dtype=np.object)
 
     # merge sub timings
     for sub_timing in sub_timings:
