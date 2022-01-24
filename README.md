@@ -14,19 +14,6 @@ while providing a concise way of declaring problem-dependent components of the i
 
 The algorithm used by the framework as well as some toy examples are presented in the [Wiki](https://github.com/waliens/sldc/wiki).
 
-## Dependencies
-
-The framework currently works under Python 2.7 and 3.5.
-
-The required dependencies are the following :
-
-* Numpy (>= 1.10, might work with earlier versions)
-* OpenCV (>= 3.0)
-* Pillow (>= 3.1.1)
-* joblib (>= 0.9.4)
-* Shapely (>= 1.5.13)
-* Scipy (>= 0.18.1)
-
 ## Install
 
 Simply: `pip install sldc`
