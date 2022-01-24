@@ -825,6 +825,10 @@ class TileTopology(object):
         """
         return TileTopology.tile_count_1d(self._image.width, self._max_width, self._overlap)
 
+    @property
+    def overlap(self):
+        return self._overlap
+
     @staticmethod
     def tile_count_1d(length, tile_length, overlap=0):
         """Compute the number of tiles of length 'tile_length' that can be generated over one dimension of the an image

@@ -18,8 +18,8 @@ class UnionFind(object):
     def union(self, elem1, elem2):
         if not self.has(elem1) or not self.has(elem2):
             return False
-        parent1, rank1 = self.find(elem1)
-        parent2, rank2 = self.find(elem2)
+        parent1, rank1 = self._find(elem1)
+        parent2, rank2 = self._find(elem2)
         
         if parent1 == parent2:
             return True
@@ -55,11 +55,14 @@ class UnionFind(object):
         parent, _ = self._find(elem)
         return parent
 
-    def components(self):
+    def connected_components(self):
         comp_dict = defaultdict(list)
-        for elem, (parent, rank) in self._nodes.items():
-            if elem == parent: 
-                 
+        for elem, (parent, _) in self._nodes.items():
+            if elem == parent:
+                comp_dict[elem].append(elem)
+            else:
+                comp_dict[self.find(elem)].append(elem)
+        return comp_dict.values()
 
 
 def aggr_max_area_label(areas, labels):
@@ -188,7 +191,7 @@ class SemanticMerger(object):
                 neigh_candidates = tiles_dict[neighbour].polygons_by_side(TilePolygons.opposite_side(side))
                 self._register_merge(curr_candidates, neigh_candidates, polygons_dict, labels_dict, geom_uf)
         
-        merged_polygons, merged_labels = self._do_merge(geom_graph, polygons_dict, labels_dict)
+        merged_polygons, merged_labels = self._do_merge(geom_uf, polygons_dict, labels_dict)
         if labels is None:
             return np.array(merged_polygons)
         else:
@@ -215,7 +218,7 @@ class SemanticMerger(object):
         """
         for poly_id1 in polygons1:
             for poly_id2 in polygons2:
-                if geom_uf.same(poly1, poly2):
+                if geom_uf.same(poly_id1, poly_id2):
                     continue
                 poly1, poly2 = polygons_dict[poly_id1], polygons_dict[poly_id2]
                 label1, label2 = labels_dict[poly_id1], labels_dict[poly_id2]
@@ -244,7 +247,7 @@ class SemanticMerger(object):
         join = JOIN_STYLE.mitre
         merged_polygons = []
         merged_labels = []
-        for component in components:
+        for component in geom_uf.connected_components():
             if len(component) == 1:
                 polygon = polygons_dict[component[0]]
                 label = labels_dict[component[0]]
@@ -295,7 +298,7 @@ class SemanticMerger(object):
                 labels_dict[polygon_cnt] = 1 if labels is None else labels[i][j]
                 polygon_cnt += 1
 
-            tiles_dict[tile_id] = TilePolygons(tile_id, topology, curr_tile_poly_dict, filter_dist=self._tolerance)
+            tiles_dict[tile_id] = TilePolygons(tile_id, topology, curr_tile_poly_dict, filter_dist=self._tolerance + topology.overlap)
             polygons_dict.update(curr_tile_poly_dict)
 
         return tiles_dict, polygons_dict, labels_dict
