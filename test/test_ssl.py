@@ -1,11 +1,9 @@
 from unittest import TestCase
 
-import cv2
 import numpy as np
-from shapely.geometry import Polygon
 
 from sldc import SemanticSegmenter, SSLWorkflowBuilder
-from test import draw_square, draw_square_by_corner, NumpyImage
+from test import draw_square_by_corner, NumpyImage
 
 
 class BasicSemanticSegmenter(SemanticSegmenter):

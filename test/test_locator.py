@@ -5,7 +5,7 @@ from shapely.affinity import translate, affine_transform
 from shapely.geometry import Polygon
 
 from sldc import BinaryLocator, SemanticLocator
-from .util import mk_img, draw_circle, draw_poly, relative_error
+from test.util import mk_img, draw_circle, draw_poly, relative_error
 
 
 class TestLocatorNothingToLocate(TestCase):

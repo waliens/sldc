@@ -4,8 +4,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from sldc.image import SkipBordersTileTopology, FixedSizeTileTopology
-from .util import NumpyImage
-from .fake_image import FakeImage, FakeTileBuilder
+from test.util import NumpyImage
+from test.fake_image import FakeImage, FakeTileBuilder
 
 
 class TestTileFromImage(TestCase):

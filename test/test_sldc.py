@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from sldc import Dispatcher, report_timing, StandardOutputLogger, Logger
 from sldc import DispatchingRule, PolygonClassifier, SLDCWorkflowBuilder, Segmenter
-from .util import circularity, draw_circle, draw_square, draw_poly, NumpyImage, relative_error
+from test.util import circularity, draw_circle, draw_square, draw_poly, NumpyImage, relative_error
 
 __author__ = "Mormont Romain <romain.mormont@gmail.com>"
 __version__ = "0.1"
