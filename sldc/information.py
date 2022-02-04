@@ -4,6 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 
+from .util import shape_array
 from .timing import WorkflowTiming, merge_timings
 
 
@@ -39,7 +40,7 @@ class WorkflowInformation(object):
         ValueError: if data size is invalid or if the passed names clash with class fields
         """
         self._data = {key: np.asarray(value[0]) for key, value in kwargs.items()}
-        self._data[self.DATA_FIELD_POLYGONS] = np.array(polygons, dtype=np.object)
+        self._data[self.DATA_FIELD_POLYGONS] = shape_array(polygons)
         self._data[self.DATA_FIELD_LABELS] = np.array(labels)
         self._timing = timing
 
@@ -218,7 +219,7 @@ class ChainInformation(object):
     @property
     def polygons(self):
         """Return all the found polygons"""
-        return np.array([p for info_label in self._order for p in self._infos[info_label].polygons], dtype=np.object)
+        return shape_array([p for info_label in self._order for p in self._infos[info_label].polygons])
 
     @property
     def labels(self):

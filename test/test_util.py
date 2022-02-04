@@ -48,7 +48,7 @@ class TestUtil(TestCase):
         self.assertTrue(has_alpha_channel(fake_image4))
 
     def test_alpha_rasterize(self):
-        fake_image = np.zeros((25, 25), dtype=np.int)
+        fake_image = np.zeros((25, 25), dtype=np.int32)
         polygon = Polygon([(5, 5), (5, 20), (20, 20), (20, 5), (5, 5)])
 
         masked_image = alpha_rasterize(fake_image, polygon)
@@ -56,25 +56,25 @@ class TestUtil(TestCase):
         self.assertEqual(255, masked_image[12, 12, 1])
         self.assertEqual(0, masked_image[0, 0, 1])
 
-        fake_image1 = np.zeros((25, 25, 1), dtype=np.int)
+        fake_image1 = np.zeros((25, 25, 1), dtype=np.int32)
         masked_image1 = alpha_rasterize(fake_image1, polygon)
         self.assertTupleEqual((25, 25, 2), masked_image1.shape)
         self.assertEqual(255, masked_image1[12, 12, 1])
         self.assertEqual(0, masked_image1[0, 0, 1])
 
-        fake_image2 = np.zeros((25, 25, 2), dtype=np.int)
+        fake_image2 = np.zeros((25, 25, 2), dtype=np.int32)
         masked_image2 = alpha_rasterize(fake_image2, polygon)
         self.assertTupleEqual((25, 25, 2), masked_image2.shape)
         self.assertEqual(255, masked_image2[12, 12, 1])
         self.assertEqual(0, masked_image2[0, 0, 1])
 
-        fake_image3 = np.zeros((25, 25, 3), dtype=np.int)
+        fake_image3 = np.zeros((25, 25, 3), dtype=np.int32)
         masked_image3 = alpha_rasterize(fake_image3, polygon)
         self.assertTupleEqual((25, 25, 4), masked_image3.shape)
         self.assertEqual(255, masked_image3[12, 12, 3])
         self.assertEqual(0, masked_image3[0, 0, 1])
 
-        fake_image4 = np.zeros((25, 25, 4), dtype=np.int)
+        fake_image4 = np.zeros((25, 25, 4), dtype=np.int32)
         masked_image4 = alpha_rasterize(fake_image4, polygon)
         self.assertTupleEqual((25, 25, 4), masked_image4.shape)
         self.assertEqual(255, masked_image4[12, 12, 3])

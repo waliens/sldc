@@ -6,6 +6,7 @@ from numpy.testing import assert_array_equal
 from shapely.geometry import Polygon, Point
 
 from sldc import WorkflowInformation, WorkflowTiming, merge_information, ChainInformation
+from sldc.util import shape_array
 
 
 class TestInformation(TestCase):
@@ -18,7 +19,7 @@ class TestInformation(TestCase):
         self.assertEqual(len(info), 1)
         self.assertEqual(timing, info.timing)
         assert_array_equal(labels, info.labels)
-        assert_array_equal(np.array(polygons, dtype=np.object), info.polygons)
+        assert_array_equal(shape_array(polygons), info.polygons)
         self.assertSetEqual(set(info.fields), {info.DATA_FIELD_POLYGONS, info.DATA_FIELD_LABELS})
 
         object_info = info[0]
@@ -41,7 +42,7 @@ class TestInformation(TestCase):
         self.assertEqual(len(info), 2)
         self.assertEqual(timing, info.timing)
         assert_array_equal(labels, info.labels)
-        assert_array_equal(np.array(polygons, dtype=np.object), info.polygons)
+        assert_array_equal(shape_array(polygons), info.polygons)
         assert_array_equal(dispatch, info.dispatches)
         self.assertSetEqual(set(info.fields), {info.DATA_FIELD_POLYGONS, info.DATA_FIELD_LABELS, "dispatches"})
 
@@ -65,7 +66,7 @@ class TestInformation(TestCase):
         self.assertEqual(len(info), 2)
         self.assertEqual(timing, info.timing)
         assert_array_equal(labels, info.labels)
-        assert_array_equal(np.array(polygons, dtype=np.object), info.polygons)
+        assert_array_equal(shape_array(polygons), info.polygons)
         assert_array_equal(dispatch, info.dispatches)
         self.assertSetEqual(set(info.fields), {info.DATA_FIELD_POLYGONS, info.DATA_FIELD_LABELS, "dispatches"})
 
@@ -127,4 +128,4 @@ class TestChainInformation(TestCase):
             self.assertEqual(e_workflow, a_workflow)
 
         assert_array_equal(chain_info.labels, np.array(labels + labels))
-        assert_array_equal(chain_info.polygons, np.array(polygons + polygons, dtype=np.object))
+        assert_array_equal(chain_info.polygons, shape_array(polygons + polygons))

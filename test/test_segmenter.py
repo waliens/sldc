@@ -17,7 +17,7 @@ class BasicProbalisticSegmenter(ProbabilisticSegmenter):
         height, width = image.shape
         values = np.sort(np.unique(image))
         n_values = values.shape[0]
-        probas = np.zeros((height, width, n_values), dtype=np.float)
+        probas = np.zeros((height, width, n_values), dtype=np.float64)
         for v in values:
             probas[:, :, v][image == v] = 1.0
         return probas

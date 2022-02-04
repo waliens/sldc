@@ -109,7 +109,7 @@ class SemanticSegmenter(object):
 
         Returns
         -------
-        segmented : ndarray (shape: [width, height], dtype=np.int)
+        segmented : ndarray (shape: [width, height], dtype=np.int32)
             An NumPy representation of the segmented image. Each pixel is associated with its true classification 
             label.
             

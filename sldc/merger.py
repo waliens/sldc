@@ -6,6 +6,8 @@ from shapely.geometry import JOIN_STYLE, box as bbox
 from shapely.ops import unary_union
 from shapely import affinity
 
+from .util import shape_array
+
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __contributor__ = ["Romain Mormont <romainmormont@hotmail.com>"]
 __version = "0.1"
@@ -193,9 +195,9 @@ class SemanticMerger(object):
         
         merged_polygons, merged_labels = self._do_merge(geom_uf, polygons_dict, labels_dict)
         if labels is None:
-            return np.array(merged_polygons)
+            return shape_array(merged_polygons)
         else:
-            return np.array(merged_polygons), np.array(merged_labels)
+            return shape_array(merged_polygons), np.array(merged_labels)
 
     def _register_merge(self, polygons1, polygons2, polygons_dict, labels_dict, geom_uf):
         """Compare 2-by-2 the polygons in the two arrays. If they are very close (using `self._tolerance` as distance

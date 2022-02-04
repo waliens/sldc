@@ -159,3 +159,9 @@ def alpha_rasterize(image, polygon):
     rasterized[:, :, 0:depth-1] = source
     rasterized[:, :, depth-1] = alpha
     return rasterized
+
+
+def shape_array(sequence):
+    array = np.empty(len(sequence), dtype=object)
+    array[:] = sequence
+    return array

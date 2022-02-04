@@ -5,7 +5,7 @@ import numpy as np
 
 from .timing import WorkflowTiming
 from .logging import Loggable, SilentLogger
-from .util import emplace, take
+from .util import emplace, shape_array, take
 
 __author__ = "Romain Mormont <romainmormont@hotmail.com>"
 __version__ = "0.1"
@@ -133,7 +133,7 @@ class Dispatcher(Loggable):
             return dispatch_labels, dispatch_labels
 
         # compute mapping indexes
-        indexes = np.full(dispatch_labels.shape, -1, dtype=np.int)
+        indexes = np.full(dispatch_labels.shape, -1, dtype=np.int32)
         for label, index in self._mapping.items():
             indexes[dispatch_labels == label] = index
 
@@ -219,7 +219,7 @@ class RuleBasedDispatcher(Dispatcher):
 
     def dispatch_batch(self, image, polygons):
         poly_count = len(polygons)
-        dispatch_labels = np.full((poly_count,), None, dtype=np.object)  # dispatch indexes
+        dispatch_labels = np.full((poly_count,), None, dtype=object)  # dispatch indexes
         remaining = np.arange(poly_count)  # remaining indexes to process
         # check which rule matched the polygons
         for i, (rule, label) in enumerate(zip(self._rules, self._labels)):
@@ -362,9 +362,9 @@ class DispatcherClassifier(Loggable):
 
         # classify
         poly_count = len(polygons)
-        predictions = np.full((poly_count,), None, dtype=np.object)
+        predictions = np.full((poly_count,), None, dtype=object)
         probabilities = np.full((poly_count,), 0.0, dtype=np.float32)
-        np_polygons = np.array(polygons)
+        np_polygons = shape_array(polygons)
 
         self.logger.info("DispatcherClassifier: start classification.")
         for index, first in zip(unique_disp_indexes, first_occurs):
