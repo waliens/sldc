@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 __version__ = "1.4.0"
 
-requires = ['rasterio', 'affine', 'pillow', 'numpy', 'joblib', 'shapely>=1.8', 'scipy', 'scikit-image']
+requires = ['rasterio', 'affine', 'pillow', 'numpy', 'joblib', 'shapely>=1.8', 'scikit-image']
 
 setup(
     name='sldc',
