@@ -506,6 +506,10 @@ class Tile(ImageWindow):
         self._identifier = tile_identifier
 
     @property
+    def id(self):
+        return self.identifier 
+        
+    @property
     def identifier(self):
         return self._identifier
 

@@ -85,12 +85,12 @@ class TilePolygons(object):
     RIGHT = 3
     NONE = 4
     
-    def __init__(self, tile_id, topology, polygons_dict, filter_dist=None):
+    def __init__(self, tile_id, topology, polygons_dict, tolerance=None):
         super().__init__()
         self._tile_id = tile_id
         self._topology = topology
         self._polygons_dict = polygons_dict
-        self._filter_dist = filter_dist
+        self._tolerance = tolerance
         self._by_side = self._compute_by_side()
 
     def _compute_by_side(self):
@@ -98,12 +98,26 @@ class TilePolygons(object):
         tile = self._topology.tile(self._tile_id)
         off_x, off_y = tile.offset
         translate = partial(affinity.translate, xoff=off_x, yoff=off_y)
+        
+        # evaluate filter distances per neighbour
+        neighbours = self._topology.tile_neighbours(tile.id)
+        filter_dists = dict()
+        for side, neighbour_tile_id in zip([self.TOP, self.BOTTOM, self.LEFT, self.RIGHT], neighbours):
+            if neighbour_tile_id is None:
+                filter_dists[side] = 0
+            elif self._tolerance is None:
+                filter_dists[side] = tile.height if side in {self.TOP, self.BOTTOM} else self.width
+            else:    
+                neighbour_tile = self._topology.tile(neighbour_tile_id)
+                filter_dists[side] = self._tolerance + self._actual_tile_overlap(tile, neighbour_tile, side)
+
         boxes = {
-            self.TOP: translate(bbox(0, 0, tile.width, self._filter_dist)),
-            self.BOTTOM: translate(bbox(0, tile.height - self._filter_dist, tile.width, tile.height)),
-            self.LEFT: translate(bbox(0, 0, self._filter_dist, tile.height)),
-            self.RIGHT: translate(bbox(tile.width - self._filter_dist, 0, tile.width, tile.height))
+            self.TOP: translate(bbox(0, 0, tile.width, filter_dists[self.TOP])),
+            self.BOTTOM: translate(bbox(0, tile.height - filter_dists[self.BOTTOM], tile.width, tile.height)),
+            self.LEFT: translate(bbox(0, 0, filter_dists[self.LEFT], tile.height)),
+            self.RIGHT: translate(bbox(tile.width - filter_dists[self.RIGHT], 0, tile.width, tile.height))
         }
+    
         by_side = defaultdict(list)
         for poly_id, polygon in self._polygons_dict.items():
             matched_any = False
@@ -114,13 +128,23 @@ class TilePolygons(object):
             if not matched_any:
                 by_side[self.NONE].append(poly_id)
         return by_side
+    
+    def _actual_tile_overlap(self, ref_tile, neighbour_tile, neighbour_side):
+        if neighbour_side == self.TOP:
+            return (neighbour_tile.offset_y + neighbour_tile.height) - ref_tile.offset_y 
+        elif neighbour_side == self.BOTTOM:
+            return (ref_tile.offset_y + ref_tile.height) - neighbour_tile.offset_y
+        elif neighbour_side == self.LEFT:
+            return (neighbour_tile.offset_x + neighbour_tile.width) - ref_tile.offset_x 
+        else:
+            return (ref_tile.offset_x + ref_tile.width) - neighbour_tile.offset_x
 
     @property
     def polygons(self):
         return self._polygons
 
     def polygons_by_side(self, side):
-        if self._filter_dist is None:
+        if self._tolerance is None:
             # not filter dist -> return all poly
             return self.polygons 
         return self._by_side[side]
@@ -300,7 +324,7 @@ class SemanticMerger(object):
                 labels_dict[polygon_cnt] = 1 if labels is None else labels[i][j]
                 polygon_cnt += 1
 
-            tiles_dict[tile_id] = TilePolygons(tile_id, topology, curr_tile_poly_dict, filter_dist=self._tolerance + topology.overlap)
+            tiles_dict[tile_id] = TilePolygons(tile_id, topology, curr_tile_poly_dict, tolerance=self._tolerance)
             polygons_dict.update(curr_tile_poly_dict)
 
         return tiles_dict, polygons_dict, labels_dict

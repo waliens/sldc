@@ -3,6 +3,7 @@ from unittest import TestCase
 import numpy as np
 
 from sldc import SemanticSegmenter, SSLWorkflowBuilder
+from sldc.workflow import Workflow
 from test import draw_square_by_corner, NumpyImage
 
 
@@ -99,3 +100,22 @@ class TestFullWorkflow(TestCase):
         self.assertEqual(190, results.labels[idx[2]])
         self.assertEqual(85, results.labels[idx[3]])
         self.assertEqual(190, results.labels[idx[4]])
+
+    def testDetectWithFixedSizedTopology(self):
+        # sorted by area
+        image = np.zeros((200, 250), dtype=np.uint8)
+        image = draw_square_by_corner(image, 180, (10, 10), 255)
+
+        builder = SSLWorkflowBuilder()
+        builder.set_segmenter(BasicSemanticSegmenter())
+        builder.set_border_tiles(Workflow.BORDER_TILES_EXTEND)
+        builder.set_default_tile_builder()
+        builder.set_tile_size(190, 190)
+        builder.set_background_class(0)
+        builder.set_n_jobs(1)
+        workflow = builder.get()
+
+        results = workflow.process(NumpyImage(image))
+        self.assertEqual(len(results), 1)
+        self.assertEqual(181 ** 2, int(results.polygons[0].area))
+        self.assertEqual(255, results.labels[0])
