@@ -5,7 +5,7 @@ from setuptools import setup
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-__version__ = "1.4.1"
+__version__ = "1.4.2"
 
 requires = ['rasterio', 'affine', 'pillow', 'numpy', 'joblib', 'shapely>=1.8', 'scikit-image']
 
